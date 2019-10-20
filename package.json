@@ -1,0 +1,27 @@
+{
+  "name": "chain-subscriber",
+  "version": "1.0.0",
+  "description": "chain subscriber",
+  "main": "dist/index.js",
+  "dependencies": {
+    "@vechain/connex-framework": "^1.1.1",
+    "@vechain/connex.driver-nodejs": "^1.2.0-beta3",
+    "chain-observer": "file:../chain-observer",
+    "mysql2": "^1.7.0",
+    "reflect-metadata": "^0.1.13",
+    "strict-event-emitter-types": "^2.0.0",
+    "typeorm": "^0.2.19"
+  },
+  "devDependencies": {
+    "@types/node": "^12.6.8",
+    "ts-node": "^8.4.1",
+    "tslint": "^5.20.0",
+    "typescript": "^3.6.3"
+  },
+  "scripts": {
+    "build": "rm -fr dist && tsc -p .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "tony.li",
+  "license": "LGPL-3.0"
+}

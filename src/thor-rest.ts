@@ -1,0 +1,44 @@
+import { SimpleNet } from '@vechain/connex.driver-nodejs'
+import '@vechain/connex'
+
+export class Thor {
+
+    // default genesis ID to mainnet
+    constructor(readonly net: SimpleNet, readonly genesisID = '0x00000000851caf3cfdb6e899cf5958bfb1ac3413d346d43539627e6be7ec1b4a') { }
+
+    public getBlock(revision: string | number) {
+        return this.httpGet<Required<Connex.Thor.Block>>(`blocks/${revision}`)
+    }
+    public getTransaction(id: string, head?: string) {
+        return this.httpGet<Connex.Thor.Transaction>(`transactions/${id}`, head ? { head } : {})
+    }
+    public getReceipt(id: string, head?: string) {
+        return this.httpGet<Connex.Thor.Receipt>(`transactions/${id}/receipt`, head ? { head } : {})
+    }
+    public getAccount(addr: string, revision?: string) {
+        return this.httpGet<Connex.Thor.Account>(`accounts/${addr}`, revision ? { revision } : {})
+    }
+    public getCode(addr: string, revision?: string) {
+        return this.httpGet<Connex.Thor.Code>(`accounts/${addr}/code`, revision ? { revision } : {})
+    }
+    public getStorage(addr: string, key: string, revision?: string) {
+        return this.httpGet<Connex.Thor.Storage>(`accounts/${addr}/storage/${key}`, revision ? { revision } : {})
+    }
+
+    protected httpGet<T>(path: string, query?: Record<string, string>): Promise<T> {
+        return this.net.http('GET', path, {
+            query,
+            validateResponseHeader: this.headerValidator
+        })
+    }
+
+    private get headerValidator() {
+        return (headers: Record<string, string>) => {
+            const xGeneID = headers['x-genesis-id']
+            if (xGeneID && xGeneID !== this.genesisID) {
+                throw new Error(`responded 'x-genesis-id' not match`)
+            }
+        }
+    }
+
+}

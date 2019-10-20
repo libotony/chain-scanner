@@ -1,0 +1,17 @@
+export const blockIDtoNum = (blockID: string) => {
+    if (typeof blockID === 'string' && !/^0x[0-9a-fA-f]{64}$/i.test(blockID)) {
+        throw new Error('bytes32 required as param but got: ' + blockID)
+    }
+
+    return parseInt(blockID.slice(0, 10), 16)
+}
+
+export const sleep = (ms: number) => {
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms)
+    })
+}
+
+export const displayID = (blockID: string) => {
+    return `${blockIDtoNum(blockID)}...${blockID.slice(58)}`
+}

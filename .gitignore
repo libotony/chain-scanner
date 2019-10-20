@@ -1,0 +1,10 @@
+/node_modules/
+/dist/
+/es6/
+/.vscode/
+/coverage/
+/.nyc_output/
+*.tgz
+.env
+*.log
+
