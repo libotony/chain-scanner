@@ -1,13 +1,17 @@
-import { Column, Entity, JoinColumn, PrimaryColumn, ManyToOne } from 'typeorm'
+import { Column, Entity, JoinColumn, PrimaryColumn, ManyToOne, Index, PrimaryGeneratedColumn } from 'typeorm'
 import { Output } from '../../types'
 import { Block } from './block'
 
 @Entity()
+@Index('receiptUnique', ['txID', 'block'], { unique: true })
 export class Receipt {
-    @PrimaryColumn({ type: 'char', length: 66 })
+    @PrimaryGeneratedColumn('increment')
+    public id: number
+
+    @Column({ type: 'char', length: 66 })
     public txID: string
 
-    @ManyToOne(type => Block, {primary: true})
+    @ManyToOne(type => Block)
     @JoinColumn({ name: 'blockID' })
     public block: Block
 

@@ -8,7 +8,8 @@ export class Block {
     @PrimaryColumn({type: 'char', length: 66})
     public id: string
 
-    @Column({unsigned: true})
+    @Index()
+    @Column()
     public number: number
 
     @Column({unsigned: true, type: 'bigint'})

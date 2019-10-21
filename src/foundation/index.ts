@@ -94,14 +94,13 @@ export class Foundation {
             const config = await this.persist.getHead()
 
             // TODO: for test&dev starting from 3,500,000
-            // const freshStartPoint = ''
-            const freshStartPoint =  '0x003d08ffd2683df6555f0e3480bde578f8feede131650c3af01b534d234a921e'
+            const freshStartPoint = ''
+            // const freshStartPoint =  '0x003d08ffd2683df6555f0e3480bde578f8feede131650c3af01b534d234a921e'
             if (!config) {
                 return freshStartPoint
             } else {
                 return  config.value
             }
-
         }
     }
 
@@ -142,8 +141,10 @@ export class Foundation {
         }
         head = await this.getHead()
 
-        if (blockIDtoNum(head) >= stopPos.number - 1) {
+        if (blockIDtoNum(head) === stopPos.number - 1) {
             return
+        } else if (blockIDtoNum(head) >= stopPos.number) {
+            throw new Error('Head greater than new trunk, drop first')
         }
 
         const blocks: Array<Required<Connex.Thor.Block>> = []
@@ -169,6 +170,7 @@ export class Foundation {
             await this.persist.saveHead(stopPos.parentID, manager)
         })
         this.head = stopPos.parentID
+        return this.head
     }
 
     private async fastForward(target: number) {
@@ -179,8 +181,7 @@ export class Foundation {
         let b: Required<Connex.Thor.Block>
 
         for (let i = headNum + 1; i <= target;) {
-            const startNum
-                = i
+            const startNum = i
             console.time('time')
             await getConnection().transaction(async (manager) => {
                 for (; i <= target;) {

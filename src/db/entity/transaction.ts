@@ -1,15 +1,18 @@
 
-import { Entity, PrimaryColumn, Column, Index, OneToMany, OneToOne, JoinColumn, ManyToOne } from 'typeorm'
+import { Entity, PrimaryColumn, Column, Index, OneToMany, OneToOne, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
 
-import { Clause } from '../../types'
 import { Block } from './block'
 
 @Entity()
+@Index('txUnique', ['txID', 'block'], {unique: true})
 export class Transaction {
-    @PrimaryColumn({ type: 'char', length: 66 })
-    public id: string
+    @PrimaryGeneratedColumn('increment')
+    public id: number
 
-    @ManyToOne(type => Block, block => block.id, { primary: true })
+    @Column({ type: 'char', length: 66 })
+    public txID: string
+
+    @ManyToOne(type => Block, block => block.id)
     @JoinColumn({ name: 'blockID' })
     public block: Block
 
@@ -36,9 +39,6 @@ export class Transaction {
 
     @Column({ type: 'char', length: 66, nullable: true })
     public dependsOn: string
-
-    @Column('simple-json')
-    public clauses: Clause[]
 
     @Column()
     public size: number
