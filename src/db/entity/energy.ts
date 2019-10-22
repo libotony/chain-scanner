@@ -2,7 +2,7 @@
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm'
 
 @Entity()
-export class VET {
+export class Energy {
 
     @PrimaryGeneratedColumn('increment')
     public id: number
