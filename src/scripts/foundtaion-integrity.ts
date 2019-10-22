@@ -19,7 +19,7 @@ initConnection().then(async (conn) => {
 
     for (; ;) {
         const b = await getBlock(current.parentID)
-        if (b === null) {
+        if (!b) {
             throw new Error(`continuity Block(${displayID(current.id)})'s parentID(${current.parentID}) missing`)
         }
         if (b.number === STOP_NUMBER) {
