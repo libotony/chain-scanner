@@ -28,3 +28,9 @@ export interface Output {
     events: Event[],
     transfers: Transfer[]
 }
+
+export interface Clause {
+    to: string | null
+    value: string | number
+    data: string
+}

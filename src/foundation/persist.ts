@@ -5,7 +5,6 @@ import { Block } from '../db/entity/block'
 import { displayID } from '../utils'
 import { Transaction } from '../db/entity/transaction'
 import { Receipt } from '../db/entity/receipt'
-import { Clause } from '../db/entity/clause'
 
 const HEAD_KEY = 'foundation-head'
 
@@ -61,55 +60,34 @@ export class Persist {
 
         const txs: Transaction[] = []
         const receipts: Receipt[] = []
-        const clauses: Clause[] = []
 
         for (const [index, txID] of b.transactions.entries()) {
             const t = await thor.getTransaction(txID, head)
             const r = await thor.getReceipt(txID, head)
 
-            txs.push(manager.create(Transaction, {
+            const txE = manager.create(Transaction, {
                 ...t,
                 id: undefined,
                 txID: t.id,
                 txIndex: index,
-                block: { id: b.id }
-            }))
-            for (const [i, c] of t.clauses.entries()) {
-                clauses.push(manager.create(Clause, { ...c, clauseIndex: i, transaction: { txID: t.id } }))
+                blockID: b.id
+            })
+            for (const clause of txE.clauses) {
+                if (clause.data === '0x') {
+                    clause.data = ''
+                }
             }
+            txs.push(txE)
 
-            receipts.push(manager.create(Receipt, { ...r, txID: t.id, txIndex: index, block: { id: b.id } }))
+            receipts.push(manager.create(Receipt, { ...r, txID: t.id, txIndex: index, blockID: b.id }))
         }
         await manager.insert(Block, block)
         if (txs.length) {
             await manager.insert(Transaction, txs)
-            await this.saveClauses(clauses, manager)
             await manager.insert(Receipt, receipts)
         }
         // console.timeEnd(label)
-        return 1 + txs.length + clauses.length + receipts.length
-    }
-
-    private async saveClauses(clauses: Clause[], manager: EntityManager) {
-        const cache = new Map<string, boolean>()
-        for (const c of clauses) {
-            if (cache.has(c.transaction.txID)) {
-                const has = cache.get(c.transaction.txID)
-                if (!has) {
-                    await manager.save(Clause, c)
-                }
-            } else {
-                const num = await manager
-                    .getRepository(Clause)
-                    .count({ transaction: c.transaction })
-                if (num) {
-                    cache.set(c.transaction.txID, true)
-                } else {
-                    cache.set(c.transaction.txID, false)
-                    await manager.save(Clause, c)
-                }
-            }
-        }
+        return 1 + txs.length + receipts.length
     }
 
 }

@@ -63,7 +63,11 @@ export class Foundation {
                         break
                     case 'Fork':
                         const f = (task as Task<'Fork'>).data
-                        await this.blockContinuity(f.trunk[0])
+
+                        const head = await this.getHead()
+                        if (blockIDtoNum(head) < f.trunk[0].number) {
+                            await this.blockContinuity(f.trunk[0])
+                        }
 
                         const blockIDs = f.branch.map(i => i.id)
                         await getConnection().transaction(async (manager) => {
