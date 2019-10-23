@@ -1,64 +1,85 @@
 import { Block } from '../../db/entity/block'
 import { Account } from '../../db/entity/account'
 import { Thor } from '../../thor-rest'
-import { VET } from '../../db/entity/vet'
+import { Transfer } from '../../db/entity/transfer'
 import { Energy } from '../../db/entity/energy'
 import { displayID } from '../../utils'
+import { EntityManager } from 'typeorm'
 
 export class BlockProcessor {
-    public VETMovement: VET[] = []
+    public VETMovement: Transfer[] = []
     public EnergyMovement: Energy[] = []
+
     private acc = new Map<string, Account>()
     private snap = new Map<string, object>()
+    private code = new Set<string>()
+    private balance = new Set<string>()
 
     constructor(
         readonly block: Block,
-        readonly getAccountFromDB: (addr: string) => Promise<Account>,
-        readonly thor: Thor
+        readonly thor: Thor,
+        readonly manager: EntityManager
     ) { }
 
-    public async updateMaster(addr: string, master: string) {
-        const acc = await this.getOrCreateAccount(addr)
+    public async master(addr: string, master: string) {
+        const acc = await this.account(addr)
 
         acc.master = master
+        this.code.add(addr)
         return acc
     }
 
-    public async transferVeChain(transfer: VET) {
-        const senderAcc = await this.getOrCreateAccount(transfer.sender)
-        const recipientAcc = await this.getOrCreateAccount(transfer.recipient)
+    public async transferVeChain(move: Transfer) {
+        const senderAcc = await this.account(move.sender)
+        const recipientAcc = await this.account(move.recipient)
 
         // touch sender's balance
-        let balance = BigInt(senderAcc.balance) - BigInt(transfer.amount)
+        let balance = BigInt(senderAcc.balance) - BigInt(move.amount)
         if (balance < 0) {
-            throw new Error(`Fatal: VET balance under 0 of Account(${transfer.sender}) at Block(${displayID(this.block.id)})`)
+            throw new Error(`Fatal: VET balance under 0 of Account(${move.sender}) at Block(${displayID(this.block.id)})`)
         }
-        senderAcc.balance = '0x' + balance.toString(16)
+        senderAcc.balance = balance
 
         // touch recipient's account
-        balance = BigInt(recipientAcc.balance) + BigInt(transfer.amount)
-        recipientAcc.balance = '0x' + balance.toString(16)
+        balance = BigInt(recipientAcc.balance) + BigInt(move.amount)
+        recipientAcc.balance = balance
 
-        this.VETMovement.push(transfer)
+        this.VETMovement.push(move)
     }
 
-    public async transferEnergy(transfer: Energy) {
-        await this.touchAccount(transfer.sender)
-        await this.touchAccount(transfer.recipient)
+    public async transferEnergy(move: Energy) {
+        // await this.touchAccount(transfer.sender)
+        // await this.touchAccount(transfer.recipient)
 
         this.EnergyMovement.push(transfer)
     }
 
-    public async accounts() {
+    public accounts() {
         const accs: Account[] = []
         for (const [_, acc] of this.acc.entries()) {
-            const ret = await this.thor.getAccount(acc.address, this.block.id)
-            acc.energy = ret.energy
-            acc.blockTime = this.block.timestamp
-
             accs.push(acc)
         }
         return accs
+    }
+
+    public async finalize() {
+        for (const [_, acc] of this.acc.entries()) {
+            const ret = await this.thor.getAccount(acc.address, this.block.id)
+            acc.energy = BigInt(ret.energy)
+            acc.blockTime = this.block.timestamp
+
+            if (this.balance.has(acc.address)) {
+                acc.balance = BigInt(ret.balance)
+            }
+
+            if (this.code.has(acc.address) && ret.hasCode) {
+                const code = await this.thor.getCode(acc.address, this.block.id)
+                if (code && code.code !== '0x') {
+                    acc.code = code.code
+                }
+             }
+
+        }
     }
 
     public snapshots() {
@@ -69,49 +90,38 @@ export class BlockProcessor {
         return ret
     }
 
-    public touchAccount(addr: string) {
-        return this.getOrCreateAccount(addr)
+    public async touchAccount(addr: string) {
+        await this.account(addr)
+        return
     }
 
-    private async getOrCreateAccount(addr: string) {
+    private async account(addr: string) {
         if (this.acc.has(addr)) {
             return this.acc.get(addr)
         }
 
-        const acc = await this.getAccountFromDB(addr)
+        const acc = await this.manager.getRepository(Account).findOne({ address: addr })
         if (acc) {
             this.acc.set(addr, acc)
             this.snap.set(addr, {...acc})
             return acc
         } else {
             console.log(`Create Account(${addr}) at block (${displayID(this.block.id)})`)
-            const isGenesis = this.block.number === 0
+            const newAcc = this.manager.create(Account, {
+                address: addr,
+                balance: BigInt(0),
+                energy: BigInt(0),
+                code: null,
+                master: null
+            })
 
-            const revision = isGenesis ? this.block.id : this.block.parentID
-            const ret = await this.thor.getAccount(addr, revision)
-
-            if (this.block.number !== 0 && (ret.balance !== '0x0' || ret.energy !== '0x0')) {
-                throw new Error(`Fatal: Account(${addr} got balances when creating at block (${this.block.id}))`)
+            if (this.block.number === 0) {
+                this.balance.add(addr)
             }
-
-            const newAcc = new Account()
-
-            newAcc.address = addr
-            newAcc.master = null
-            newAcc.balance = ret.balance
-            newAcc.energy = ret.energy
-            newAcc.blockTime = isGenesis ? this.block.timestamp : 0
-            newAcc.code = null
-
-            if (ret.hasCode) {
-                const c = await this.thor.getCode(addr, revision)
-                newAcc.code = c.code
-            }
-
+            this.code.add(addr)
             this.acc.set(addr, newAcc)
             this.snap.set(addr, { ...newAcc })
             return newAcc
-
         }
     }
 

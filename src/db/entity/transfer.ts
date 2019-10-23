@@ -15,7 +15,7 @@ export class Transfer {
     public recipient: string
 
     @Column({ type: 'binary', length: 24, transformer: amount })
-    public amount: string
+    public amount: BigInt
 
     @Column({ type: 'binary', length: 32, transformer: bytes32('transfer.blockID') })
     public blockID: string

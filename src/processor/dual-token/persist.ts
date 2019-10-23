@@ -1,8 +1,7 @@
 import { getConnection, EntityManager, getRepository } from 'typeorm'
 import { Config } from '../../db/entity/config'
-import { displayID } from '../../utils'
 import { Block } from '../../db/entity/block'
-import { VET } from '../../db/entity/vet'
+import { Transfer } from '../../db/entity/transfer'
 import { Receipt } from '../../db/entity/receipt'
 import { Account } from '../../db/entity/account'
 import { Energy } from '../../db/entity/energy'
@@ -49,7 +48,7 @@ export class Persist {
 
     public listRecent(to: number) {
         return getConnection()
-            .getRepository(VET)
+            .getRepository(Transfer)
             .createQueryBuilder('vet')
             .leftJoinAndSelect(Block, 'block', 'vet.blockID = block.id')
             .where('block.number >= :number', { number: to })
@@ -85,12 +84,12 @@ export class Persist {
             .findOne({ address: addr })
     }
 
-    public insertVETMovements(transfers: VET[], manager?: EntityManager) {
+    public insertVETMovements(transfers: Transfer[], manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
 
-        return manager.insert(VET, transfers)
+        return manager.insert(Transfer, transfers)
     }
 
     public insertEnergyMovements(transfers: Energy[], manager?: EntityManager) {
