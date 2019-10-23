@@ -1,20 +1,21 @@
 
-import { Entity, PrimaryColumn, Column, Index, OneToMany, OneToOne, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
+import { Entity, Column, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
 
 import { Block } from './block'
+import { bytes32 } from '../transformers'
+import { Clause } from '../../types'
 
 @Entity()
-@Index('txUnique', ['txID', 'block'], {unique: true})
+@Index('txUnique', ['txID', 'blockID'], {unique: true})
 export class Transaction {
     @PrimaryGeneratedColumn('increment')
     public id: number
 
-    @Column({ type: 'char', length: 66 })
+    @Column({ type: 'binary', length: 32, transformer: bytes32('transaction.txID') })
     public txID: string
 
-    @ManyToOne(type => Block, block => block.id)
-    @JoinColumn({ name: 'blockID' })
-    public block: Block
+    @Column({ type: 'binary', length: 40, transformer: bytes32('transaction.blockID') })
+    public blockID: string
 
     @Column()
     public txIndex: number
@@ -37,8 +38,11 @@ export class Transaction {
     @Column()
     public nonce: string
 
-    @Column({ type: 'char', length: 66, nullable: true })
+    @Column({ type: 'binary', length: 32, nullable: true, transformer: bytes32('transaction.dependsOn', true) })
     public dependsOn: string
+
+    @Column('simple-json')
+    public clauses: Clause[]
 
     @Column()
     public size: number

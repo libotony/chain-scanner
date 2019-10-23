@@ -1,19 +1,18 @@
 import { Column, Entity, JoinColumn, PrimaryColumn, ManyToOne, Index, PrimaryGeneratedColumn } from 'typeorm'
 import { Output } from '../../types'
-import { Block } from './block'
+import { bytes32, address} from '../transformers'
 
 @Entity()
-@Index('receiptUnique', ['txID', 'block'], { unique: true })
+@Index('receiptUnique', ['txID', 'blockID'], { unique: true })
 export class Receipt {
     @PrimaryGeneratedColumn('increment')
     public id: number
 
-    @Column({ type: 'char', length: 66 })
+    @Column({ type: 'binary', length: 32, transformer: bytes32('receipt.txID') })
     public txID: string
 
-    @ManyToOne(type => Block)
-    @JoinColumn({ name: 'blockID' })
-    public block: Block
+    @Column({ type: 'binary', length: 40, transformer: bytes32('transaction.blockID') })
+    public blockID: string
 
     @Column()
     public txIndex: number
@@ -21,7 +20,7 @@ export class Receipt {
     @Column({unsigned: true, type: 'bigint'})
     public gasUsed: number
 
-    @Column({ type: 'char', length: 42 })
+    @Column({ type: 'binary', length: 20, transformer: address('receipt.gasPayer') })
     public gasPayer: string
 
     @Column()

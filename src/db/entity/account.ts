@@ -1,22 +1,23 @@
-import { Entity, Column, PrimaryColumn, Index } from 'typeorm'
+import { Entity, Column, PrimaryColumn } from 'typeorm'
+import {address, amount, bytes} from '../transformers'
 
 @Entity()
 export class Account {
-    @PrimaryColumn({ type: 'char', length: 42 })
+    @PrimaryColumn({ type: 'binary', length: 20, transformer: address('account.address') })
     public address: string
 
-    @Column()
-    public balance: string
+    @Column({ type: 'binary', length: 24, transformer: amount })
+    public balance: BigInt
 
-    @Column()
-    public energy: string
+    @Column({ type: 'binary', length: 24, transformer: amount })
+    public energy: BigInt
 
     @Column({ unsigned: true, type: 'bigint' })
     public blockTime: number
 
-    @Column({ type: 'text', nullable: true })
+    @Column({ type: 'blob', nullable: true, transformer: bytes('account.code', true) })
     public code: string
 
-    @Column({ type: 'char', length: 42, nullable: true })
+    @Column({ type: 'binary', length: 20, transformer: address('account.master', true), nullable: true })
     public master: string
 }

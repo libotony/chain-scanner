@@ -1,26 +1,26 @@
 
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm'
-import { address, amount, bytes32 } from '../transformers'
+import {address, amount, bytes32} from '../transformers'
 
 @Entity()
-export class Energy {
+export class Transfer {
 
     @PrimaryGeneratedColumn('increment')
     public id: number
 
-    @Column({ type: 'binary', length: 20, transformer: address('energy.sender') })
+    @Column({ type: 'binary', length: 20, transformer: address('transfer.sender') })
     public sender: string
 
-    @Column({ type: 'binary', length: 20, transformer: address('energy.recipient') })
+    @Column({ type: 'binary', length: 20, transformer: address('transfer.recipient') })
     public recipient: string
 
     @Column({ type: 'binary', length: 24, transformer: amount })
     public amount: string
 
-    @Column({ type: 'binary', length: 32, transformer: bytes32('energy.blockID') })
+    @Column({ type: 'binary', length: 32, transformer: bytes32('transfer.blockID') })
     public blockID: string
 
-    @Column({ type: 'binary', length: 32, transformer: bytes32('energy.txID') })
+    @Column({ type: 'binary', length: 32, transformer: bytes32('transfer.txID') })
     public txID: string
 
     @Column()
