@@ -1,8 +1,7 @@
 import StrictEventEmitter from 'strict-event-emitter-types'
 import { EventEmitter } from 'events'
 import { Thor } from './thor-rest'
-import { BlockSummary } from './types'
-import { Fork } from 'chain-observer'
+import { BlockSummary, Fork } from './types'
 import { sleep } from './utils'
 
 interface WatcherEvents {
