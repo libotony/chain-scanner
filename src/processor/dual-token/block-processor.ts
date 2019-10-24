@@ -48,10 +48,10 @@ export class BlockProcessor {
     }
 
     public async transferEnergy(move: Energy) {
-        // await this.touchAccount(transfer.sender)
-        // await this.touchAccount(transfer.recipient)
+        await this.account(move.sender)
+        await this.account(move.recipient)
 
-        this.EnergyMovement.push(transfer)
+        this.EnergyMovement.push(move)
     }
 
     public accounts() {

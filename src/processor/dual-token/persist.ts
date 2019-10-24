@@ -5,6 +5,7 @@ import { Transfer } from '../../db/entity/transfer'
 import { Receipt } from '../../db/entity/receipt'
 import { Account } from '../../db/entity/account'
 import { Energy } from '../../db/entity/energy'
+import { hexToBuffer } from '../../utils'
 
 const HEAD_KEY = 'dual-token-head'
 
@@ -49,8 +50,8 @@ export class Persist {
     public listRecent(to: number) {
         return getConnection()
             .getRepository(Transfer)
-            .createQueryBuilder('vet')
-            .leftJoinAndSelect(Block, 'block', 'vet.blockID = block.id')
+            .createQueryBuilder('transfer')
+            .leftJoinAndSelect(Block, 'block', 'transfer.blockID = block.id')
             .where('block.number >= :number', { number: to })
             .orderBy('block.number', 'ASC')
             .getMany()
@@ -65,7 +66,7 @@ export class Persist {
             const receipts = await getConnection()
                 .getRepository(Receipt)
                 .createQueryBuilder()
-                .where('blockID = :blockID', { blockID: block.id })
+                .where('blockID = :blockID', { blockID: hexToBuffer(block.id) })
                 .orderBy('txIndex', 'ASC')
                 .getMany()
             return { block, receipts }

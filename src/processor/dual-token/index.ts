@@ -26,7 +26,7 @@ export class DualToken {
                 }
 
                 // const best = await this.persist.getBest()
-                await this.fastForward(150000)
+                await this.fastForward(250000)
             } catch (e) {
                 console.log('dual-token loop:', e)
             }
@@ -74,7 +74,6 @@ export class DualToken {
         const { block, receipts } = await this.persist.getBlockReceipts(blockNum)
 
         const proc = new BlockProcessor(block, this.thor, manager)
-
         for (const r of receipts) {
             for (const [clauseIndex, o] of r.outputs.entries()) {
                 for (const [logIndex, t] of o.transfers.entries()) {
@@ -116,15 +115,15 @@ export class DualToken {
         await proc.finalize()
 
         if (proc.VETMovement.length) {
-            this.persist.insertVETMovements(proc.VETMovement, manager)
+            await this.persist.insertVETMovements(proc.VETMovement, manager)
         }
         if (proc.EnergyMovement.length) {
-            this.persist.insertEnergyMovements(proc.EnergyMovement, manager)
+            await this.persist.insertEnergyMovements(proc.EnergyMovement, manager)
         }
 
         const accs = proc.accounts()
         if (accs.length) {
-            this.persist.saveAccounts(accs, manager)
+            await this.persist.saveAccounts(accs, manager)
         }
 
         return proc.VETMovement.length + proc.EnergyMovement.length + accs.length
