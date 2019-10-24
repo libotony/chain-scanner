@@ -30,15 +30,21 @@ initConnection().then(async (conn) => {
         if (accs.length) {
             for (const acc of accs) {
                 const chainAcc = await thor.getAccount(acc.address, head.toString())
-                if (acc.balance !== chainAcc.balance) {
+                if (acc.balance !== BigInt(chainAcc.balance)) {
                     throw new Error(`Fatal: balance mismatch of Account(${acc.address})`)
                 }
                 if (acc.blockTime < block.timestamp) {
-                    const energy = BigInt(acc.energy) + BigInt(5000000000) * BigInt(acc.balance) * BigInt(block.timestamp - acc.blockTime) / BigInt(1e18)
-                    acc.energy = '0x' + energy.toString(16)
+                    acc.energy =
+                        acc.energy
+                        + BigInt(5000000000) * acc.balance * BigInt(block.timestamp - acc.blockTime)
+                        / BigInt(1e18)
                 }
-                if (acc.energy !== chainAcc.energy) {
+                if (acc.energy !== BigInt(chainAcc.energy)) {
                     throw new Error(`Fatal: energy mismatch of Account(${acc.address}) chain:${chainAcc.energy} db:${acc.energy}`)
+                }
+
+                if (chainAcc.hasCode === true && acc.code === null) {
+                    throw new Error(`Fatal: Account(${acc.address}) does not have code in DB`)
                 }
             }
         } else {
@@ -53,4 +59,5 @@ initConnection().then(async (conn) => {
 }).catch(e => {
     console.log('Integrity check: ')
     console.log(e)
+    process.exit(-1)
 })
