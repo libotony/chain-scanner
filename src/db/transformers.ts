@@ -1,34 +1,4 @@
-import { ValueTransformer } from 'typeorm'
-
-const sanitizeHex = (val: string) => {
-    if (val.startsWith('0x')) {
-        return val.slice(2)
-    } else {
-        return val
-    }
-}
-
-export const address = (context: string, nullable = false) =>  {
-    return {
-        from: (val: Buffer|null) => {
-            if (nullable && val === null) {
-                return null
-            }
-            return '0x' + val.toString('hex')
-        },
-        to: (val: string|null) => {
-            if (nullable && val === null) {
-                return null
-            }
-            if (!/^0x[0-9a-fA-f]+/i.test(val)) {
-                throw new Error(context + ': bytes20 hex string required: ' + val)
-            }
-
-            const str = sanitizeHex(val).padStart(40, '0')
-            return Buffer.from(str, 'hex')
-        }
-    }
-}
+import { sanitizeHex } from '../utils'
 
 export const amount = {
     // 24bytes
@@ -42,7 +12,7 @@ export const amount = {
     }
 }
 
-export const bytes32 = (context: string, nullable = false) =>  {
+export const fixedBytes = (len= 32, context: string, nullable = false) =>  {
     return {
         from: (val: Buffer|null) => {
             if (nullable && val === null) {
@@ -55,10 +25,10 @@ export const bytes32 = (context: string, nullable = false) =>  {
                 return null
             }
             if (!/^0x[0-9a-fA-f]+/i.test(val)) {
-                throw new Error(context + ': bytes32 hex string required: ' + val)
+                throw new Error(context + ': bytes' + len + ' hex string required: ' + val)
             }
 
-            const str = sanitizeHex(val).padStart(64, '0')
+            const str = sanitizeHex(val).padStart(len * 2, '0')
             return Buffer.from(str, 'hex')
         }
     }
@@ -81,12 +51,23 @@ export const bytes = (context: string, nullable = false) =>  {
                 throw new Error(context + ': bytes hex string required: ' + val)
             }
 
-            let str = sanitizeHex(val)
-            if (str.length % 2) {
-                str = '0' + str
+            const str = sanitizeHex(val)
+            if (str.length === 0 && nullable) {
+                return null
             }
 
             return Buffer.from(str, 'hex')
+        }
+    }
+}
+
+export const simpleJSON = <T>(context: string) => {
+    return {
+        from: (val: string) => {
+            return JSON.parse(val) as T
+        },
+        to: (val: T) => {
+            return JSON.stringify(val)
         }
     }
 }

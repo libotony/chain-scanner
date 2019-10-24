@@ -1,6 +1,6 @@
 
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm'
-import {address, amount, bytes32} from '../transformers'
+import {fixedBytes, amount} from '../transformers'
 
 @Entity()
 export class Transfer {
@@ -8,19 +8,19 @@ export class Transfer {
     @PrimaryGeneratedColumn('increment')
     public id: number
 
-    @Column({ type: 'binary', length: 20, transformer: address('transfer.sender') })
+    @Column({ type: 'binary', length: 20, transformer: fixedBytes(20, 'transfer.sender') })
     public sender: string
 
-    @Column({ type: 'binary', length: 20, transformer: address('transfer.recipient') })
+    @Column({ type: 'binary', length: 20, transformer: fixedBytes(20, 'transfer.recipient') })
     public recipient: string
 
     @Column({ type: 'binary', length: 24, transformer: amount })
-    public amount: BigInt
+    public amount: bigint
 
-    @Column({ type: 'binary', length: 32, transformer: bytes32('transfer.blockID') })
+    @Column({ type: 'binary', length: 32, transformer: fixedBytes(32, 'transfer.blockID') })
     public blockID: string
 
-    @Column({ type: 'binary', length: 32, transformer: bytes32('transfer.txID') })
+    @Column({ type: 'binary', length: 32, transformer: fixedBytes(32, 'transfer.txID') })
     public txID: string
 
     @Column()

@@ -1,8 +1,7 @@
 
-import { Entity, Column, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
+import { Entity, Column, Index, PrimaryGeneratedColumn } from 'typeorm'
 
-import { Block } from './block'
-import { bytes32 } from '../transformers'
+import { fixedBytes, simpleJSON } from '../transformers'
 import { Clause } from '../../types'
 
 @Entity()
@@ -11,10 +10,11 @@ export class Transaction {
     @PrimaryGeneratedColumn('increment')
     public id: number
 
-    @Column({ type: 'binary', length: 32, transformer: bytes32('transaction.txID') })
+    @Column({ type: 'binary', length: 32, transformer: fixedBytes(32 , 'transaction.txID') })
     public txID: string
 
-    @Column({ type: 'binary', length: 40, transformer: bytes32('transaction.blockID') })
+    @Column({ type: 'binary', length: 32, transformer: fixedBytes(32, 'transaction.blockID') })
+    @Index()
     public blockID: string
 
     @Column()
@@ -23,7 +23,7 @@ export class Transaction {
     @Column({ type: 'int', unsigned: true })
     public chainTag: number
 
-    @Column({ type: 'char', length: 18 })
+    @Column({ type: 'binary', length: 8, transformer: fixedBytes(8 , 'transaction.blockRef') })
     public blockRef: string
 
     @Column({ unsigned: true })
@@ -38,10 +38,10 @@ export class Transaction {
     @Column()
     public nonce: string
 
-    @Column({ type: 'binary', length: 32, nullable: true, transformer: bytes32('transaction.dependsOn', true) })
+    @Column({ type: 'binary', length: 32, nullable: true, transformer: fixedBytes(32, 'transaction.dependsOn', true) })
     public dependsOn: string
 
-    @Column('simple-json')
+    @Column({ type: 'longtext', transformer: simpleJSON<Clause[]>('receipt.outputs')})
     public clauses: Clause[]
 
     @Column()

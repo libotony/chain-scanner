@@ -1,12 +1,12 @@
 import { Entity, Column, PrimaryColumn, Index } from 'typeorm'
-import {address, bytes32} from '../transformers'
+import {fixedBytes} from '../transformers'
 
 @Entity()
 
 @Index(['id', 'isTrunk'])
 @Index(['id', 'number'])
 export class Block {
-    @PrimaryColumn({type: 'binary', length: 32, transformer: bytes32('block.id')})
+    @PrimaryColumn({type: 'binary', length: 32, transformer: fixedBytes(32, 'block.id')})
     public id: string
 
     @Index()
@@ -25,29 +25,29 @@ export class Block {
     @Column({unsigned: true, type: 'bigint'})
     public totalScore: number
 
-    @Column({ type: 'binary', length: 32, transformer: bytes32('block.parentID') })
+    @Column({ type: 'binary', length: 32, transformer: fixedBytes(32, 'block.parentID') })
     public parentID: string
 
-    @Column({ type: 'binary', length: 32, transformer: bytes32('block.txsRoot') })
+    @Column({ type: 'binary', length: 32, transformer: fixedBytes(32, 'block.txsRoot') })
     public txsRoot: string
 
-    @Column({ type: 'binary', length: 32, transformer: bytes32('block.stateRoot') })
+    @Column({ type: 'binary', length: 32, transformer: fixedBytes(32, 'block.stateRoot') })
     public stateRoot: string
 
-    @Column({ type: 'binary', length: 32, transformer: bytes32('block.receiptsRoot') })
+    @Column({ type: 'binary', length: 32, transformer: fixedBytes(32, 'block.receiptsRoot') })
     public receiptsRoot: string
 
-    @Column({ type: 'binary', length: 20, transformer: address('block.signer') })
+    @Column({ type: 'binary', length: 20, transformer: fixedBytes(20, 'block.signer') })
     public signer: string
 
-    @Column({ type: 'binary', length: 20, transformer: address('block.beneficiary') })
+    @Column({ type: 'binary', length: 20, transformer: fixedBytes(20, 'block.beneficiary') })
     public beneficiary: string
 
     @Column({type: 'boolean'})
     public isTrunk: boolean
 
     @Column()
-    public txFeatures: number
+    public txsFeatures: number
 
     @Column()
     public size: number

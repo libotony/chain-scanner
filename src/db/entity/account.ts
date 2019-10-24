@@ -1,16 +1,16 @@
 import { Entity, Column, PrimaryColumn } from 'typeorm'
-import {address, amount, bytes} from '../transformers'
+import {fixedBytes, amount, bytes} from '../transformers'
 
 @Entity()
 export class Account {
-    @PrimaryColumn({ type: 'binary', length: 20, transformer: address('account.address') })
+    @PrimaryColumn({ type: 'binary', length: 20, transformer: fixedBytes(20, 'account.address') })
     public address: string
 
     @Column({ type: 'binary', length: 24, transformer: amount })
-    public balance: BigInt
+    public balance: bigint
 
     @Column({ type: 'binary', length: 24, transformer: amount })
-    public energy: BigInt
+    public energy: bigint
 
     @Column({ unsigned: true, type: 'bigint' })
     public blockTime: number
@@ -18,6 +18,6 @@ export class Account {
     @Column({ type: 'blob', nullable: true, transformer: bytes('account.code', true) })
     public code: string
 
-    @Column({ type: 'binary', length: 20, transformer: address('account.master', true), nullable: true })
+    @Column({ type: 'binary', length: 20, transformer: fixedBytes(20, 'account.master', true), nullable: true })
     public master: string
 }

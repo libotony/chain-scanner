@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, PrimaryColumn, ManyToOne, Index, PrimaryGeneratedColumn } from 'typeorm'
 import { Output } from '../../types'
-import { bytes32, address} from '../transformers'
+import { fixedBytes, simpleJSON } from '../transformers'
 
 @Entity()
 @Index('receiptUnique', ['txID', 'blockID'], { unique: true })
@@ -8,10 +8,11 @@ export class Receipt {
     @PrimaryGeneratedColumn('increment')
     public id: number
 
-    @Column({ type: 'binary', length: 32, transformer: bytes32('receipt.txID') })
+    @Column({ type: 'binary', length: 32, transformer: fixedBytes(32, 'receipt.txID') })
     public txID: string
 
-    @Column({ type: 'binary', length: 40, transformer: bytes32('transaction.blockID') })
+    @Column({ type: 'binary', length: 32, transformer: fixedBytes(32, 'transaction.blockID') })
+    @Index()
     public blockID: string
 
     @Column()
@@ -20,7 +21,7 @@ export class Receipt {
     @Column({unsigned: true, type: 'bigint'})
     public gasUsed: number
 
-    @Column({ type: 'binary', length: 20, transformer: address('receipt.gasPayer') })
+    @Column({ type: 'binary', length: 20, transformer: fixedBytes(20, 'receipt.gasPayer') })
     public gasPayer: string
 
     @Column()
@@ -32,6 +33,6 @@ export class Receipt {
     @Column({ type: 'boolean' })
     public reverted: boolean
 
-    @Column('simple-json')
+    @Column({ type: 'longtext', transformer: simpleJSON<Output[]>('receipt.outputs')})
     public outputs: Output[]
 }
