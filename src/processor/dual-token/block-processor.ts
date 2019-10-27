@@ -5,13 +5,24 @@ import { Transfer } from '../../db/entity/transfer'
 import { Energy } from '../../db/entity/energy'
 import { displayID } from '../../utils'
 import { EntityManager } from 'typeorm'
+import { Snapshot } from '../../db/entity/snapshot'
+import { SnapType } from '../../types'
+
+export interface SnapAccount {
+    address: string
+    balance: string
+    energy: string
+    blockTime: number
+    code: string | null
+    master: string|null
+}
 
 export class BlockProcessor {
     public VETMovement: Transfer[] = []
     public EnergyMovement: Energy[] = []
 
     private acc = new Map<string, Account>()
-    private snap = new Map<string, object>()
+    private snap = new Map<string, SnapAccount>()
     private code = new Set<string>()
     private balance = new Set<string>()
 
@@ -82,17 +93,38 @@ export class BlockProcessor {
         }
     }
 
-    public snapshots() {
+    public snapshot(): Snapshot|null {
         const ret: object[] = []
         for (const [_, acc] of this.snap.entries()) {
             ret.push(acc)
         }
-        return ret
+
+        if (!ret.length) {
+            return null
+        }
+
+        const snap = new Snapshot()
+        snap.blockID = this.block.id
+        snap.type = SnapType.DualToken
+        snap.data = ret
+
+        return snap
     }
 
     public async touchAccount(addr: string) {
         await this.account(addr)
         return
+    }
+
+    private takeSnap(acc: Account) {
+        this.snap.set(acc.address, {
+            address: acc.address,
+            balance: acc.balance.toString(10),
+            energy: acc.energy.toString(10),
+            blockTime: acc.blockTime,
+            code: acc.code,
+            master: acc.master
+        })
     }
 
     private async account(addr: string) {
@@ -103,7 +135,7 @@ export class BlockProcessor {
         const acc = await this.manager.getRepository(Account).findOne({ address: addr })
         if (acc) {
             this.acc.set(addr, acc)
-            this.snap.set(addr, {...acc})
+            this.takeSnap(acc)
             return acc
         } else {
             console.log(`Create Account(${addr}) at block (${displayID(this.block.id)})`)
@@ -120,7 +152,7 @@ export class BlockProcessor {
             }
             this.code.add(addr)
             this.acc.set(addr, newAcc)
-            this.snap.set(addr, { ...newAcc })
+            this.takeSnap(newAcc)
             return newAcc
         }
     }

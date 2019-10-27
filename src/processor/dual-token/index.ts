@@ -1,11 +1,15 @@
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
-import { sleep } from '../../utils'
+import { sleep, blockIDtoNum, displayID } from '../../utils'
 import { $Master, EnergyAddress, TransferEvent, genesisAccounts } from './const'
 import { getConnection, EntityManager } from 'typeorm'
-import { BlockProcessor } from './block-processor'
+import { BlockProcessor, SnapAccount } from './block-processor'
 import { Transfer } from '../../db/entity/transfer'
 import { Energy } from '../../db/entity/energy'
+import { Account } from '../../db/entity/account'
+import { Snapshot } from '../../db/entity/snapshot'
+
+const REVERSIBLE_WINDOW = 12
 
 export class DualToken {
     private head: number | null = null
@@ -19,14 +23,29 @@ export class DualToken {
         for (; ;) {
             try {
                 await sleep(5 * 1000)
-                // await this.latestTrunkCheck()
+
+                await this.latestTrunkCheck()
+
                 const head = await this.getHead()
                 if (head === -1) {
                     await this.processGenesis()
                 }
 
-                // const best = await this.persist.getBest()
-                await this.fastForward(250000)
+                // // await this.fastForward(700000)
+                // // const best = await this.persist.getBest()
+                // const best = await this.persist.getBlock(700000)
+
+                // if (best.timestamp < (new Date().getTime() / 1000 - REVERSIBLE_WINDOW * 10)) {
+                //     await this.fastForward(best.number)
+                // } else {
+                //     await getConnection().transaction(async (manager) => {
+                //         for (let i = head + 1; i <= best.number; i++) {
+                //             await this.processBlock(i++, manager, true)
+                //         }
+                //         await this.persist.saveHead(best.number, manager)
+                //     })
+                //     this.head = best.number
+                // }
             } catch (e) {
                 console.log('dual-token loop:', e)
             }
@@ -40,8 +59,6 @@ export class DualToken {
         } else {
             const head = await this.persist.getHead()
 
-            // TODO: for test&dev starting from 3,500,000
-            // const freshStartPoint = -1
             const freshStartPoint =  -1
             if (!head) {
                 return freshStartPoint
@@ -59,18 +76,25 @@ export class DualToken {
             return
         }
 
-        // if (head === '') {
-        //     return
-        // }
+        const snapshots = await this.persist.listRecentSnapshot(head)
 
-        // const headNum = blockIDtoNum(head)
-
+        if (snapshots.length) {
+            for (; snapshots.length;) {
+                if (snapshots[0].isTrunk === false) {
+                    break
+                }
+                snapshots.shift()
+            }
+            if (snapshots.length) {
+                await this.revertSnapshot(snapshots)
+            }
+        }
     }
 
     /**
      * @return inserted column number
      */
-    private async processBlock(blockNum: number, manager: EntityManager) {
+    private async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
         const { block, receipts } = await this.persist.getBlockReceipts(blockNum)
 
         const proc = new BlockProcessor(block, this.thor, manager)
@@ -111,7 +135,9 @@ export class DualToken {
             }
             await proc.touchAccount(r.gasPayer)
         }
-        await proc.touchAccount(block.beneficiary)
+        if (receipts.length) {
+            await proc.touchAccount(block.beneficiary)
+        }
         await proc.finalize()
 
         if (proc.VETMovement.length) {
@@ -126,7 +152,46 @@ export class DualToken {
             await this.persist.saveAccounts(accs, manager)
         }
 
+        const snap = proc.snapshot()
+        if (snap && saveSnapshot) {
+            await this.persist.saveSnapshot(snap)
+        }
+
         return proc.VETMovement.length + proc.EnergyMovement.length + accs.length
+    }
+
+    private async revertSnapshot(snapshots: Snapshot[]) {
+        const headNum = blockIDtoNum(snapshots[0].blockID) - 1
+        const toRevert = snapshots.map(x => x.blockID)
+        await getConnection().transaction(async (manager) => {
+            const accounts = new Map<string, Account>()
+
+            for (; snapshots.length;) {
+                const snap = snapshots.pop()
+                for (const snapAcc of snap.data as SnapAccount[]) {
+                    const acc = manager.create(Account, {
+                        address: snapAcc.address,
+                        balance: BigInt(snapAcc.balance),
+                        energy: BigInt(snapAcc.energy),
+                        blockTime: snapAcc.blockTime,
+                        code: snapAcc.code,
+                        master: snapAcc.master
+                    })
+                    accounts.set(snapAcc.address, acc)
+                }
+            }
+
+            const toSave: Account[] = []
+            for (const [_, acc] of accounts.entries()) {
+                toSave.push(acc)
+            }
+
+            await this.persist.saveAccounts(toSave, manager)
+            await this.persist.removeMovements(toRevert, manager)
+            await this.persist.saveHead(headNum, manager)
+            await this.persist.removeSnapshot(toRevert)
+       })
+        this.head = headNum
     }
 
     private async processGenesis() {
@@ -156,7 +221,8 @@ export class DualToken {
             console.time('time')
             await getConnection().transaction(async (manager) => {
                 for (; i <= target;) {
-                    count += await this.processBlock(i++, manager)
+                    // TODO: for test enable snapshot
+                    count += await this.processBlock(i++, manager, true)
 
                     if (count >= 5000) {
                         await this.persist.saveHead(i - 1, manager)

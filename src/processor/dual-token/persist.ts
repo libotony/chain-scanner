@@ -1,13 +1,16 @@
-import { getConnection, EntityManager, getRepository } from 'typeorm'
+import { getConnection, EntityManager, getRepository, In, MoreThan } from 'typeorm'
 import { Config } from '../../db/entity/config'
 import { Block } from '../../db/entity/block'
 import { Transfer } from '../../db/entity/transfer'
 import { Receipt } from '../../db/entity/receipt'
 import { Account } from '../../db/entity/account'
 import { Energy } from '../../db/entity/energy'
-import { hexToBuffer } from '../../utils'
+import { hexToBuffer, bufferToHex } from '../../utils'
+import { Snapshot } from '../../db/entity/snapshot'
+import { SnapType } from '../../types'
 
 const HEAD_KEY = 'dual-token-head'
+export type RecentSnapshot = Snapshot & {isTrunk: boolean}
 
 export class Persist {
 
@@ -24,7 +27,11 @@ export class Persist {
         return manager.save(config)
     }
 
-    public async getHead(): Promise<number|null> {
+    public async getHead(manager?: EntityManager): Promise<number | null> {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
         const head = await getConnection()
             .getRepository(Config)
             .findOne({ key: HEAD_KEY })
@@ -35,7 +42,11 @@ export class Persist {
         }
     }
 
-    public getBest() {
+    public getBest(manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
         return getConnection()
             .getRepository(Block)
             .createQueryBuilder('block')
@@ -47,23 +58,38 @@ export class Persist {
             .getOne()
     }
 
-    public listRecent(to: number) {
-        return getConnection()
-            .getRepository(Transfer)
-            .createQueryBuilder('transfer')
-            .leftJoinAndSelect(Block, 'block', 'transfer.blockID = block.id')
-            .where('block.number >= :number', { number: to })
-            .orderBy('block.number', 'ASC')
+    public async getBlocksByID(ids: string[], manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
+            .getRepository(Block)
+            .createQueryBuilder('block')
+            .where('block.id IN (:...ids)', { ids: ids.map(x => hexToBuffer(x)) })
+            .orderBy('block.id', 'ASC')
             .getMany()
     }
 
-    public async getBlockReceipts(blockNum: number) {
-        const block = await getConnection()
+    public getBlock(blockNum: number, manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
             .getRepository(Block)
             .findOne({ number: blockNum, isTrunk: true })
+    }
+
+    public async getBlockReceipts(blockNum: number, manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        const block = await this.getBlock(blockNum, manager)
 
         if (block) {
-            const receipts = await getConnection()
+            const receipts = await manager
                 .getRepository(Receipt)
                 .createQueryBuilder()
                 .where('blockID = :blockID', { blockID: hexToBuffer(block.id) })
@@ -107,6 +133,78 @@ export class Persist {
         }
 
         return manager.save(accs)
+    }
+
+    public saveSnapshot(snap: Snapshot, manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager.save(snap)
+    }
+
+    public async listRecentSnapshot(head: number, manager ?: EntityManager): Promise<RecentSnapshot[]> {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        const ret: RecentSnapshot[] = []
+        const blockID = Buffer.from(BigInt(head - 12).toString(16).padStart(8, '0').padEnd(64, '0'), 'hex')
+        const result = await manager
+            .getRepository(Snapshot)
+            .createQueryBuilder('snap')
+            .leftJoinAndSelect(Block, 'block', 'snap.blockID = block.id')
+            .where('snap.type = :type', { type: SnapType.DualToken })
+            .andWhere('snap.blockID > :blockID', { blockID })
+            .getRawMany()
+
+        for (const r of result) {
+            ret.push({
+                id: r.snap_id,
+                type: r.snap_type,
+                blockID: bufferToHex(r.snap_blockID),
+                data: JSON.parse(r.snap_data),
+                isTrunk: !!r.block_isTrunk
+            })
+        }
+
+        return ret
+    }
+
+    public async removeMovements(ids: string[], manager ?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        await manager
+            .createQueryBuilder()
+            .delete()
+            .from(Transfer)
+            .where('blockID IN(:...ids)', { ids: ids.map(x => hexToBuffer(x))})
+            .execute()
+
+        await manager
+            .createQueryBuilder()
+            .delete()
+            .from(Energy)
+            .where('blockID IN(:...ids)', { ids: ids.map(x => hexToBuffer(x))})
+            .execute()
+
+        return
+    }
+
+    public removeSnapshot(blockIDs: string[], manager ?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
+            .createQueryBuilder()
+            .delete()
+            .from(Snapshot)
+            .where('blockID IN(:...ids)', { ids: blockIDs.map(x => hexToBuffer(x)) })
+            .andWhere('type=:type', {type: SnapType.DualToken})
+            .execute()
     }
 
 }

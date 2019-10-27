@@ -34,3 +34,7 @@ export interface Clause {
     value: string | number
     data: string
 }
+
+export enum SnapType {
+    DualToken = 0
+}

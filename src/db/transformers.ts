@@ -1,12 +1,12 @@
 import { sanitizeHex } from '../utils'
 
+// TODO: transformers not work in FindOperators(Bug of typeorm)
 export const amount = {
     // 24bytes
     from: (val: Buffer) => {
         return BigInt('0x' + val.toString('hex'))
     },
     to: (val: BigInt) => {
-
         const str = val.toString(16).padStart(48, '0')
         return Buffer.from(str, 'hex')
     }
