@@ -1,3 +1,5 @@
+export const REVERSIBLE_WINDOW = 12
+
 export const blockIDtoNum = (blockID: string) => {
     if (typeof blockID === 'string' && !/^0x[0-9a-fA-f]{64}$/i.test(blockID)) {
         throw new Error('bytes32 required as param but got: ' + blockID)
@@ -22,6 +24,10 @@ export const hexToBuffer = (val: string) => {
     }
 
     return Buffer.from(sanitizeHex(val), 'hex')
+}
+
+export const bufferToHex = (val: Buffer) => {
+    return '0x' + val.toString('hex')
 }
 
 export const sleep = (ms: number) => {

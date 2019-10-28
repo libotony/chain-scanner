@@ -14,7 +14,7 @@ initConnection().then(async (conn) => {
     const block = await thor.getBlock(head)
 
     let hasMore = true
-    const step = 10
+    const step = 100
     let offset = 0
     for (; hasMore === true;) {
 
@@ -29,7 +29,12 @@ initConnection().then(async (conn) => {
 
         if (accs.length) {
             for (const acc of accs) {
-                const chainAcc = await thor.getAccount(acc.address, head.toString())
+                let chainAcc: Connex.Thor.Account
+                try {
+                    chainAcc = await thor.getAccount(acc.address, head.toString())
+                } catch {
+                    continue
+                }
                 if (acc.balance !== BigInt(chainAcc.balance)) {
                     throw new Error(`Fatal: balance mismatch of Account(${acc.address})`)
                 }

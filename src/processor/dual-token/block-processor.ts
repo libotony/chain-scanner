@@ -138,7 +138,7 @@ export class BlockProcessor {
             this.takeSnap(acc)
             return acc
         } else {
-            console.log(`Create Account(${addr}) at block (${displayID(this.block.id)})`)
+            // console.log(`Create Account(${addr}) at Block(${displayID(this.block.id)})`)
             const newAcc = this.manager.create(Account, {
                 address: addr,
                 balance: BigInt(0),

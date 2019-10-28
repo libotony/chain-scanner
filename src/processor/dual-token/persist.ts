@@ -1,11 +1,11 @@
-import { getConnection, EntityManager, getRepository, In, MoreThan } from 'typeorm'
+import { getConnection, EntityManager, LessThan } from 'typeorm'
 import { Config } from '../../db/entity/config'
 import { Block } from '../../db/entity/block'
 import { Transfer } from '../../db/entity/transfer'
 import { Receipt } from '../../db/entity/receipt'
 import { Account } from '../../db/entity/account'
 import { Energy } from '../../db/entity/energy'
-import { hexToBuffer, bufferToHex } from '../../utils'
+import { hexToBuffer, bufferToHex, REVERSIBLE_WINDOW } from '../../utils'
 import { Snapshot } from '../../db/entity/snapshot'
 import { SnapType } from '../../types'
 
@@ -149,7 +149,9 @@ export class Persist {
         }
 
         const ret: RecentSnapshot[] = []
-        const blockID = Buffer.from(BigInt(head - 12).toString(16).padStart(8, '0').padEnd(64, '0'), 'hex')
+
+        // get [head-REVERSIBLE_WINDOW, head]
+        const blockID = Buffer.from(BigInt(head - REVERSIBLE_WINDOW).toString(16).padStart(8, '0').padEnd(64, '0'), 'hex')
         const result = await manager
             .getRepository(Snapshot)
             .createQueryBuilder('snap')
@@ -205,6 +207,18 @@ export class Persist {
             .where('blockID IN(:...ids)', { ids: blockIDs.map(x => hexToBuffer(x)) })
             .andWhere('type=:type', {type: SnapType.DualToken})
             .execute()
+    }
+
+    public clearSnapShot(blockNum: number, manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        // clear [0, head-REVERSIBLE_WINDOW)
+        const blockID = '0x' + BigInt(blockNum - REVERSIBLE_WINDOW).toString(16).padStart(8, '0').padEnd(64, '0')
+        return manager
+            .getRepository(Snapshot)
+            .delete({blockID: LessThan(blockID), type: SnapType.DualToken})
     }
 
 }

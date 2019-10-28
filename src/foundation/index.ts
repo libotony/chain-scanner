@@ -2,14 +2,12 @@ import { Thor } from '../thor-rest'
 import { BlockSummary, Fork } from '../types'
 import { Persist } from './persist'
 import { getConnection } from 'typeorm'
-import { blockIDtoNum, displayID } from '../utils'
+import { blockIDtoNum, displayID, REVERSIBLE_WINDOW } from '../utils'
 
 export interface Task<T extends 'NewHeads' | 'Fork' | 'StartUp'> {
     type: T,
     data: T extends 'NewHeads' ? BlockSummary[] : T extends 'Fork' ? Fork : undefined
 }
-
-const REVERSIBLE_WINDOW = 12
 
 export class Foundation {
     private running: boolean = false
