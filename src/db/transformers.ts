@@ -10,11 +10,22 @@ interface ValueTransformer<DBType, EntityType> {
 const makeTransformer = <DBType, EntityType>(transformer: ValueTransformer<DBType, EntityType>) => {
     return {
         from: transformer.from,
-        to: (val: EntityType|FindOperator<EntityType>) => {
+        to: (val: EntityType | FindOperator<EntityType>) => {
             if (val instanceof FindOperator) {
-                for (let v of ((val as any)._value as any[])) {
-                    v = transformer.to(v)
+                if (!val.useParameter) {
+                    return val
                 }
+
+                if (val.multipleParameters) {
+                    for (const [index, v] of (val as any)._value.entries()) {
+                        // hack here: overwrite the value
+                        (val as any)._value[index] = transformer.to(v)
+                    }
+                } else {
+                    // hack here: overwrite the value
+                    (val as any)._value = transformer.to(val.value)
+                }
+
                 return val
             } else {
                 return transformer.to(val)
