@@ -32,6 +32,7 @@ initConnection().then(async (conn) => {
         current = b
     }
 
+    process.exit(0)
 }).catch(e => {
     console.log('Integrity check: ')
     console.log(e)

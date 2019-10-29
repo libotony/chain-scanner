@@ -1,10 +1,9 @@
 import { getConnection, EntityManager, LessThan } from 'typeorm'
 import { Config } from '../../db/entity/config'
 import { Block } from '../../db/entity/block'
-import { Transfer } from '../../db/entity/transfer'
+import { Transfer, Energy } from '../../db/entity/movement'
 import { Receipt } from '../../db/entity/receipt'
 import { Account } from '../../db/entity/account'
-import { Energy } from '../../db/entity/energy'
 import { hexToBuffer, bufferToHex, REVERSIBLE_WINDOW } from '../../utils'
 import { Snapshot } from '../../db/entity/snapshot'
 import { SnapType } from '../../types'
@@ -58,19 +57,6 @@ export class Persist {
             .getOne()
     }
 
-    public async getBlocksByID(ids: string[], manager?: EntityManager) {
-        if (!manager) {
-            manager = getConnection().manager
-        }
-
-        return manager
-            .getRepository(Block)
-            .createQueryBuilder('block')
-            .where('block.id IN (:...ids)', { ids: ids.map(x => hexToBuffer(x)) })
-            .orderBy('block.id', 'ASC')
-            .getMany()
-    }
-
     public getBlock(blockNum: number, manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
@@ -99,16 +85,6 @@ export class Persist {
         } else {
             throw new Error('Block not found: ' + blockNum)
         }
-    }
-
-    public getAccount(addr: string, manager?: EntityManager) {
-        if (!manager) {
-            manager = getConnection().manager
-        }
-
-        return manager
-            .getRepository(Account)
-            .findOne({ address: addr })
     }
 
     public insertVETMovements(transfers: Transfer[], manager?: EntityManager) {

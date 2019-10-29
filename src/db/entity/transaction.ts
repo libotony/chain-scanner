@@ -1,4 +1,3 @@
-
 import { Entity, Column, Index, PrimaryGeneratedColumn } from 'typeorm'
 
 import { fixedBytes, simpleJSON } from '../transformers'
