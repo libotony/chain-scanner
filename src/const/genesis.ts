@@ -1,26 +1,32 @@
-// tslint:disable:max-line-length
-import { abi } from 'thor-devkit'
+import {ParamsAddress, AuthorityAddress, EnergyAddress, ExecutorAddress, PrototypeAddress, ExtensionAddress} from './address'
 
-const $MasterABI: abi.Event.Definition = { anonymous: false, inputs: [{ indexed: false, name: 'newMaster', type: 'address' }], name: '$Master', type: 'event' }
-const TransferABI: abi.Event.Definition = { anonymous: false, inputs: [{ indexed: true, name: '_from', type: 'address' }, { indexed: true, name: '_to', type: 'address' }, { indexed: false, name: '_value', type: 'uint256' }], name: 'Transfer', type: 'event' }
+export const getPreAllocAccount = (net: string) => {
+    if (net === '0x00000000851caf3cfdb6e899cf5958bfb1ac3413d346d43539627e6be7ec1b4a') {
+        return [
+            ParamsAddress,
+            AuthorityAddress,
+            EnergyAddress,
+            ExecutorAddress,
+            PrototypeAddress,
+            ExtensionAddress,
+            ...mainnet
+        ]
+    } else if (net === '0x000000000b2bce3c70bc649a02749e8687721b09ed2e15997f466536b20bb127') {
+        return [
+            ParamsAddress,
+            AuthorityAddress,
+            EnergyAddress,
+            PrototypeAddress,
+            ExtensionAddress,
+            ...testnet
+        ]
+    } else {
+        throw new Error('unknown network: ' + net)
+    }
 
-export const $Master = new abi.Event($MasterABI)
-export const TransferEvent = new abi.Event(TransferABI)
+}
 
-export const ParamsAddress = '0x' + Buffer.from('Params').toString('hex').padStart(40, '0')
-export const AuthorityAddress = '0x' + Buffer.from('Authority').toString('hex').padStart(40, '0')
-export const EnergyAddress = '0x' + Buffer.from('Energy').toString('hex').padStart(40, '0')
-export const ExecutorAddress = '0x' + Buffer.from('Executor').toString('hex').padStart(40, '0')
-export const PrototypeAddress = '0x' + Buffer.from('Prototype').toString('hex').padStart(40, '0')
-export const ExtensionAddress = '0x' + Buffer.from('Extension').toString('hex').padStart(40, '0')
-
-export const genesisAccounts = [
-    ParamsAddress,
-    AuthorityAddress,
-    EnergyAddress,
-    ExecutorAddress,
-    PrototypeAddress,
-    ExtensionAddress,
+const mainnet = [
     '0x137053dfbe6c0a43f915ad2efefefdcc2708e975',
     '0xaf111431c1284a5e16d2eecd2daed133ce96820e',
     '0x997522a4274336f4b86af4a6ed9e45aedcc6d360',
@@ -127,3 +133,5 @@ export const genesisAccounts = [
     '0x7276e812e560ebed03139e48b288867fccb47f10',
     '0x28518e904c0bbed782b39fb7dd3dc24b99a65295',
 ]
+
+const testnet = []
