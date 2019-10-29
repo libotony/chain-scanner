@@ -4,8 +4,7 @@ import { sleep, blockIDtoNum, displayID, REVERSIBLE_WINDOW } from '../../utils'
 import { $Master, EnergyAddress, TransferEvent, getPreAllocAccount } from '../../const'
 import { getConnection, EntityManager } from 'typeorm'
 import { BlockProcessor, SnapAccount } from './block-processor'
-import { Transfer } from '../../db/entity/transfer'
-import { Energy } from '../../db/entity/energy'
+import { Transfer, Energy } from '../../db/entity/movement'
 import { Account } from '../../db/entity/account'
 import { Snapshot } from '../../db/entity/snapshot'
 
@@ -24,25 +23,29 @@ export class DualToken {
 
                 await this.latestTrunkCheck()
 
-                const head = await this.getHead()
+                let head = await this.getHead()
                 if (head === -1) {
                     await this.processGenesis()
                 }
 
-                const best = await this.persist.getBest()
-                // const best = await this.persist.getBlock(700000)
-
-                if (best.timestamp < (new Date().getTime() / 1000 - REVERSIBLE_WINDOW * 10)) {
-                    await this.fastForward(best.number)
-                } else {
-                    await getConnection().transaction(async (manager) => {
-                        for (let i = head + 1; i <= best.number; i++) {
-                            await this.processBlock(i++, manager, true)
-                        }
-                        await this.persist.saveHead(best.number, manager)
-                    })
-                    this.head = best.number
+                // const best = await this.persist.getBest()
+                const best = await this.persist.getBlock(700000)
+                if (best.number <= head) {
+                    break
                 }
+
+                if (best.number - head > REVERSIBLE_WINDOW) {
+                    await this.fastForward(best.number - REVERSIBLE_WINDOW)
+                    head = await this.getHead()
+                }
+
+                await getConnection().transaction(async (manager) => {
+                    for (let i = head + 1; i <= best.number; i++) {
+                        await this.processBlock(i, manager, true)
+                    }
+                    await this.persist.saveHead(best.number, manager)
+                })
+                this.head = best.number
             } catch (e) {
                 console.log('dual-token loop:', e)
             }
@@ -88,14 +91,14 @@ export class DualToken {
         }
 
         head = await this.getHead()
-        await this.persist.clearSnapShot(head)
+        // await this.persist.clearSnapShot(head)
     }
 
     /**
      * @return inserted column number
      */
     private async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
-        const { block, receipts } = await this.persist.getBlockReceipts(blockNum)
+        const { block, receipts } = await this.persist.getBlockReceipts(blockNum, manager)
 
         const proc = new BlockProcessor(block, this.thor, manager)
         for (const r of receipts) {
@@ -154,7 +157,7 @@ export class DualToken {
 
         const snap = proc.snapshot()
         if (snap && saveSnapshot) {
-            await this.persist.saveSnapshot(snap)
+            await this.persist.saveSnapshot(snap, manager)
         }
 
         return proc.VETMovement.length + proc.EnergyMovement.length + accs.length
