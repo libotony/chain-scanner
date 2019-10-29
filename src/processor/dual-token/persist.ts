@@ -7,6 +7,7 @@ import { Account } from '../../db/entity/account'
 import { hexToBuffer, bufferToHex, REVERSIBLE_WINDOW } from '../../utils'
 import { Snapshot } from '../../db/entity/snapshot'
 import { SnapType } from '../../types'
+import { getBlock } from '../../foundation/db'
 
 const HEAD_KEY = 'dual-token-head'
 export type RecentSnapshot = Snapshot & {isTrunk: boolean}
@@ -31,59 +32,13 @@ export class Persist {
             manager = getConnection().manager
         }
 
-        const head = await getConnection()
+        const head = await manager
             .getRepository(Config)
             .findOne({ key: HEAD_KEY })
         if (head) {
             return parseInt(head.value, 10)
         } else {
             return null
-        }
-    }
-
-    public getBest(manager?: EntityManager) {
-        if (!manager) {
-            manager = getConnection().manager
-        }
-
-        return getConnection()
-            .getRepository(Block)
-            .createQueryBuilder('block')
-            .where(qb => {
-                const sub = qb.subQuery().select('MAX(block.number)').from(Block, 'block')
-                return 'number=' + sub.getQuery()
-            })
-            .andWhere('isTrunk=:isTrunk', { isTrunk: true })
-            .getOne()
-    }
-
-    public getBlock(blockNum: number, manager?: EntityManager) {
-        if (!manager) {
-            manager = getConnection().manager
-        }
-
-        return manager
-            .getRepository(Block)
-            .findOne({ number: blockNum, isTrunk: true })
-    }
-
-    public async getBlockReceipts(blockNum: number, manager?: EntityManager) {
-        if (!manager) {
-            manager = getConnection().manager
-        }
-
-        const block = await this.getBlock(blockNum, manager)
-
-        if (block) {
-            const receipts = await manager
-                .getRepository(Receipt)
-                .createQueryBuilder()
-                .where('blockID = :blockID', { blockID: hexToBuffer(block.id) })
-                .orderBy('txIndex', 'ASC')
-                .getMany()
-            return { block, receipts }
-        } else {
-            throw new Error('Block not found: ' + blockNum)
         }
     }
 

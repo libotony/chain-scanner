@@ -7,6 +7,7 @@ import { BlockProcessor, SnapAccount } from './block-processor'
 import { Transfer, Energy } from '../../db/entity/movement'
 import { Account } from '../../db/entity/account'
 import { Snapshot } from '../../db/entity/snapshot'
+import { getBlockReceipts, getBest } from '../../foundation/db'
 
 export class DualToken {
     private head: number | null = null
@@ -28,10 +29,11 @@ export class DualToken {
                     await this.processGenesis()
                 }
 
-                // const best = await this.persist.getBest()
-                const best = await this.persist.getBlock(700000)
+                const best = await getBest()
+                // const best = await this.persist.getBlock(700000)
+
                 if (best.number <= head) {
-                    break
+                    continue
                 }
 
                 if (best.number - head > REVERSIBLE_WINDOW) {
@@ -50,7 +52,6 @@ export class DualToken {
                 console.log('dual-token loop:', e)
             }
         }
-
     }
 
     private async getHead() {
@@ -98,7 +99,7 @@ export class DualToken {
      * @return inserted column number
      */
     private async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
-        const { block, receipts } = await this.persist.getBlockReceipts(blockNum, manager)
+        const { block, receipts } = await getBlockReceipts(blockNum, manager)
 
         const proc = new BlockProcessor(block, this.thor, manager)
         for (const r of receipts) {
