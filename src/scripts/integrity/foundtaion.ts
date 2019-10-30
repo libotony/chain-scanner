@@ -1,8 +1,8 @@
-import { initConnection } from '../db'
-import { Persist } from '../foundation/persist'
+import { initConnection } from '../../db'
+import { Persist } from '../../foundation/persist'
 import { getConnection } from 'typeorm'
-import { Block } from '../db/entity/block'
-import { displayID } from '../utils'
+import { Block } from '../../db/entity/block'
+import { displayID, REVERSIBLE_WINDOW } from '../../utils'
 
 const STOP_NUMBER = 0
 const persist = new Persist()
@@ -21,6 +21,9 @@ initConnection().then(async (conn) => {
         const b = await getBlock(current.parentID)
         if (!b) {
             throw new Error(`continuity Block(${displayID(current.id)})'s parentID(${current.parentID}) missing`)
+        }
+        if (b.timestamp < new Date().getTime() / 1000 - REVERSIBLE_WINDOW * 10 && b.isTrunk === false) {
+            throw new Error(`Block(${displayID(current.id)})'s in branch`)
         }
         if (b.number === STOP_NUMBER) {
             console.log('Finished integrity check')

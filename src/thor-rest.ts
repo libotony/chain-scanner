@@ -3,6 +3,15 @@ import '@vechain/connex'
 
 export class Thor {
 
+    private get headerValidator() {
+        return (headers: Record<string, string>) => {
+            const xGeneID = headers['x-genesis-id']
+            if (xGeneID && xGeneID !== this.genesisID) {
+                throw new Error(`responded 'x-genesis-id' not match`)
+            }
+        }
+    }
+
     // default genesis ID to mainnet
     constructor(readonly net: SimpleNet, readonly genesisID = '0x00000000851caf3cfdb6e899cf5958bfb1ac3413d346d43539627e6be7ec1b4a') { }
 
@@ -23,6 +32,22 @@ export class Thor {
     }
     public getStorage(addr: string, key: string, revision?: string) {
         return this.httpGet<Connex.Thor.Storage>(`accounts/${addr}/storage/${key}`, revision ? { revision } : {})
+    }
+
+    public filterEventLogs(arg: Connex.Driver.FilterEventLogsArg) {
+        return this.httpPost<Connex.Thor.Event[]>('logs/event', arg)
+    }
+
+    public explain(arg: Connex.Driver.ExplainArg, revision: string) {
+        return this.httpPost('accounts/*', arg, { revision })
+    }
+
+    public httpPost<T>(path: string, body: object,  query?: Record<string, string>): Promise<T> {
+        return this.net.http('POST', path, {
+            query,
+            body,
+            validateResponseHeader: this.headerValidator
+        })
     }
 
     protected httpGet<T>(path: string, query?: Record<string, string>): Promise<T> {

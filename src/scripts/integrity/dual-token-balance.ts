@@ -1,9 +1,10 @@
-import { initConnection } from '../db'
+import { initConnection } from '../../db'
 import { getConnection } from 'typeorm'
-import { Persist } from '../processor/dual-token/persist'
-import { Thor } from '../thor-rest'
+import { Persist } from '../../processor/dual-token/persist'
+import { Thor } from '../../thor-rest'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
-import { Account } from '../db/entity/account'
+import { Account } from '../../db/entity/account'
+import { PrototypeAddress, methodMaster, ZeroAddress } from '../../const'
 
 const persist = new Persist()
 
@@ -30,8 +31,22 @@ initConnection().then(async (conn) => {
         if (accs.length) {
             for (const acc of accs) {
                 let chainAcc: Connex.Thor.Account
+                let chainCode: Connex.Thor.Code
+                let chainMaster: string|null = null
                 try {
                     chainAcc = await thor.getAccount(acc.address, head.toString())
+                    chainCode = await thor.getCode(acc.address, head.toString())
+                    const ret = await thor.explain({
+                        clauses: [{
+                            to: PrototypeAddress,
+                            value: '0x0',
+                            data: methodMaster.encode(acc.address)
+                        }]
+                    }, head.toString())
+                    const decoded = methodMaster.decode(ret[0].data)
+                    if (decoded['0'] !== ZeroAddress) {
+                        chainMaster = decoded['0']
+                    }
                 } catch {
                     continue
                 }
@@ -47,9 +62,11 @@ initConnection().then(async (conn) => {
                 if (acc.energy !== BigInt(chainAcc.energy)) {
                     throw new Error(`Fatal: energy mismatch of Account(${acc.address}) chain:${chainAcc.energy} db:${acc.energy}`)
                 }
-
-                if (chainAcc.hasCode === true && acc.code === null) {
-                    throw new Error(`Fatal: Account(${acc.address}) does not have code in DB`)
+                if (acc.master !== chainMaster) {
+                    throw new Error(`Fatal: master of Account(${acc.address}) mismatch,chain:${chainMaster} db:${acc.master}`)
+                }
+                if (chainAcc.hasCode === true && acc.code !== chainCode.code ) {
+                    throw new Error(`Fatal: Account(${acc.address}) code mismatch`)
                 }
             }
         } else {
