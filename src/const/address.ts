@@ -4,5 +4,4 @@ export const EnergyAddress = '0x' + Buffer.from('Energy').toString('hex').padSta
 export const ExecutorAddress = '0x' + Buffer.from('Executor').toString('hex').padStart(40, '0')
 export const PrototypeAddress = '0x' + Buffer.from('Prototype').toString('hex').padStart(40, '0')
 export const ExtensionAddress = '0x' + Buffer.from('Extension').toString('hex').padStart(40, '0')
-
-
+export const ZeroAddress = '0x'.padEnd(42, '0')

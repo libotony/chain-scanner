@@ -2,12 +2,10 @@ import { getConnection, EntityManager, LessThan } from 'typeorm'
 import { Config } from '../../db/entity/config'
 import { Block } from '../../db/entity/block'
 import { Transfer, Energy } from '../../db/entity/movement'
-import { Receipt } from '../../db/entity/receipt'
 import { Account } from '../../db/entity/account'
 import { hexToBuffer, bufferToHex, REVERSIBLE_WINDOW } from '../../utils'
 import { Snapshot } from '../../db/entity/snapshot'
 import { SnapType } from '../../types'
-import { getBlock } from '../../foundation/db'
 
 const HEAD_KEY = 'dual-token-head'
 export type RecentSnapshot = Snapshot & {isTrunk: boolean}
@@ -66,12 +64,12 @@ export class Persist {
         return manager.save(accs)
     }
 
-    public saveSnapshot(snap: Snapshot, manager?: EntityManager) {
+    public insertSnapshot(snap: Snapshot, manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
 
-        return manager.save(snap)
+        return manager.insert(Snapshot, snap)
     }
 
     public async listRecentSnapshot(head: number, manager ?: EntityManager): Promise<RecentSnapshot[]> {

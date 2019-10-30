@@ -57,13 +57,4 @@ export class Thor {
         })
     }
 
-    private get headerValidator() {
-        return (headers: Record<string, string>) => {
-            const xGeneID = headers['x-genesis-id']
-            if (xGeneID && xGeneID !== this.genesisID) {
-                throw new Error(`responded 'x-genesis-id' not match`)
-            }
-        }
-    }
-
 }

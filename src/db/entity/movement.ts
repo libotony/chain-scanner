@@ -1,7 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm'
 import {fixedBytes, amount} from '../transformers'
 
-@Entity()
 export abstract class TransferLog {
 
     @PrimaryGeneratedColumn('increment')
@@ -34,3 +33,6 @@ export class Transfer extends TransferLog {}
 
 @Entity()
 export class Energy extends TransferLog { }
+
+@Entity()
+export class OCE extends TransferLog { }

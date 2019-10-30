@@ -7,7 +7,7 @@ import { BlockProcessor, SnapAccount } from './block-processor'
 import { Transfer, Energy } from '../../db/entity/movement'
 import { Account } from '../../db/entity/account'
 import { Snapshot } from '../../db/entity/snapshot'
-import { getBlockReceipts, getBest } from '../../foundation/db'
+import { getBlockReceipts, getBest, getBlock } from '../../foundation/db'
 
 export class DualToken {
     private head: number | null = null
@@ -158,7 +158,7 @@ export class DualToken {
 
         const snap = proc.snapshot()
         if (snap && saveSnapshot) {
-            await this.persist.saveSnapshot(snap, manager)
+            await this.persist.insertSnapshot(snap, manager)
         }
 
         return proc.VETMovement.length + proc.EnergyMovement.length + accs.length
@@ -199,7 +199,7 @@ export class DualToken {
     }
 
     private async processGenesis() {
-        const { block } = await this.persist.getBlockReceipts(0)
+        const block = await getBlock(0)
 
         await getConnection().transaction(async (manager) => {
             const proc = new BlockProcessor(block, this.thor, manager)

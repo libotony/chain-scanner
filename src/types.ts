@@ -36,5 +36,26 @@ export interface Clause {
 }
 
 export enum SnapType {
-    DualToken = 0
+    DualToken = 0,
+    VIP180Token
+}
+
+export interface TokenBasic {
+    name: string
+    address: string
+    symbol: string
+    decimals: number,
+}
+
+export enum TokenType {
+    PLA = 100,
+    SHA,
+    EHrT,
+    DBET,
+    TIC,
+    OCE,
+    SNK,
+    JUR,
+    AQD,
+    YEET
 }
