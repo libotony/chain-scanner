@@ -1,12 +1,10 @@
 {
-  "name": "chain-subscriber",
+  "name": "chain-scanner",
   "version": "1.0.0",
   "description": "chain subscriber",
   "main": "dist/index.js",
   "dependencies": {
-    "@vechain/connex-framework": "^1.1.1",
     "@vechain/connex.driver-nodejs": "^1.2.0-beta3",
-    "chain-observer": "file:../chain-observer",
     "mysql2": "^1.7.0",
     "reflect-metadata": "^0.1.13",
     "strict-event-emitter-types": "^2.0.0",
