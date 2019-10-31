@@ -2,7 +2,7 @@ import { initConnection } from '../../db'
 import { getConnection } from 'typeorm'
 import { Thor } from '../../thor-rest'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
-import { PrototypeAddress, methodMaster, ZeroAddress, methodBalanceOf } from '../../const'
+import { methodBalanceOf } from '../../const'
 import { TokenBalance } from '../../db/entity/token-balance'
 import { TokenType } from '../../types'
 import { Persist } from '../../processor/vip180/persist'
@@ -42,7 +42,7 @@ initConnection().then(async (conn) => {
                             value: '0x0',
                             data: methodBalanceOf.encode(acc.address)
                         }]
-                    }, block.id.toString())
+                    }, block.id)
                     const decoded = methodBalanceOf.decode(ret[0].data)
 
                     chainBalance = BigInt(decoded.balance)

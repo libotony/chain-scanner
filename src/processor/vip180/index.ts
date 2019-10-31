@@ -1,13 +1,14 @@
 import { TokenBasic, TokenType, SnapType } from '../../types'
 import { TransferLog } from '../../db/entity/movement'
-import { sleep, REVERSIBLE_WINDOW, displayID } from '../../utils'
+import { displayID, blockIDtoNum } from '../../utils'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
 import { $Master, TransferEvent, ZeroAddress } from '../../const'
-import { getBlockReceipts, getBest, getBlock } from '../../foundation/db'
+import { getBlockReceipts } from '../../foundation/db'
 import { EntityManager, getConnection } from 'typeorm'
 import { TokenBalance } from '../../db/entity/token-balance'
 import { Snapshot } from '../../db/entity/snapshot'
+import { Processor } from '../processor'
 
 interface SnapAccount {
     address: string
@@ -15,57 +16,24 @@ interface SnapAccount {
     balance: string
 }
 
-export class VIP180Transfer {
-
-    private head: number | null = null
-    private birthNumber: number|null = null
+export class VIP180Transfer extends Processor {
     private persist: Persist
 
     constructor(readonly thor: Thor, readonly token: TokenBasic, readonly entityClass: new () => TransferLog) {
+        super()
         this.persist = new Persist(token, entityClass)
      }
 
-    public async start() {
-        for (; ;) {
-            try {
-                await sleep(5 * 1000)
-
-                // await this.latestTrunkCheck()
-
-                let head = await this.getHead()
-                if (head === this.birthNumber) {
-                    await this.processGenesis()
-                }
-
-                // const best = await getBest()
-                const best = await getBlock(4000000)
-
-                if (best.number <= head) {
-                    break
-                }
-
-                if (best.number - head > REVERSIBLE_WINDOW) {
-                    await this.fastForward(best.number - REVERSIBLE_WINDOW)
-                    head = await this.getHead()
-                }
-
-                await getConnection().transaction(async (manager) => {
-                    for (let i = head + 1; i <= best.number; i++) {
-                        await this.processBlock(i, manager, true)
-                    }
-                    await this.persist.saveHead(best.number, manager)
-                })
-                this.head = best.number
-            } catch (e) {
-                console.log(`token ${this.token.symbol} loop:`, e)
-            }
-        }
+    protected loadHead(manager?: EntityManager) {
+        return this.persist.getHead(manager)
     }
 
-    public async bornAt() {
-        if (this.birthNumber) {
-            return this.birthNumber
-        }
+    protected async saveHead(head: number, manager?: EntityManager) {
+        await this.persist.saveHead(head, manager)
+        return
+    }
+
+    protected async bornAt() {
         const events = await this.thor.filterEventLogs({
             range: {unit: 'block', from: 0, to: Number.MAX_SAFE_INTEGER },
             options: {offset: 0, limit: 1},
@@ -73,36 +41,16 @@ export class VIP180Transfer {
             order: 'asc'
         })
         if (events.length) {
-            this.birthNumber = events[0].meta.blockNumber
-            return this.birthNumber
+            return events[0].meta.blockNumber
         } else {
             throw new Error('Fatal: no $Master event found')
         }
     }
 
-    private async getHead() {
-        if (this.head !== null) {
-            return this.head
-        } else {
-            const head = await this.persist.getHead()
-
-            const freshStartPoint =  await this.bornAt() - 1
-            if (!head) {
-                return freshStartPoint
-            } else {
-                return head
-            }
-        }
-    }
-
-    private async processGenesis() {
-        return
-    }
-
     /**
      * @return inserted column number
      */
-    private async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
+    protected async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
         const { block, receipts } = await getBlockReceipts(blockNum, manager)
 
         const movements: TransferLog[] = []
@@ -148,14 +96,17 @@ export class VIP180Transfer {
                         })
                         movements.push(movement)
 
+                        console.log(`Account(${movement.sender}) -> Account(${movement.recipient}): ${movement.amount}`)
                         if (movement.sender !== ZeroAddress) {
                             const senderAcc = await account(movement.sender)
+                            // console.log(`Sender: ${senderAcc.balance}`)
                             senderAcc.balance = senderAcc.balance - movement.amount
                             if (senderAcc.balance < 0) {
-                                throw new Error(`Fatal: VET balance under 0 of Account(${movement.sender}) at Block(${displayID(block.id)})`)
+                                throw new Error(`Fatal: OCE balance under 0 of Account(${movement.sender}) at Block(${displayID(block.id)})`)
                             }
                         }
                         const recipientAcc = await account(movement.recipient)
+                        // console.log(`Recipient: ${recipientAcc.balance}`)
                         recipientAcc.balance = recipientAcc.balance + movement.amount
                     }
                 }
@@ -191,37 +142,58 @@ export class VIP180Transfer {
         return movements.length + acc.size
     }
 
-    private async fastForward(target: number) {
-        const head = await this.getHead()
+    protected async latestTrunkCheck() {
+        let head = await this.getHead()
 
-        let count = 0
-
-        for (let i = head + 1; i <= target;) {
-            const startNum = i
-            console.time('time')
-            await getConnection().transaction(async (manager) => {
-                for (; i <= target;) {
-                    count += await this.processBlock(i++, manager)
-
-                    if (count >= 5000) {
-                        await this.persist.saveHead(i - 1, manager)
-                        process.stdout.write(`imported blocks(${i - startNum}) at block(${i - 1}) `)
-                        console.timeEnd('time')
-                        count = 0
-                        break
-                    }
-
-                    if (i === target + 1) {
-                        await this.persist.saveHead(i - 1, manager)
-                        process.stdout.write(`processed blocks(${i - startNum}) at block(${i - 1}) `)
-                        console.timeEnd('time')
-                        break
-                    }
-
-                }
-            })
-            this.head = i - 1
+        if (head < 12) {
+            return
         }
+
+        const snapshots = await this.persist.listRecentSnapshot(head)
+
+        if (snapshots.length) {
+            for (; snapshots.length;) {
+                if (snapshots[0].isTrunk === false) {
+                    break
+                }
+                snapshots.shift()
+            }
+            if (snapshots.length) {
+                const headNum = blockIDtoNum(snapshots[0].blockID) - 1
+                const toRevert = snapshots.map(x => x.blockID)
+
+                await getConnection().transaction(async (manager) => {
+                    const accounts = new Map<string, TokenBalance>()
+
+                    for (; snapshots.length;) {
+                        const snap = snapshots.pop()
+                        for (const snapAcc of snap.data as SnapAccount[]) {
+                            const acc = manager.create(TokenBalance, {
+                                address: snapAcc.address,
+                                balance: BigInt(snapAcc.balance),
+                                type: snapAcc.type,
+                            })
+                            accounts.set(snapAcc.address, acc)
+                        }
+                    }
+
+                    const toSave: TokenBalance[] = []
+                    for (const [_, acc] of accounts.entries()) {
+                        toSave.push(acc)
+                    }
+
+                    await this.persist.saveAccounts(toSave, manager)
+                    await this.persist.removeMovements(toRevert, manager)
+                    await this.persist.removeSnapshot(toRevert)
+                    await this.persist.saveHead(headNum, manager)
+                })
+
+                this.head = headNum
+            }
+        }
+
+        head = await this.getHead()
+        await this.persist.clearSnapShot(head)
     }
 
 }
