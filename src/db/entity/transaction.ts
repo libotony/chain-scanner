@@ -40,8 +40,11 @@ export class Transaction {
     @Column({ type: 'binary', length: 32, nullable: true, transformer: fixedBytes(32, 'transaction.dependsOn', true) })
     public dependsOn: string
 
-    @Column({ type: 'longtext', transformer: simpleJSON<Clause[]>('receipt.outputs')})
-    public clauses: Clause[]
+    @Column({ type: 'binary', length: 20, transformer: fixedBytes(20, 'tx.origin') })
+    public origin: string
+
+    @Column({ type: 'binary', length: 20, nullable: true, transformer: fixedBytes(20, 'tx.delegator', true) })
+    public delegator: string
 
     @Column()
     public size: number
