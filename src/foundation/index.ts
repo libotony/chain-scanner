@@ -3,6 +3,8 @@ import { BlockSummary, Fork } from '../types'
 import { Persist } from './persist'
 import { getConnection } from 'typeorm'
 import { blockIDtoNum, displayID, REVERSIBLE_WINDOW } from '../utils'
+import { EventEmitter } from 'events'
+import { PromInt } from '@vechain/connex.driver-nodejs/dist/promint'
 
 export interface Task<T extends 'NewHeads' | 'Fork' | 'StartUp'> {
     type: T,
@@ -14,9 +16,15 @@ export class Foundation {
     private head: string | null = null
     private tasks: Array<Task<'NewHeads' | 'Fork' | 'StartUp'>> = []
     private persist: Persist
+    private shutdown = false
+    private init = new PromInt()
+    private ev = new EventEmitter()
 
     constructor(readonly thor: Thor) {
         this.persist = new Persist()
+    }
+
+    public StartUp() {
         this.tasks.push({type: 'StartUp', data: undefined})
         this.run()
     }
@@ -33,11 +41,31 @@ export class Foundation {
         return
     }
 
+    public stop() {
+        if (this.running === false) {
+            return Promise.resolve()
+        }
+        this.shutdown = true
+        this.init.interrupt()
+
+        return new Promise((resolve) => {
+            this.ev.on('closed', resolve)
+        })
+    }
+
     private async run() {
         if (this.running) { return }
         this.running = true
 
+        if (this.shutdown) {
+            this.ev.emit('closed')
+            return
+        }
         for (; this.tasks.length;) {
+            if (this.shutdown) {
+                this.ev.emit('closed')
+                break
+            }
             try {
                 const task = this.tasks.shift()
 
@@ -95,7 +123,6 @@ export class Foundation {
         } else {
             const config = await this.persist.getHead()
 
-            // TODO: for test&dev starting from 3,500,000
             const freshStartPoint = ''
             // const freshStartPoint =  '0x003d08ffd2683df6555f0e3480bde578f8feede131650c3af01b534d234a921e'
             if (!config) {
@@ -187,7 +214,7 @@ export class Foundation {
             console.time('time')
             await getConnection().transaction(async (manager) => {
                 for (; i <= target;) {
-                    b = await this.thor.getBlock(i++)
+                    b = await this.init.wrap(this.thor.getBlock(i++))
                     count += await this.persist.insertBlock(b, this.thor, manager)
 
                     if (count >= 5000) {
