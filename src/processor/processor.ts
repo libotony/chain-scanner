@@ -1,5 +1,5 @@
 import { EntityManager, getConnection } from 'typeorm'
-import { PromInt } from '@vechain/connex.driver-nodejs/dist/promint'
+import { PromInt, InterruptedError } from '@vechain/connex.driver-nodejs/dist/promint'
 import { sleep, REVERSIBLE_WINDOW } from '../utils'
 import { getBest } from '../foundation/db'
 import { EventEmitter } from 'events'
@@ -103,6 +103,9 @@ export abstract class Processor {
             console.time('time')
             await getConnection().transaction(async (manager) => {
                 for (; i <= target;) {
+                    if (this.shutdown) {
+                        throw new InterruptedError()
+                    }
                     count += await this.init.wrap(this.processBlock(i++, manager))
 
                     if (count >= 5000) {
@@ -119,7 +122,6 @@ export abstract class Processor {
                         console.timeEnd('time')
                         break
                     }
-
                 }
             })
             this.head = i - 1

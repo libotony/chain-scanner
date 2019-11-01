@@ -10,7 +10,7 @@ const watcher = new ChainWatcher(thor)
 let shutdown = false
 
 initConnection().then(async () => {
-    foundation.StartUp()
+    foundation.startUp()
 
     watcher.on('NewHeads', (h) => {
         foundation.newHeads(h)
@@ -18,13 +18,12 @@ initConnection().then(async () => {
     watcher.on('Fork', (f) => {
         foundation.fork(f)
     })
-
 }).catch(console.log)
 
 const signals: NodeJS.Signals[]  = ['SIGINT', 'SIGTERM', 'SIGQUIT']
 signals.forEach(sig => {
     process.on(sig, (s) => {
-        console.log('signal', s)
+        console.log(`got signal: ${s}, terminating`)
         if (!shutdown) {
             shutdown = true
             foundation
