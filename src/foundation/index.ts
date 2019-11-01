@@ -4,7 +4,7 @@ import { Persist } from './persist'
 import { getConnection } from 'typeorm'
 import { blockIDtoNum, displayID, REVERSIBLE_WINDOW } from '../utils'
 import { EventEmitter } from 'events'
-import { PromInt } from '@vechain/connex.driver-nodejs/dist/promint'
+import { PromInt, InterruptedError } from '@vechain/connex.driver-nodejs/dist/promint'
 
 export interface Task<T extends 'NewHeads' | 'Fork' | 'StartUp'> {
     type: T,
@@ -24,7 +24,7 @@ export class Foundation {
         this.persist = new Persist()
     }
 
-    public StartUp() {
+    public startUp() {
         this.tasks.push({type: 'StartUp', data: undefined})
         this.run()
     }
@@ -80,7 +80,7 @@ export class Foundation {
                         await getConnection().transaction(async (manager) => {
                             for (const h of heads) {
                                 const b = await this.thor.getBlock(h.id)
-                                await this.persist.insertBlock(b, this.thor, manager)
+                                await this.init.wrap(this.persist.insertBlock(b, this.thor, manager))
                             }
 
                             await this.persist.saveHead(heads[heads.length - 1].id, manager)
@@ -101,7 +101,7 @@ export class Foundation {
 
                             for (const h of f.trunk) {
                                 const b = await this.thor.getBlock(h.id)
-                                await this.persist.insertBlock(b, this.thor, manager)
+                                await this.init.wrap(this.persist.insertBlock(b, this.thor, manager))
                             }
 
                             await this.persist.saveHead(f.trunk[f.trunk.length - 1].id, manager)
@@ -194,7 +194,7 @@ export class Foundation {
         await getConnection().transaction(async (manager) => {
             for (; blocks.length;) {
                 const b = blocks.pop()
-                await this.persist.insertBlock(b, this.thor, manager)
+                await this.init.wrap(this.persist.insertBlock(b, this.thor, manager))
             }
             await this.persist.saveHead(stopPos.parentID, manager)
         })
@@ -214,8 +214,11 @@ export class Foundation {
             console.time('time')
             await getConnection().transaction(async (manager) => {
                 for (; i <= target;) {
-                    b = await this.init.wrap(this.thor.getBlock(i++))
-                    count += await this.persist.insertBlock(b, this.thor, manager)
+                    if (this.shutdown) {
+                        throw new InterruptedError()
+                    }
+                    b = await this.thor.getBlock(i++)
+                    count += await this.init.wrap(this.persist.insertBlock(b, this.thor, manager))
 
                     if (count >= 5000) {
                         await this.persist.saveHead(b.id, manager)

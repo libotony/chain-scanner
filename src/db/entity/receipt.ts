@@ -1,6 +1,6 @@
-import { Column, Entity, JoinColumn, PrimaryColumn, ManyToOne, Index, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm'
 import { Output } from '../../types'
-import { fixedBytes, simpleJSON } from '../transformers'
+import { fixedBytes, simpleJSON, amount } from '../transformers'
 
 @Entity()
 @Index('receiptUnique', ['txID', 'blockID'], { unique: true })
@@ -24,11 +24,11 @@ export class Receipt {
     @Column({ type: 'binary', length: 20, transformer: fixedBytes(20, 'receipt.gasPayer') })
     public gasPayer: string
 
-    @Column()
-    public paid: string
+    @Column({ type: 'binary', length: 24, transformer: amount })
+    public paid: bigint
 
-    @Column()
-    public reward: string
+    @Column({ type: 'binary', length: 24, transformer: amount })
+    public reward: bigint
 
     @Column({ type: 'boolean' })
     public reverted: boolean

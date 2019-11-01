@@ -34,11 +34,37 @@ const makeTransformer = <DBType, EntityType>(transformer: ValueTransformer<DBTyp
     }
 }
 
-export const fixedBytes = (len= 32, context: string, nullable = false) =>  {
+export const fixedBytes = (len= 32, context: string, nullable= false) =>  {
     return makeTransformer({
         from: (val: Buffer|null) => {
             if (nullable && val === null) {
                 return null
+            }
+            return '0x' + val.toString('hex')
+        },
+        to: (val: string|null) => {
+            if (nullable && val === null) {
+                return null
+            }
+            if (!/^0x[0-9a-fA-f]+/i.test(val)) {
+                throw new Error(context + ': bytes' + len + ' hex string required: ' + val)
+            }
+
+            const str = sanitizeHex(val).padStart(len * 2, '0')
+            return Buffer.from(str, 'hex')
+        }
+    })
+}
+
+export const compactFixedBytes = (len = 32, context: string, nullable = false) =>  {
+    return makeTransformer({
+        from: (val: Buffer|null) => {
+            if (nullable && val === null) {
+                return null
+            }
+            const index = val.findIndex(x => x !== 0)
+            if (index > 0) {
+                val = val.slice(index)
             }
             return '0x' + val.toString('hex')
         },
@@ -80,7 +106,7 @@ export const bytes = (context: string, nullable = false) =>  {
                 return null
             }
 
-            if (!/^0x[0-9a-fA-f]+/i.test(val)) {
+            if (!/^0x[0-9a-fA-f]*/i.test(val)) {
                 throw new Error(context + ': bytes hex string required: ' + val)
             }
 

@@ -53,17 +53,12 @@ export class Persist {
         }
         const head = b.id
 
-        // const label = `block(${displayID(b.id)})`
-        // console.time(label)
-
         const block = manager.create(Block, { ...b, isTrunk: trunk })
-
         const txs: Transaction[] = []
         const receipts: Receipt[] = []
 
         for (const [index, txID] of b.transactions.entries()) {
-            const t = await thor.getTransaction(txID, head)
-            const r = await thor.getReceipt(txID, head)
+            const [t, r] = await Promise.all([thor.getTransaction(txID, head), await thor.getReceipt(txID, head)])
 
             const txE = manager.create(Transaction, {
                 ...t,
@@ -79,15 +74,20 @@ export class Persist {
             }
             txs.push(txE)
 
-            receipts.push(manager.create(Receipt, { ...r, txID: t.id, txIndex: index, blockID: b.id }))
+            receipts.push(manager.create(Receipt, {
+                ...r,
+                txID: t.id,
+                txIndex: index,
+                blockID: b.id,
+                paid: BigInt(r.paid),
+                reward: BigInt(r.reward)
+            }))
         }
         await manager.insert(Block, block)
         if (txs.length) {
             await manager.insert(Transaction, txs)
             await manager.insert(Receipt, receipts)
         }
-        // console.timeEnd(label)
         return 1 + txs.length + receipts.length
     }
-
 }

@@ -1,6 +1,5 @@
 import { Entity, Column, Index, PrimaryGeneratedColumn } from 'typeorm'
-
-import { fixedBytes, simpleJSON } from '../transformers'
+import { fixedBytes, simpleJSON, compactFixedBytes } from '../transformers'
 import { Clause } from '../../types'
 
 @Entity()
@@ -9,10 +8,10 @@ export class Transaction {
     @PrimaryGeneratedColumn('increment')
     public id: number
 
-    @Column({ type: 'binary', length: 32, transformer: fixedBytes(32 , 'transaction.txID') })
+    @Column({ type: 'binary', length: 32, transformer: fixedBytes(32 , 'tx.txID') })
     public txID: string
 
-    @Column({ type: 'binary', length: 32, transformer: fixedBytes(32, 'transaction.blockID') })
+    @Column({ type: 'binary', length: 32, transformer: fixedBytes(32, 'tx.blockID') })
     @Index()
     public blockID: string
 
@@ -22,7 +21,7 @@ export class Transaction {
     @Column({ type: 'int', unsigned: true })
     public chainTag: number
 
-    @Column({ type: 'binary', length: 8, transformer: fixedBytes(8 , 'transaction.blockRef') })
+    @Column({ type: 'binary', length: 8, transformer: fixedBytes(8 , 'tx.blockRef') })
     public blockRef: string
 
     @Column({ unsigned: true })
@@ -34,10 +33,10 @@ export class Transaction {
     @Column({ unsigned: true, type: 'bigint' })
     public gas: number
 
-    @Column()
+    @Column({ type: 'binary', length: 8, transformer: compactFixedBytes(8, 'tx.nonce') })
     public nonce: string
 
-    @Column({ type: 'binary', length: 32, nullable: true, transformer: fixedBytes(32, 'transaction.dependsOn', true) })
+    @Column({ type: 'binary', length: 32, nullable: true, transformer: fixedBytes(32, 'tx.dependsOn', true) })
     public dependsOn: string
 
     @Column({ type: 'binary', length: 20, transformer: fixedBytes(20, 'tx.origin') })
@@ -45,6 +44,9 @@ export class Transaction {
 
     @Column({ type: 'binary', length: 20, nullable: true, transformer: fixedBytes(20, 'tx.delegator', true) })
     public delegator: string
+
+    @Column({ type: 'longtext', transformer: simpleJSON<Clause[]>('tx.clauses')})
+    public clauses: Clause[]
 
     @Column()
     public size: number
