@@ -6,6 +6,8 @@ import { displayID } from '../../utils'
 import { EntityManager } from 'typeorm'
 import { Snapshot } from '../../db/entity/snapshot'
 import { SnapType } from '../../types'
+import { getForkConfig } from '../../const/fork'
+import { ExtensionAddress } from '../../const'
 
 export interface SnapAccount {
     address: string
@@ -29,7 +31,13 @@ export class BlockProcessor {
         readonly block: Block,
         readonly thor: Thor,
         readonly manager: EntityManager
-    ) { }
+    ) {
+        const forkConfig = getForkConfig(thor.genesisID)
+        if (block.number === forkConfig.VIP191) {
+            this.account(ExtensionAddress)
+            this.code.add(ExtensionAddress)
+        }
+    }
 
     public async master(addr: string, master: string) {
         const acc = await this.account(addr)
@@ -87,7 +95,7 @@ export class BlockProcessor {
                 if (code && code.code !== '0x') {
                     acc.code = code.code
                 }
-             }
+            }
 
         }
     }

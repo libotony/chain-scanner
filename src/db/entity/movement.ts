@@ -36,3 +36,27 @@ export class Energy extends TransferLog { }
 
 @Entity()
 export class OCE extends TransferLog { }
+
+@Entity()
+export class PLA extends TransferLog { }
+
+@Entity()
+export class EHrT extends TransferLog { }
+
+@Entity()
+export class DBET extends TransferLog { }
+
+@Entity()
+export class TIC extends TransferLog { }
+
+@Entity()
+export class SNK extends TransferLog { }
+
+@Entity()
+export class JUR extends TransferLog { }
+
+@Entity()
+export class AQD extends TransferLog { }
+
+@Entity()
+export class YEET extends TransferLog { }

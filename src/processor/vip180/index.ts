@@ -9,6 +9,7 @@ import { EntityManager, getConnection } from 'typeorm'
 import { TokenBalance } from '../../db/entity/token-balance'
 import { Snapshot } from '../../db/entity/snapshot'
 import { Processor } from '../processor'
+import { abi } from 'thor-devkit'
 
 interface SnapAccount {
     address: string
@@ -84,7 +85,12 @@ export class VIP180Transfer extends Processor {
             for (const [clauseIndex, o] of r.outputs.entries()) {
                 for (const [logIndex, e] of o.events.entries()) {
                     if (e.address === this.token.address && e.topics[0] === TransferEvent.signature) {
-                        const decoded = TransferEvent.decode(e.data, e.topics)
+                        let decoded: abi.Decoded
+                        try {
+                            decoded = TransferEvent.decode(e.data, e.topics)
+                        } catch (e) {
+                            continue
+                        }
                         const movement = manager.create(this.entityClass, {
                             sender: decoded._from,
                             recipient: decoded._to,
@@ -96,17 +102,15 @@ export class VIP180Transfer extends Processor {
                         })
                         movements.push(movement)
 
-                        console.log(`Account(${movement.sender}) -> Account(${movement.recipient}): ${movement.amount}`)
-                        if (movement.sender !== ZeroAddress) {
+                        console.log(`Account(${movement.sender}) -> Account(${movement.recipient}): ${movement.amount} ${this.token.symbol}`)
+                        if (block.number !== await this.bornAt() && movement.sender !== ZeroAddress) {
                             const senderAcc = await account(movement.sender)
-                            // console.log(`Sender: ${senderAcc.balance}`)
                             senderAcc.balance = senderAcc.balance - movement.amount
                             if (senderAcc.balance < 0) {
                                 throw new Error(`Fatal: OCE balance under 0 of Account(${movement.sender}) at Block(${displayID(block.id)})`)
                             }
                         }
                         const recipientAcc = await account(movement.recipient)
-                        // console.log(`Recipient: ${recipientAcc.balance}`)
                         recipientAcc.balance = recipientAcc.balance + movement.amount
                     }
                 }

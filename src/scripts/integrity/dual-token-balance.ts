@@ -65,7 +65,7 @@ initConnection().then(async (conn) => {
                 if (acc.master !== chainMaster) {
                     throw new Error(`Fatal: master of Account(${acc.address}) mismatch,chain:${chainMaster} db:${acc.master}`)
                 }
-                if (chainAcc.hasCode === true && acc.code !== chainCode.code ) {
+                if (chainAcc.hasCode === true && acc.code !== chainCode.code) {
                     throw new Error(`Fatal: Account(${acc.address}) code mismatch`)
                 }
             }

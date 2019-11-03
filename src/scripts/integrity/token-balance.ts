@@ -2,16 +2,40 @@ import { initConnection } from '../../db'
 import { getConnection } from 'typeorm'
 import { Thor } from '../../thor-rest'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
-import { methodBalanceOf } from '../../const'
+import { balanceOf } from '../../const'
 import { TokenBalance } from '../../db/entity/token-balance'
 import { TokenType } from '../../types'
 import { Persist } from '../../processor/vip180/persist'
 import { getVIP180Token } from '../../const/tokens'
-import { OCE } from '../../db/entity/movement'
+import { OCE, TransferLog, PLA, TIC, SNK, JUR, AQD, YEET, EHrT, DBET } from '../../db/entity/movement'
 
+const getEntityClass = (symbol: string): (new () => TransferLog) => {
+    switch (symbol) {
+        case 'OCE':
+            return OCE
+        case 'PLA':
+            return PLA
+        case 'EHrT':
+            return EHrT
+        case 'DBET':
+            return DBET
+        case 'TIC':
+            return TIC
+        case 'SNK':
+            return SNK
+        case 'JUR':
+            return JUR
+        case 'AQD':
+            return AQD
+        case 'YEET':
+            return YEET
+        default:
+            throw new Error('entity not found')
+    }
+}
 const thor = new Thor(new SimpleNet('http://localhost:8669'))
-const token = getVIP180Token(thor.genesisID, 'OCE')
-const persist = new Persist(token, OCE)
+const token = getVIP180Token(thor.genesisID, process.argv[2] || 'OCE')
+const persist = new Persist(token, getEntityClass(token.symbol))
 
 initConnection().then(async (conn) => {
     const head = await persist.getHead()
@@ -25,7 +49,7 @@ initConnection().then(async (conn) => {
         const accs = await getConnection()
             .getRepository(TokenBalance)
             .createQueryBuilder()
-            .where({type: TokenType.OCE})
+            .where({type: TokenType[token.symbol]})
             .offset(offset)
             .limit(step)
             .getMany()
@@ -40,17 +64,17 @@ initConnection().then(async (conn) => {
                         clauses: [{
                             to:  token.address,
                             value: '0x0',
-                            data: methodBalanceOf.encode(acc.address)
+                            data: balanceOf.encode(acc.address)
                         }]
                     }, block.id)
-                    const decoded = methodBalanceOf.decode(ret[0].data)
+                    const decoded = balanceOf.decode(ret[0].data)
 
                     chainBalance = BigInt(decoded.balance)
                 } catch {
                     continue
                 }
                 if (acc.balance !== chainBalance) {
-                    throw new Error(`Fatal: OCE balance mismatch of Account(${acc.address})`)
+                    throw new Error(`Fatal: ${this.token.symbol} balance mismatch of Account(${acc.address})`)
                 }
             }
         } else {

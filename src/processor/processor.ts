@@ -61,8 +61,8 @@ export abstract class Processor {
                 this.ev.emit('closed')
                 break
             }
-            await sleep(5 * 1000)
             try {
+                await this.init.wrap(sleep(1 * 1000))
                 await this.latestTrunkCheck()
 
                 let head = await this.getHead()
@@ -88,7 +88,9 @@ export abstract class Processor {
                 })
                 this.head = best.number
             } catch (e) {
-                console.log(`processor(${this.constructor.name}) loop:`, e)
+                if (!(e instanceof InterruptedError)) {
+                    console.log(`processor(${this.constructor.name}) loop:`, e)
+                }
             }
         }
     }
