@@ -1,7 +1,7 @@
 import { EntityManager, getConnection } from 'typeorm'
 import { PromInt, InterruptedError } from '@vechain/connex.driver-nodejs/dist/promint'
 import { sleep, REVERSIBLE_WINDOW } from '../utils'
-import { getBest } from '../foundation/db'
+import { getBest, getBlock } from '../foundation/db'
 import { EventEmitter } from 'events'
 
 export abstract class Processor {
@@ -71,7 +71,7 @@ export abstract class Processor {
                 }
 
                 const best = await getBest()
-                // const best = wait this.persist.getBlock(700000)
+                // const best = await getBlock(766565)
 
                 if (best.number <= head) {
                     continue

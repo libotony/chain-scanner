@@ -41,7 +41,10 @@ export class OCE extends TransferLog { }
 export class PLA extends TransferLog { }
 
 @Entity()
-export class EHrT extends TransferLog { }
+export class SHA extends TransferLog { }
+
+@Entity()
+export class EHRT extends TransferLog { }
 
 @Entity()
 export class DBET extends TransferLog { }

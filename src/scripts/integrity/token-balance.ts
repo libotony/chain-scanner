@@ -7,7 +7,7 @@ import { TokenBalance } from '../../db/entity/token-balance'
 import { TokenType } from '../../types'
 import { Persist } from '../../processor/vip180/persist'
 import { getVIP180Token } from '../../const/tokens'
-import { OCE, TransferLog, PLA, TIC, SNK, JUR, AQD, YEET, EHrT, DBET } from '../../db/entity/movement'
+import { OCE, TransferLog, PLA, TIC, SNK, JUR, AQD, YEET, EHRT, DBET, SHA } from '../../db/entity/movement'
 
 const getEntityClass = (symbol: string): (new () => TransferLog) => {
     switch (symbol) {
@@ -15,8 +15,10 @@ const getEntityClass = (symbol: string): (new () => TransferLog) => {
             return OCE
         case 'PLA':
             return PLA
+        case 'SHA':
+            return SHA
         case 'EHrT':
-            return EHrT
+            return EHRT
         case 'DBET':
             return DBET
         case 'TIC':
@@ -74,7 +76,7 @@ initConnection().then(async (conn) => {
                     continue
                 }
                 if (acc.balance !== chainBalance) {
-                    throw new Error(`Fatal: ${this.token.symbol} balance mismatch of Account(${acc.address})`)
+                    throw new Error(`Fatal: ${token.symbol} balance mismatch of Account(${acc.address}), want ${acc.balance} got ${chainBalance}`)
                 }
             }
         } else {

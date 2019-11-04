@@ -1,5 +1,5 @@
 import { initConnection } from '../db'
-import { TransferLog, OCE, PLA, EHrT, DBET, TIC, SNK, JUR, AQD, YEET } from '../db/entity/movement'
+import { TransferLog, OCE, PLA, EHRT, DBET, TIC, SNK, JUR, AQD, YEET, SHA } from '../db/entity/movement'
 import { Config } from '../db/entity/config'
 import { Snapshot } from '../db/entity/snapshot'
 import { SnapType, TokenType } from '../types'
@@ -14,8 +14,10 @@ const getEntityClass = (symbol: string): (new () => TransferLog) => {
             return OCE
         case 'PLA':
             return PLA
+        case 'SHA':
+            return SHA
         case 'EHrT':
-            return EHrT
+            return EHRT
         case 'DBET':
             return DBET
         case 'TIC':

@@ -1,7 +1,15 @@
 import { TokenBasic } from '../types'
 
-const main = new Map<string, TokenBasic>()
-const test = new Map<string, TokenBasic>()
+export interface TokenConfig {
+    genesis?: {
+        [address: string]: string
+    },
+    // Indicates special cases like EHrT: burn when transfer to zero address
+    burnOnZero?: boolean
+}
+
+const main = new Map<string, TokenBasic&TokenConfig>()
+const test = new Map<string, TokenBasic&TokenConfig>()
 
 const pla = { symbol: 'PLA', address: '', name: 'Plair', decimals: 18 }
 const sha = { symbol: 'SHA', address: '', name: 'Safe Haven', decimals: 18 }
@@ -16,8 +24,11 @@ const yeet = { symbol: 'YEET', address: '', name: 'Yeet Coin', decimals: 18 }
 
 main.set(pla.symbol, { ...pla, address: '0x89827f7bb951fd8a56f8ef13c5bfee38522f2e1f' })
 main.set(sha.symbol, { ...sha, address: '0x5db3c8a942333f6468176a870db36eef120a34dc' })
-main.set(ehrt.symbol, { ...ehrt, address: '0xf8e1faa0367298b55f57ed17f7a2ff3f5f1d1628' })
-main.set(dbet.symbol, { ...dbet, address: '0x1b8ec6c2a45cca481da6f243df0d7a5744afc1f8' })
+main.set(ehrt.symbol, { ...ehrt, address: '0xf8e1faa0367298b55f57ed17f7a2ff3f5f1d1628',
+    burnOnZero: true,
+    genesis: { '0x8d8d8a0c77628926908dedaf3fbffce3d416fc2d': '10000000000000000000000000000' }
+})
+main.set(dbet.symbol, { ...dbet, address: '0x1b8ec6c2a45cca481da6f243df0d7a5744afc1f8', genesis: {'0x1b8ec6c2a45cca481da6f243df0d7a5744afc1f8': '205903294831970956466297922'} })
 main.set(tic.symbol, { ...tic, address: '0xa94a33f776073423e163088a5078feac31373990' })
 main.set(oce.symbol, { ...oce, address: '0x0ce6661b4ba86a0ea7ca2bd86a0de87b0b860f14' })
 main.set(snk.symbol, { ...snk, address: '0x540768b909782c430cc321192e6c2322f77494ec' })

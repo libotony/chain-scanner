@@ -4,7 +4,7 @@ import { VIP180Transfer } from '../processor/vip180'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { Thor } from '../thor-rest'
 import { getVIP180Token } from '../const/tokens'
-import { TransferLog, OCE, PLA, TIC, SNK, JUR, AQD, YEET } from '../db/entity/movement'
+import { TransferLog, OCE, PLA, TIC, SNK, JUR, AQD, YEET, SHA, EHRT, DBET } from '../db/entity/movement'
 
 const getEntityClass = (symbol: string): (new () => TransferLog) => {
     switch (symbol) {
@@ -12,6 +12,12 @@ const getEntityClass = (symbol: string): (new () => TransferLog) => {
             return OCE
         case 'PLA':
             return PLA
+        case 'SHA':
+            return SHA
+        case 'EHrT':
+            return EHRT
+        case 'DBET':
+            return DBET
         case 'TIC':
             return TIC
         case 'SNK':
@@ -27,7 +33,7 @@ const getEntityClass = (symbol: string): (new () => TransferLog) => {
     }
 }
 const thor = new Thor(new SimpleNet('http://localhost:8669'))
-const token = getVIP180Token(thor.genesisID, process.argv[2] ? process.argv[2].toUpperCase() : null || 'OCE')
+const token = getVIP180Token(thor.genesisID, process.argv[2] || 'OCE')
 
 const tokenTransfer = new VIP180Transfer(thor, token, getEntityClass(token.symbol))
 let shutdown = false

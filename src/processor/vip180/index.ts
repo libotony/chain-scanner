@@ -10,6 +10,7 @@ import { TokenBalance } from '../../db/entity/token-balance'
 import { Snapshot } from '../../db/entity/snapshot'
 import { Processor } from '../processor'
 import { abi } from 'thor-devkit'
+import { TokenConfig } from '../../const/tokens'
 
 interface SnapAccount {
     address: string
@@ -20,7 +21,11 @@ interface SnapAccount {
 export class VIP180Transfer extends Processor {
     private persist: Persist
 
-    constructor(readonly thor: Thor, readonly token: TokenBasic, readonly entityClass: new () => TransferLog) {
+    constructor(
+        readonly thor: Thor,
+        readonly token: TokenBasic & TokenConfig,
+        readonly entityClass: new () => TransferLog
+    ) {
         super()
         this.persist = new Persist(token, entityClass)
      }
@@ -103,15 +108,19 @@ export class VIP180Transfer extends Processor {
                         movements.push(movement)
 
                         console.log(`Account(${movement.sender}) -> Account(${movement.recipient}): ${movement.amount} ${this.token.symbol}`)
-                        if (block.number !== await this.bornAt() && movement.sender !== ZeroAddress) {
+                        // Transfer from address(0) considered to be mint token
+                        if (movement.sender !== ZeroAddress) {
                             const senderAcc = await account(movement.sender)
                             senderAcc.balance = senderAcc.balance - movement.amount
                             if (senderAcc.balance < 0) {
                                 throw new Error(`Fatal: OCE balance under 0 of Account(${movement.sender}) at Block(${displayID(block.id)})`)
                             }
                         }
-                        const recipientAcc = await account(movement.recipient)
-                        recipientAcc.balance = recipientAcc.balance + movement.amount
+
+                        if (this.token.burnOnZero !== true || movement.recipient !== ZeroAddress) {
+                            const recipientAcc = await account(movement.recipient)
+                            recipientAcc.balance = recipientAcc.balance + movement.amount
+                        }
                     }
                 }
             }
@@ -198,6 +207,25 @@ export class VIP180Transfer extends Processor {
 
         head = await this.getHead()
         await this.persist.clearSnapShot(head)
+    }
+
+    protected async processGenesis() {
+        if (this.token.genesis) {
+            const balances: TokenBalance[] = []
+            const manager = getConnection().manager
+            for (const addr in this.token.genesis) {
+                if (this.token.genesis[addr]) {
+                    balances.push(manager.create(TokenBalance, {
+                        address: addr,
+                        balance: BigInt(this.token.genesis[addr]),
+                        type: TokenType[this.token.symbol]
+                    }))
+                }
+            }
+            if (balances.length) {
+                this.persist.saveAccounts(balances, manager)
+            }
+        }
     }
 
 }
