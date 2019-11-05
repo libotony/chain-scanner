@@ -84,7 +84,7 @@ export class Persist {
         const receipts: Receipt[] = []
 
         for (const [index, txID] of b.transactions.entries()) {
-            const [t, r] = await Promise.all([thor.getTransaction(txID, head), await thor.getReceipt(txID, head)])
+            const [t, r] = await Promise.all([thor.getTransaction(txID, head), thor.getReceipt(txID, head)])
 
             const txE = manager.create(Transaction, {
                 ...t,
