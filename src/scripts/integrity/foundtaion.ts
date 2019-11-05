@@ -22,7 +22,7 @@ initConnection().then(async (conn) => {
         if (!b) {
             throw new Error(`continuity Block(${displayID(current.id)})'s parentID(${current.parentID}) missing`)
         }
-        if (b.timestamp < new Date().getTime() / 1000 - REVERSIBLE_WINDOW * 10 && b.isTrunk === false) {
+        if ((b.timestamp < (new Date().getTime() / 1000 - REVERSIBLE_WINDOW * 10)) && !b.isTrunk) {
             throw new Error(`Block(${displayID(current.id)})'s in branch`)
         }
         if (b.number === STOP_NUMBER) {

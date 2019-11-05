@@ -1,8 +1,8 @@
 import { Thor } from '../thor-rest'
 import { Config } from '../db/entity/config'
-import { EntityManager, getConnection, In } from 'typeorm'
+import { EntityManager, getConnection, In, MoreThan } from 'typeorm'
 import { Block } from '../db/entity/block'
-import { displayID } from '../utils'
+import { displayID, REVERSIBLE_WINDOW } from '../utils'
 import { Transaction } from '../db/entity/transaction'
 import { Receipt } from '../db/entity/receipt'
 
@@ -37,6 +37,32 @@ export class Persist {
         return manager
             .getRepository(Block)
             .update({ id: In(ids) }, { isTrunk: false })
+    }
+
+    public toTrunk(ids: string[], manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
+            .getRepository(Block)
+            .update({ id: In(ids) }, { isTrunk: true })
+    }
+
+    public listRecentBlock(head: number, manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        // get [head-REVERSIBLE_WINDOW, head]
+        const blockID = Buffer.from(BigInt(head - REVERSIBLE_WINDOW).toString(16).padStart(8, '0').padEnd(64, '0'), 'hex')
+
+        return manager
+            .getRepository(Block)
+            .createQueryBuilder('block')
+            .where('id > :blockID', { blockID })
+            .orderBy('block.id', 'ASC')
+            .getMany()
     }
 
     /**

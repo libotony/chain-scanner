@@ -27,6 +27,16 @@ export const getBlock = (blockNum: number, manager?: EntityManager) => {
         .findOne({ number: blockNum, isTrunk: true })
 }
 
+export const getBlockByID = (blockID: string, manager?: EntityManager) => {
+    if (!manager) {
+        manager = getConnection().manager
+    }
+
+    return manager
+        .getRepository(Block)
+        .findOne({ id: blockID })
+}
+
 export const getBlockReceipts = async (blockNum: number, manager?: EntityManager) => {
     if (!manager) {
         manager = getConnection().manager

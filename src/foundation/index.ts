@@ -1,20 +1,15 @@
 import { Thor } from '../thor-rest'
-import { BlockSummary, Fork } from '../types'
 import { Persist } from './persist'
 import { getConnection } from 'typeorm'
-import { blockIDtoNum, displayID, REVERSIBLE_WINDOW } from '../utils'
+import { blockIDtoNum, displayID, REVERSIBLE_WINDOW, sleep } from '../utils'
 import { EventEmitter } from 'events'
 import { PromInt, InterruptedError } from '@vechain/connex.driver-nodejs/dist/promint'
+import { getBlockByID } from './db'
 
-export interface Task<T extends 'NewHeads' | 'Fork' | 'StartUp'> {
-    type: T,
-    data: T extends 'NewHeads' ? BlockSummary[] : T extends 'Fork' ? Fork : undefined
-}
+const SAMPLING_INTERVAL = 1 * 1000
 
 export class Foundation {
-    private running: boolean = false
     private head: string | null = null
-    private tasks: Array<Task<'NewHeads' | 'Fork' | 'StartUp'>> = []
     private persist: Persist
     private shutdown = false
     private init = new PromInt()
@@ -24,113 +19,18 @@ export class Foundation {
         this.persist = new Persist()
     }
 
-    public startUp() {
-        this.tasks.push({type: 'StartUp', data: undefined})
-        this.run()
-    }
-
-    public newHeads(heads: BlockSummary[]) {
-        this.tasks.push({type: 'NewHeads', data: heads})
-        this.run()
-        return
-    }
-
-    public fork(f: Fork) {
-        this.tasks.push({ type: 'Fork', data: f })
-        this.run()
+    public start() {
+        this.loop()
         return
     }
 
     public stop() {
-        if (this.running === false) {
-            return Promise.resolve()
-        }
         this.shutdown = true
         this.init.interrupt()
 
         return new Promise((resolve) => {
             this.ev.on('closed', resolve)
         })
-    }
-
-    private async run() {
-        if (this.running) { return }
-        this.running = true
-
-        if (this.shutdown) {
-            this.ev.emit('closed')
-            return
-        }
-        for (; this.tasks.length;) {
-            if (this.shutdown) {
-                this.ev.emit('closed')
-                break
-            }
-            try {
-                const task = this.tasks.shift()
-
-                switch (task.type) {
-                    case 'StartUp':
-                        await this.latestTrunkCheck()
-                        break
-                    case 'NewHeads':
-                        const heads = (task as Task<'NewHeads'>).data
-                        await this.blockContinuity(heads[0])
-
-                        await getConnection().transaction(async (manager) => {
-                            for (const h of heads) {
-                                const b = await this.thor.getBlock(h.id)
-                                await this.init.wrap(this.persist.insertBlock(b, this.thor, manager))
-                            }
-
-                            await this.persist.saveHead(heads[heads.length - 1].id, manager)
-                        })
-                        this.head = heads[heads.length - 1].id
-                        break
-                    case 'Fork':
-                        const f = (task as Task<'Fork'>).data
-
-                        const head = await this.getHead()
-                        if (blockIDtoNum(head) < f.trunk[0].number) {
-                            await this.blockContinuity(f.trunk[0])
-                        }
-
-                        const blockIDs = f.branch.map(i => i.id)
-                        await getConnection().transaction(async (manager) => {
-                            await this.persist.toBranch(blockIDs, manager)
-
-                            for (const h of f.trunk) {
-                                const b = await this.thor.getBlock(h.id)
-                                await this.init.wrap(this.persist.insertBlock(b, this.thor, manager))
-                            }
-
-                            await this.persist.saveHead(f.trunk[f.trunk.length - 1].id, manager)
-                        })
-                        this.head = f.trunk[f.trunk.length - 1].id
-                        break
-                }
-            } catch (e) {
-                console.log('foundation loop: ', e)
-                continue
-            }
-        }
-        this.running = false
-    }
-
-    private async getHead(): Promise<string> {
-        if (this.head !== null) {
-            return this.head
-        } else {
-            const config = await this.persist.getHead()
-
-            const freshStartPoint = ''
-            // const freshStartPoint =  '0x003d08ffd2683df6555f0e3480bde578f8feede131650c3af01b534d234a921e'
-            if (!config) {
-                return freshStartPoint
-            } else {
-                return  config.value
-            }
-        }
     }
 
     private async latestTrunkCheck() {
@@ -140,66 +40,185 @@ export class Foundation {
             return
         }
 
-        const bs: Connex.Thor.Block[] = []
-
-        let branchIndex = -1
-        for (let i = 0; i < REVERSIBLE_WINDOW; i++) {
-            const b = await this.thor.getBlock(i === 0 ? head : bs[bs.length - 1].parentID)
-            bs.push(b)
-            if (!b.isTrunk) {
-                branchIndex = i
-            }
+        const headNum = blockIDtoNum(head)
+        if ( headNum < REVERSIBLE_WINDOW) {
+            return
         }
 
-        if (branchIndex !== -1) {
-            const branchIDs = bs.slice(0, branchIndex + 1).map(x => x.id)
+        let newHead: string = null
+        const blocks = await this.init.wrap(this.persist.listRecentBlock(headNum))
+        if (blocks.length) {
             await getConnection().transaction(async (manager) => {
-                await this.persist.toBranch(branchIDs, manager)
-                await this.persist.saveHead(bs[branchIndex].parentID, manager)
+                const func = async () => {
+                    const toBranch: string[] = []
+                    const toTrunk: string[] = []
+
+                    for (const b of blocks) {
+                        const chainB = await this.thor.getBlock(b.id)
+                        if (chainB.isTrunk !== b.isTrunk) {
+                            b.isTrunk = chainB.isTrunk
+                            if (chainB.isTrunk) {
+                                toTrunk.push(b.id)
+                            } else {
+                                toBranch.push(b.id)
+                            }
+                        }
+                    }
+                    if (toBranch.length) {
+                        await this.persist.toBranch(toBranch, manager)
+                    }
+                    if (toTrunk.length) {
+                        await this.persist.toTrunk(toTrunk, manager)
+                    }
+
+                    const trunks = blocks.filter(x => x.isTrunk === true)
+                    let current = trunks[0]
+                    for (let i = 1; i < trunks.length; i++) {
+                        if (trunks[i].parentID !== current.id) {
+                            break
+                        }
+                        current = trunks[i]
+                    }
+
+                    if (current.id !== head) {
+                        await this.persist.saveHead(current.id, manager)
+                        newHead = current.id
+                    }
+                }
+                this.init.wrap(func())
             })
-            this.head = bs[branchIndex].parentID
+            if (newHead) {
+                this.head = newHead
+            }
         }
     }
 
-    private async blockContinuity(stopPos: BlockSummary) {
-        let head = await this.getHead()
-        const headNum = head ? blockIDtoNum(head) : -1
-
-        if (stopPos.number - headNum > REVERSIBLE_WINDOW) {
-            await this.fastForward(stopPos.number - REVERSIBLE_WINDOW)
-        }
-        head = await this.getHead()
-
-        if (blockIDtoNum(head) === stopPos.number - 1) {
-            return
-        } else if (blockIDtoNum(head) >= stopPos.number) {
-            throw new Error('Head greater than new trunk, drop first')
-        }
-
-        const blocks: Array<Required<Connex.Thor.Block>> = []
-        let parentID = stopPos.parentID
-        for (let i = 0; i < REVERSIBLE_WINDOW - 1; i++) {
-            if (blockIDtoNum(parentID) <= blockIDtoNum(head)) {
+    private async loop() {
+        for (; ;) {
+            if (this.shutdown) {
+                this.ev.emit('closed')
                 break
             }
-            const b = await this.thor.getBlock(parentID)
-            blocks.push(b)
-            parentID = b.parentID
-        }
+            try {
+                await this.init.wrap(sleep(SAMPLING_INTERVAL))
+                await this.latestTrunkCheck()
 
-        if (parentID !== head) {
-            throw new Error(`Fatal: block continuity broke, want ${head} got ${parentID}`)
-        }
+                let head = await this.getHead()
+                const best = await this.thor.getBlock('best')
 
-        await getConnection().transaction(async (manager) => {
-            for (; blocks.length;) {
-                const b = blocks.pop()
-                await this.init.wrap(this.persist.insertBlock(b, this.thor, manager))
+                if (head === best.id) {
+                    continue
+                }
+                if (head === '' || blockIDtoNum(head) < best.number - REVERSIBLE_WINDOW) {
+                    await this.fastForward(best.number - REVERSIBLE_WINDOW)
+                }
+
+                head = await this.getHead()
+
+                if (best.parentID === head) {
+                    await getConnection().transaction(async (manager) => {
+                        await this.init.wrap(this.persist.insertBlock(best, this.thor, manager))
+                        await this.init.wrap(this.persist.saveHead(best.id, manager))
+                    })
+                    this.head = best.id
+                } else {
+                    const headBlock = await this.init.wrap(this.thor.getBlock(head))
+                    const { trunk, branch } = await this.init.wrap(this.buildFork(best, headBlock))
+
+                    await getConnection().transaction(async (manager) => {
+                        const func = async () => {
+                            const toBranch: string[] = []
+                            const toTrunk: string[] = []
+
+                            for (const b of branch) {
+                                const tmp = await getBlockByID(b.id, manager)
+                                if (!tmp) {
+                                    await this.persist.insertBlock(b, this.thor, manager, false)
+                                } else if (tmp.isTrunk) {
+                                    toBranch.push(tmp.id)
+                                }
+                            }
+                            for (const b of trunk) {
+                                const tmp = await getBlockByID(b.id, manager)
+                                if (!tmp) {
+                                    await this.persist.insertBlock(b, this.thor, manager)
+                                } else if (!tmp.isTrunk) {
+                                    toTrunk.push(tmp.id)
+                                }
+                            }
+
+                            if (toBranch.length) {
+                                await this.persist.toBranch(toBranch, manager)
+                            }
+                            if (toTrunk.length) {
+                                await this.persist.toTrunk(toTrunk, manager)
+                            }
+
+                            await this.persist.saveHead(best.id, manager)
+                        }
+
+                        await this.init.wrap(func())
+                    })
+                    this.head = best.id
+                }
+            } catch (e) {
+                if (!(e instanceof InterruptedError)) {
+                    console.log(`foundation loop:`, e)
+                }
             }
-            await this.persist.saveHead(stopPos.parentID, manager)
-        })
-        this.head = stopPos.parentID
-        return this.head
+        }
+    }
+
+    private async buildFork(trunkHead: Required<Connex.Thor.Block>, branchHead: Required<Connex.Thor.Block>) {
+        let t = trunkHead
+        let b = branchHead
+
+        const branch: Array<Required<Connex.Thor.Block>> = []
+        const trunk: Array<Required<Connex.Thor.Block>> = []
+
+        for (; ;) {
+            if (t.number > b.number) {
+                trunk.push(t)
+                t = await this.thor.getBlock(t.parentID)
+                continue
+            }
+
+            if (t.number < b.number) {
+                branch.push(b)
+                b = await this.thor.getBlock(b.parentID)
+                continue
+            }
+
+            if (t.id === b.id) {
+                return {
+                    trunk: trunk.reverse(),
+                    branch: branch.reverse(),
+                }
+            }
+
+            trunk.push(t)
+            branch.push(b)
+
+            t = await this.thor.getBlock(t.parentID)
+            b = await this.thor.getBlock(b.parentID)
+        }
+
+    }
+
+    private async getHead(): Promise < string > {
+        if (this.head !== null) {
+            return this.head
+        } else {
+            const config = await this.persist.getHead()
+
+            // const startPoint = ''
+            const startPoint =  '0x0040b280852b6032c7ba2abce32885eecfe0e5e2913a034d8dfe6ee16567123f'
+            if (!config) {
+                return startPoint
+            } else {
+                return  config.value
+            }
+        }
     }
 
     private async fastForward(target: number) {
@@ -221,7 +240,7 @@ export class Foundation {
                     count += await this.init.wrap(this.persist.insertBlock(b, this.thor, manager))
 
                     if (count >= 5000) {
-                        await this.persist.saveHead(b.id, manager)
+                        await this.init.wrap(this.persist.saveHead(b.id, manager))
                         process.stdout.write(`imported blocks(${i - startNum}) at block(${displayID(b.id)}) `)
                         console.timeEnd('time')
                         count = 0
@@ -229,7 +248,7 @@ export class Foundation {
                     }
 
                     if (i === target + 1) {
-                        await this.persist.saveHead(b.id, manager)
+                        await this.init.wrap(this.persist.saveHead(b.id, manager))
                         process.stdout.write(`imported blocks(${i - startNum}) at block(${displayID(b.id)}) `)
                         console.timeEnd('time')
                         break

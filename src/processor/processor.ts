@@ -4,6 +4,8 @@ import { sleep, REVERSIBLE_WINDOW } from '../utils'
 import { getBest, getBlock } from '../foundation/db'
 import { EventEmitter } from 'events'
 
+const SAMPLING_INTERVAL = 1 * 1000
+
 export abstract class Processor {
     protected head: number | null = null
     private birthNumber: number | null = null
@@ -62,7 +64,7 @@ export abstract class Processor {
                 break
             }
             try {
-                await this.init.wrap(sleep(1 * 1000))
+                await this.init.wrap(sleep(SAMPLING_INTERVAL))
                 await this.latestTrunkCheck()
 
                 let head = await this.getHead()
