@@ -85,7 +85,7 @@ export class Foundation {
                         newHead = current.id
                     }
                 }
-                this.init.wrap(func())
+                await this.init.wrap(func())
             })
             if (newHead) {
                 this.head = newHead
@@ -211,8 +211,8 @@ export class Foundation {
         } else {
             const config = await this.persist.getHead()
 
-            // const startPoint = ''
-            const startPoint =  '0x0040b280852b6032c7ba2abce32885eecfe0e5e2913a034d8dfe6ee16567123f'
+            const startPoint = ''
+            // const startPoint =  '0x0040b280852b6032c7ba2abce32885eecfe0e5e2913a034d8dfe6ee16567123f'
             if (!config) {
                 return startPoint
             } else {
@@ -236,7 +236,7 @@ export class Foundation {
                     if (this.shutdown) {
                         throw new InterruptedError()
                     }
-                    b = await this.thor.getBlock(i++)
+                    b = await this.init.wrap(this.thor.getBlock(i++))
                     count += await this.init.wrap(this.persist.insertBlock(b, this.thor, manager))
 
                     if (count >= 5000) {
