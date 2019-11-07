@@ -7,14 +7,13 @@
     "@vechain/connex.driver-nodejs": "^1.2.0-beta3",
     "mysql2": "^1.7.0",
     "reflect-metadata": "^0.1.13",
-    "strict-event-emitter-types": "^2.0.0",
-    "typeorm": "^0.2.19"
+    "typeorm": "^0.2.20"
   },
   "devDependencies": {
     "@types/node": "^12.6.8",
     "ts-node": "^8.4.1",
     "tslint": "^5.20.0",
-    "typescript": "^3.6.3"
+    "typescript": "^3.7.2"
   },
   "scripts": {
     "build": "rm -fr dist && tsc -p .",

@@ -1,14 +1,15 @@
 {
   "compilerOptions": {
-    "lib": [
-      "es6"
-    ],
+    "lib": ["es5", "es6"],
     "target": "es6",
     "module": "commonjs",
-    "moduleResolution": "node",
     "outDir": "./dist",
+    "moduleResolution": "node",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "sourceMap": true
-  }
+  },
+  "exclude": [
+    "node_modules"
+  ]
 }
