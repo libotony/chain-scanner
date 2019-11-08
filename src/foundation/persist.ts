@@ -1,8 +1,8 @@
 import { Thor } from '../thor-rest'
 import { Config } from '../db/entity/config'
-import { EntityManager, getConnection, In, MoreThan } from 'typeorm'
+import { EntityManager, getConnection, In } from 'typeorm'
 import { Block } from '../db/entity/block'
-import { displayID, REVERSIBLE_WINDOW } from '../utils'
+import { REVERSIBLE_WINDOW } from '../utils'
 import { Transaction } from '../db/entity/transaction'
 import { Receipt } from '../db/entity/receipt'
 
@@ -92,11 +92,6 @@ export class Persist {
                 txIndex: index,
                 blockID: b.id
             })
-            for (const clause of txE.clauses) {
-                if (clause.data === '0x') {
-                    clause.data = ''
-                }
-            }
             txs.push(txE)
 
             receipts.push(manager.create(Receipt, {
