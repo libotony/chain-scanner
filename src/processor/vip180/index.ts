@@ -1,5 +1,5 @@
-import { TokenBasic, TokenType, SnapType } from '../../types'
-import { TransferLog } from '../../db/entity/movement'
+import { TokenBasic, SnapType, AssetType } from '../../types'
+import { AssetMovement } from '../../db/entity/movement'
 import { displayID, blockIDtoNum } from '../../utils'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
@@ -14,7 +14,7 @@ import { TokenConfig } from '../../const/tokens'
 
 interface SnapAccount {
     address: string
-    type: TokenType
+    type: AssetType
     balance: string
 }
 
@@ -24,10 +24,9 @@ export class VIP180Transfer extends Processor {
     constructor(
         readonly thor: Thor,
         readonly token: TokenBasic & TokenConfig,
-        readonly entityClass: new () => TransferLog
     ) {
         super()
-        this.persist = new Persist(token, entityClass)
+        this.persist = new Persist(token)
      }
 
     protected loadHead(manager?: EntityManager) {
@@ -59,7 +58,7 @@ export class VIP180Transfer extends Processor {
     protected async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
         const { block, receipts } = await getBlockReceipts(blockNum, manager)
 
-        const movements: TransferLog[] = []
+        const movements: AssetMovement[] = []
         const acc = new Map<string, TokenBalance>()
         const snap = new Map<string, SnapAccount>()
 
@@ -76,7 +75,7 @@ export class VIP180Transfer extends Processor {
             } else {
                 const newAcc = manager.create(TokenBalance, {
                     address: addr,
-                    type: TokenType[this.token.symbol],
+                    type: AssetType[this.token.symbol],
                     balance: BigInt(0)
                 })
                 acc.set(addr, newAcc)
@@ -96,14 +95,18 @@ export class VIP180Transfer extends Processor {
                         } catch (e) {
                             continue
                         }
-                        const movement = manager.create(this.entityClass, {
+                        const movement = manager.create(AssetMovement, {
                             sender: decoded._from,
                             recipient: decoded._to,
                             amount: BigInt(decoded._value),
                             txID: r.txID,
                             blockID: block.id,
-                            clauseIndex,
-                            logIndex
+                            type: AssetType[this.token.symbol],
+                            moveIndex: {
+                                txIndex: r.txIndex,
+                                clauseIndex,
+                                logIndex
+                            }
                         })
                         movements.push(movement)
 
@@ -113,7 +116,7 @@ export class VIP180Transfer extends Processor {
                             const senderAcc = await account(movement.sender)
                             senderAcc.balance = senderAcc.balance - movement.amount
                             if (senderAcc.balance < 0) {
-                                throw new Error(`Fatal: OCE balance under 0 of Account(${movement.sender}) at Block(${displayID(block.id)})`)
+                                throw new Error(`Fatal: ${this.token.symbol} balance under 0 of Account(${movement.sender}) at Block(${displayID(block.id)})`)
                             }
                         }
 
@@ -140,14 +143,13 @@ export class VIP180Transfer extends Processor {
 
         if (snap.size && saveSnapshot) {
             const x: object[] = []
-            for (const [_
-                , s] of snap.entries()) {
+            for (const [_, s] of snap.entries()) {
                 x.push(s)
             }
 
             const snapshot = new Snapshot()
             snapshot.blockID = block.id
-            snapshot.type = SnapType.VIP180Token + TokenType[this.token.symbol]
+            snapshot.type = SnapType.VIP180Token + AssetType[this.token.symbol]
             snapshot.data = x
             this.persist.saveSnapshot(snapshot, manager)
         }
@@ -218,7 +220,7 @@ export class VIP180Transfer extends Processor {
                     balances.push(manager.create(TokenBalance, {
                         address: addr,
                         balance: BigInt(this.token.genesis[addr]),
-                        type: TokenType[this.token.symbol]
+                        type: AssetType[this.token.symbol]
                     }))
                 }
             }

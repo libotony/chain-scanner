@@ -1,7 +1,7 @@
 import { Block } from '../../db/entity/block'
 import { Account } from '../../db/entity/account'
 import { Thor } from '../../thor-rest'
-import { Transfer, Energy } from '../../db/entity/movement'
+import { AssetMovement } from '../../db/entity/movement'
 import { displayID } from '../../utils'
 import { EntityManager } from 'typeorm'
 import { Snapshot } from '../../db/entity/snapshot'
@@ -19,8 +19,7 @@ export interface SnapAccount {
 }
 
 export class BlockProcessor {
-    public VETMovement: Transfer[] = []
-    public EnergyMovement: Energy[] = []
+    public Movement: AssetMovement[] = []
 
     private acc = new Map<string, Account>()
     private snap = new Map<string, SnapAccount>()
@@ -47,7 +46,7 @@ export class BlockProcessor {
         return acc
     }
 
-    public async transferVeChain(move: Transfer) {
+    public async transferVeChain(move: AssetMovement) {
         const senderAcc = await this.account(move.sender)
         const recipientAcc = await this.account(move.recipient)
 
@@ -62,14 +61,14 @@ export class BlockProcessor {
         balance = BigInt(recipientAcc.balance) + BigInt(move.amount)
         recipientAcc.balance = balance
 
-        this.VETMovement.push(move)
+        this.Movement.push(move)
     }
 
-    public async transferEnergy(move: Energy) {
+    public async transferEnergy(move: AssetMovement) {
         await this.account(move.sender)
         await this.account(move.recipient)
 
-        this.EnergyMovement.push(move)
+        this.Movement.push(move)
     }
 
     public accounts() {

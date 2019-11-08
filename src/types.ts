@@ -34,8 +34,10 @@ export interface TokenBasic {
     decimals: number,
 }
 
-export enum TokenType {
-    PLA = 0,
+export enum AssetType {
+    VET = 0,
+    Energy,
+    PLA,
     SHA,
     EHrT,
     DBET,
@@ -45,4 +47,10 @@ export enum TokenType {
     JUR,
     AQD,
     YEET
+}
+
+export interface MovementIndex {
+    txIndex: number
+    clauseIndex: number
+    logIndex: number
 }

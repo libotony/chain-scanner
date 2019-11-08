@@ -1,11 +1,11 @@
 import { getConnection, EntityManager, LessThan } from 'typeorm'
 import { Config } from '../../db/entity/config'
 import { Block } from '../../db/entity/block'
-import { Transfer, Energy } from '../../db/entity/movement'
+import { AssetMovement } from '../../db/entity/movement'
 import { Account } from '../../db/entity/account'
 import { hexToBuffer, bufferToHex, REVERSIBLE_WINDOW } from '../../utils'
 import { Snapshot } from '../../db/entity/snapshot'
-import { SnapType } from '../../types'
+import { SnapType, AssetType } from '../../types'
 
 const HEAD_KEY = 'dual-token-head'
 export type RecentSnapshot = Snapshot & {isTrunk: boolean}
@@ -13,7 +13,6 @@ export type RecentSnapshot = Snapshot & {isTrunk: boolean}
 export class Persist {
 
     public saveHead(val: number, manager?: EntityManager) {
-        console.log('-----save head:', val)
         if (!manager) {
             manager = getConnection().manager
         }
@@ -40,20 +39,12 @@ export class Persist {
         }
     }
 
-    public insertVETMovements(transfers: Transfer[], manager?: EntityManager) {
+    public insertMovements(moves: AssetMovement[], manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
 
-        return manager.insert(Transfer, transfers)
-    }
-
-    public insertEnergyMovements(transfers: Energy[], manager?: EntityManager) {
-        if (!manager) {
-            manager = getConnection().manager
-        }
-
-        return manager.insert(Energy, transfers)
+        return manager.insert(AssetMovement, moves)
     }
 
     public saveAccounts(accs: Account[], manager?: EntityManager) {
@@ -102,26 +93,18 @@ export class Persist {
         return ret
     }
 
-    public async removeMovements(ids: string[], manager ?: EntityManager) {
+    public removeMovements(ids: string[], manager ?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
 
-        await manager
+        return  manager
             .createQueryBuilder()
             .delete()
-            .from(Transfer)
-            .where('blockID IN(:...ids)', { ids: ids.map(x => hexToBuffer(x))})
+            .from(AssetMovement)
+            .where('blockID IN(:...ids)', { ids: ids.map(x => hexToBuffer(x)) })
+            .andWhere('type IN (:...types)', {types: [AssetType.VET, AssetType.Energy]})
             .execute()
-
-        await manager
-            .createQueryBuilder()
-            .delete()
-            .from(Energy)
-            .where('blockID IN(:...ids)', { ids: ids.map(x => hexToBuffer(x))})
-            .execute()
-
-        return
     }
 
     public removeSnapshot(blockIDs: string[], manager ?: EntityManager) {

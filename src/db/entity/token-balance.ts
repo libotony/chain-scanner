@@ -1,9 +1,8 @@
 import { Entity, Column, PrimaryColumn, Index } from 'typeorm'
 import {fixedBytes, amount} from '../transformers'
-import { TokenType } from '../../types'
+import { AssetType } from '../../types'
 
 @Entity()
-@Index('tokenBalanceUnique', ['address', 'type'], {unique: true})
 export class TokenBalance {
     @PrimaryColumn({ type: 'binary', length: 20, transformer: fixedBytes(20, 'account.address') })
     public address: string
@@ -12,5 +11,5 @@ export class TokenBalance {
     public balance: bigint
 
     @PrimaryColumn()
-    public type: TokenType
+    public type: AssetType
 }

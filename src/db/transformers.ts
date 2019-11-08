@@ -1,5 +1,6 @@
 import { sanitizeHex } from '../utils'
 import { FindOperator} from 'typeorm'
+import { MovementIndex } from '../types'
 
 interface ValueTransformer<DBType, EntityType> {
     from: (val: DBType) => EntityType,
@@ -130,3 +131,21 @@ export const simpleJSON = <T>(context: string) => {
         }
     })
 }
+
+export const movementIndex = makeTransformer({
+    from: (val: Buffer): MovementIndex => {
+        return {
+            txIndex: val.readUInt16BE(0),
+            clauseIndex: val.readUInt16BE(2),
+            logIndex: val.readUInt16BE(4)
+        }
+    },
+    to: (val: MovementIndex) => {
+        const buf = Buffer.alloc(6)
+        buf.writeUInt16BE(val.txIndex, 0)
+        buf.writeUInt16BE(val.clauseIndex, 2)
+        buf.writeUInt16BE(val.logIndex, 4)
+
+        return buf
+    }
+})

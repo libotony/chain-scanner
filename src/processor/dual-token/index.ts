@@ -4,11 +4,12 @@ import { blockIDtoNum } from '../../utils'
 import { $Master, EnergyAddress, TransferEvent, getPreAllocAccount } from '../../const'
 import { getConnection, EntityManager } from 'typeorm'
 import { BlockProcessor, SnapAccount } from './block-processor'
-import { Transfer, Energy } from '../../db/entity/movement'
+import { AssetMovement } from '../../db/entity/movement'
 import { Account } from '../../db/entity/account'
 import { Snapshot } from '../../db/entity/snapshot'
 import { getBlockReceipts, getBlock } from '../../foundation/db'
 import { Processor } from '../processor'
+import { AssetType } from '../../types'
 
 export class DualToken extends Processor {
     private persist: Persist
@@ -42,13 +43,17 @@ export class DualToken extends Processor {
             for (const [clauseIndex, o] of r.outputs.entries()) {
                 for (const [logIndex, t] of o.transfers.entries()) {
 
-                    const transfer = manager.create(Transfer, {
+                    const transfer = manager.create(AssetMovement, {
                         ...t,
                         amount: BigInt(t.amount),
                         txID: r.txID,
                         blockID: block.id,
-                        clauseIndex,
-                        logIndex
+                        type: AssetType.VET,
+                        moveIndex: {
+                            txIndex: r.txIndex,
+                            clauseIndex,
+                            logIndex
+                        }
                     })
 
                     await proc.transferVeChain(transfer)
@@ -59,14 +64,18 @@ export class DualToken extends Processor {
                         await proc.master(e.address, decoded.newMaster)
                     } else if (e.address === EnergyAddress && e.topics[0] === TransferEvent.signature) {
                         const decoded = TransferEvent.decode(e.data, e.topics)
-                        const transfer = manager.create(Energy, {
+                        const transfer = manager.create(AssetMovement, {
                             sender: decoded._from,
                             recipient: decoded._to,
                             amount: BigInt(decoded._value),
                             txID: r.txID,
                             blockID: block.id,
-                            clauseIndex,
-                            logIndex
+                            type: AssetType.Energy,
+                            moveIndex: {
+                                txIndex: r.txIndex,
+                                clauseIndex,
+                                logIndex
+                            }
                         })
 
                         await proc.transferEnergy(transfer)
@@ -80,11 +89,8 @@ export class DualToken extends Processor {
         }
         await proc.finalize()
 
-        if (proc.VETMovement.length) {
-            await this.persist.insertVETMovements(proc.VETMovement, manager)
-        }
-        if (proc.EnergyMovement.length) {
-            await this.persist.insertEnergyMovements(proc.EnergyMovement, manager)
+        if (proc.Movement.length) {
+            await this.persist.insertMovements(proc.Movement, manager)
         }
 
         const accs = proc.accounts()
@@ -97,7 +103,7 @@ export class DualToken extends Processor {
             await this.persist.insertSnapshot(snap, manager)
         }
 
-        return proc.VETMovement.length + proc.EnergyMovement.length + accs.length
+        return proc.Movement.length + accs.length
     }
 
     protected async latestTrunkCheck() {
@@ -172,6 +178,7 @@ export class DualToken extends Processor {
             await this.persist.removeMovements(toRevert, manager)
             await this.persist.removeSnapshot(toRevert)
             await this.persist.saveHead(headNum, manager)
+            console.log('-----revert to head:', headNum)
        })
         this.head = headNum
     }

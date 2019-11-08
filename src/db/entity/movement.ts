@@ -1,7 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm'
-import {fixedBytes, amount} from '../transformers'
+import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm'
+import {fixedBytes, amount, movementIndex} from '../transformers'
+import { AssetType, MovementIndex } from '../../types'
 
-export abstract class TransferLog {
+@Index(['blockID', 'multiIndex'])
+@Entity()
+export class AssetMovement {
 
     @PrimaryGeneratedColumn('increment')
     public id: number
@@ -22,44 +25,8 @@ export abstract class TransferLog {
     public txID: string
 
     @Column()
-    public clauseIndex: number
+    public type: AssetType
 
-    @Column()
-    public logIndex: number
+    @Column({ type: 'binary', length: 6, transformer: movementIndex })
+    public moveIndex: MovementIndex
 }
-
-@Entity()
-export class Transfer extends TransferLog {}
-
-@Entity()
-export class Energy extends TransferLog { }
-
-@Entity()
-export class OCE extends TransferLog { }
-
-@Entity()
-export class PLA extends TransferLog { }
-
-@Entity()
-export class SHA extends TransferLog { }
-
-@Entity()
-export class EHRT extends TransferLog { }
-
-@Entity()
-export class DBET extends TransferLog { }
-
-@Entity()
-export class TIC extends TransferLog { }
-
-@Entity()
-export class SNK extends TransferLog { }
-
-@Entity()
-export class JUR extends TransferLog { }
-
-@Entity()
-export class AQD extends TransferLog { }
-
-@Entity()
-export class YEET extends TransferLog { }

@@ -1,8 +1,8 @@
 
 import { EntityManager, getConnection, LessThan } from 'typeorm'
 import { Config } from '../../db/entity/config'
-import { TransferLog } from '../../db/entity/movement'
-import { TokenBasic, TokenType, SnapType } from '../../types'
+import { AssetMovement } from '../../db/entity/movement'
+import { TokenBasic, SnapType, AssetType } from '../../types'
 import { TokenBalance } from '../../db/entity/token-balance'
 import { Snapshot } from '../../db/entity/snapshot'
 import { REVERSIBLE_WINDOW, bufferToHex, hexToBuffer } from '../../utils'
@@ -15,10 +15,9 @@ export class Persist {
         return `token-${this.token.symbol}-head`
     }
 
-    constructor(readonly token: TokenBasic, readonly entityClass: new () => TransferLog) {}
+    constructor(readonly token: TokenBasic) {}
 
     public saveHead(val: number, manager?: EntityManager) {
-        console.log('-----save head:', val)
         if (!manager) {
             manager = getConnection().manager
         }
@@ -52,15 +51,15 @@ export class Persist {
 
         return manager
             .getRepository(TokenBalance)
-            .findOne({ address: addr, type: TokenType[this.token.symbol] })
+            .findOne({ address: addr, type: AssetType[this.token.symbol] })
     }
 
-    public insertMovements(movements: TransferLog[], manager?: EntityManager) {
+    public insertMovements(movements: AssetMovement[], manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
 
-        return manager.insert(this.entityClass, movements)
+        return manager.insert(AssetMovement, movements)
     }
 
     public saveAccounts(accs: TokenBalance[], manager?: EntityManager) {
@@ -92,7 +91,7 @@ export class Persist {
             .getRepository(Snapshot)
             .createQueryBuilder('snap')
             .leftJoinAndSelect(Block, 'block', 'snap.blockID = block.id')
-            .where('snap.type = :type', { type: SnapType.VIP180Token + TokenType[this.token.symbol] })
+            .where('snap.type = :type', { type: SnapType.VIP180Token + AssetType[this.token.symbol] })
             .andWhere('snap.blockID > :blockID', { blockID })
             .getRawMany()
 
@@ -119,7 +118,7 @@ export class Persist {
             .delete()
             .from(Snapshot)
             .where('blockID IN(:...ids)', { ids: blockIDs.map(x => hexToBuffer(x)) })
-            .andWhere('type=:type', {type: SnapType.VIP180Token + TokenType[this.token.symbol]})
+            .andWhere('type=:type', {type: SnapType.VIP180Token + AssetType[this.token.symbol]})
             .execute()
     }
 
@@ -132,7 +131,7 @@ export class Persist {
         const blockID = '0x' + BigInt(blockNum - REVERSIBLE_WINDOW).toString(16).padStart(8, '0').padEnd(64, '0')
         return manager
             .getRepository(Snapshot)
-            .delete({blockID: LessThan(blockID), type: SnapType.VIP180Token + TokenType[this.token.symbol]})
+            .delete({blockID: LessThan(blockID), type: SnapType.VIP180Token + AssetType[this.token.symbol]})
     }
 
     public removeMovements(ids: string[], manager?: EntityManager) {
@@ -143,8 +142,9 @@ export class Persist {
         return manager
             .createQueryBuilder()
             .delete()
-            .from(this.entityClass)
-            .where('blockID IN(:...ids)', { ids: ids.map(x => hexToBuffer(x))})
+            .from(AssetMovement)
+            .where('blockID IN(:...ids)', { ids: ids.map(x => hexToBuffer(x)) })
+            .andWhere('type = :type', { type: AssetType[this.token.symbol] })
             .execute()
     }
 

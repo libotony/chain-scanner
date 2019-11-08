@@ -4,40 +4,13 @@ import { Thor } from '../../thor-rest'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { balanceOf } from '../../const'
 import { TokenBalance } from '../../db/entity/token-balance'
-import { TokenType } from '../../types'
+import { AssetType } from '../../types'
 import { Persist } from '../../processor/vip180/persist'
 import { getVIP180Token } from '../../const/tokens'
-import { OCE, TransferLog, PLA, TIC, SNK, JUR, AQD, YEET, EHRT, DBET, SHA } from '../../db/entity/movement'
 
-const getEntityClass = (symbol: string): (new () => TransferLog) => {
-    switch (symbol) {
-        case 'OCE':
-            return OCE
-        case 'PLA':
-            return PLA
-        case 'SHA':
-            return SHA
-        case 'EHrT':
-            return EHRT
-        case 'DBET':
-            return DBET
-        case 'TIC':
-            return TIC
-        case 'SNK':
-            return SNK
-        case 'JUR':
-            return JUR
-        case 'AQD':
-            return AQD
-        case 'YEET':
-            return YEET
-        default:
-            throw new Error('entity not found')
-    }
-}
 const thor = new Thor(new SimpleNet('http://localhost:8669'))
 const token = getVIP180Token(thor.genesisID, process.argv[2] || 'OCE')
-const persist = new Persist(token, getEntityClass(token.symbol))
+const persist = new Persist(token)
 
 initConnection().then(async (conn) => {
     const head = await persist.getHead()
@@ -51,7 +24,7 @@ initConnection().then(async (conn) => {
         const accs = await getConnection()
             .getRepository(TokenBalance)
             .createQueryBuilder()
-            .where({type: TokenType[token.symbol]})
+            .where({type: AssetType[token.symbol]})
             .offset(offset)
             .limit(step)
             .getMany()

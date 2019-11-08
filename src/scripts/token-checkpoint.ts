@@ -1,46 +1,20 @@
 import { initConnection } from '../db'
-import { TransferLog, OCE, PLA, EHRT, DBET, TIC, SNK, JUR, AQD, YEET, SHA } from '../db/entity/movement'
+import { AssetMovement } from '../db/entity/movement'
 import { Config } from '../db/entity/config'
 import { Snapshot } from '../db/entity/snapshot'
-import { SnapType, TokenType } from '../types'
+import { SnapType, AssetType } from '../types'
 import { Thor } from '../thor-rest'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { getVIP180Token } from '../const/tokens'
 import { TokenBalance } from '../db/entity/token-balance'
 
-const getEntityClass = (symbol: string): (new () => TransferLog) => {
-    switch (symbol) {
-        case 'OCE':
-            return OCE
-        case 'PLA':
-            return PLA
-        case 'SHA':
-            return SHA
-        case 'EHrT':
-            return EHRT
-        case 'DBET':
-            return DBET
-        case 'TIC':
-            return TIC
-        case 'SNK':
-            return SNK
-        case 'JUR':
-            return JUR
-        case 'AQD':
-            return AQD
-        case 'YEET':
-            return YEET
-        default:
-            throw new Error('entity not found')
-    }
-}
 const thor = new Thor(new SimpleNet('http://localhost:8669'))
 const token = getVIP180Token(thor.genesisID, process.argv[2] || 'OCE')
 
 initConnection().then(async (conn) => {
-    await conn.getRepository(getEntityClass(token.symbol)).clear()
-    await conn.getRepository(TokenBalance).delete({type: TokenType[token.symbol]})
-    await conn.getRepository(Snapshot).delete({type: SnapType.VIP180Token + TokenType[token.symbol]})
+    await conn.getRepository(AssetMovement).delete({type: AssetType[token.symbol]})
+    await conn.getRepository(TokenBalance).delete({type: AssetType[token.symbol]})
+    await conn.getRepository(Snapshot).delete({type: SnapType.VIP180Token + AssetType[token.symbol]})
     await conn.getRepository(Config).delete({ key: `token-${token.symbol}-head`})
 }).then(() => {
     process.exit()
