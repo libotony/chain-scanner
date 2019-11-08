@@ -87,6 +87,7 @@ export abstract class Processor {
                         await this.init.wrap(this.processBlock(i, manager, true))
                     }
                     await this.saveHead(best.number, manager)
+                    console.log('-> save head:', best.number)
                 })
                 this.head = best.number
             } catch (e) {
@@ -100,29 +101,30 @@ export abstract class Processor {
     private async fastForward(target: number) {
         const head = await this.getHead()
 
-        let count = 0
-
-        for (let i = head + 1; i <= target;) {
-            const startNum = i
-            console.time('time')
+        let startNum = head + 1
+        console.time('time')
+        for (let i = head + 1 ; i <= target;) {
             await getConnection().transaction(async (manager) => {
                 for (; i <= target;) {
                     if (this.shutdown) {
                         throw new InterruptedError()
                     }
-                    count += await this.init.wrap(this.processBlock(i++, manager))
 
-                    if (count >= 5000) {
+                    const count = await this.init.wrap(this.processBlock(i++, manager))
+                    if (count) {
                         await this.saveHead(i - 1, manager)
-                        process.stdout.write(`imported blocks(${i - startNum}) at block(${i - 1}) `)
-                        console.timeEnd('time')
-                        count = 0
+                        if ((i - startNum) >= 1000) {
+                            process.stdout.write(`imported blocks(${i - startNum}) at block(${i - 1}) `)
+                            console.timeEnd('time')
+                            console.time('time')
+                            startNum = i
+                        }
                         break
                     }
 
                     if (i === target + 1) {
                         await this.saveHead(i - 1, manager)
-                        process.stdout.write(`processed blocks(${i - startNum}) at block(${i - 1}) `)
+                        process.stdout.write(`imported blocks(${i - startNum}) at block(${i - 1}) `)
                         console.timeEnd('time')
                         break
                     }

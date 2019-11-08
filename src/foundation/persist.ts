@@ -11,7 +11,6 @@ const HEAD_KEY = 'foundation-head'
 export class Persist {
 
     public saveHead(val: string, manager?: EntityManager) {
-        console.log('-----save head:', displayID(val))
         if (!manager) {
             manager = getConnection().manager
         }

@@ -178,7 +178,7 @@ export class DualToken extends Processor {
             await this.persist.removeMovements(toRevert, manager)
             await this.persist.removeSnapshot(toRevert)
             await this.persist.saveHead(headNum, manager)
-            console.log('-----revert to head:', headNum)
+            console.log('-> revert to head:', headNum)
        })
         this.head = headNum
     }

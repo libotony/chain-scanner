@@ -82,6 +82,7 @@ export class Foundation {
 
                     if (current.id !== head) {
                         await this.persist.saveHead(current.id, manager)
+                        console.log('-> revert to head:', displayID(current.id))
                         newHead = current.id
                     }
                 }
@@ -119,6 +120,7 @@ export class Foundation {
                     await getConnection().transaction(async (manager) => {
                         await this.init.wrap(this.persist.insertBlock(best, this.thor, manager))
                         await this.init.wrap(this.persist.saveHead(best.id, manager))
+                        console.log('-> save head:', displayID(best.id))
                     })
                     this.head = best.id
                 } else {
@@ -155,6 +157,7 @@ export class Foundation {
                             }
 
                             await this.persist.saveHead(best.id, manager)
+                            console.log('-> save head:', displayID(best.id))
                         }
 
                         await this.init.wrap(func())
