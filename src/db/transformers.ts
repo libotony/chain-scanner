@@ -121,12 +121,18 @@ export const bytes = (context: string, nullable = false) =>  {
     })
 }
 
-export const simpleJSON = <T>(context: string) => {
+export const simpleJSON = <T>(context: string, nullable = false) => {
     return makeTransformer({
-        from: (val: string) => {
+        from: (val: string|null) => {
+            if (nullable && val === null) {
+                return null
+            }
             return JSON.parse(val) as T
         },
-        to: (val: T) => {
+        to: (val: T | null) => {
+            if (nullable && val === null) {
+                return null
+            }
             return JSON.stringify(val)
         }
     })

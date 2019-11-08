@@ -7,9 +7,9 @@ import { BlockProcessor, SnapAccount } from './block-processor'
 import { AssetMovement } from '../../db/entity/movement'
 import { Account } from '../../db/entity/account'
 import { Snapshot } from '../../db/entity/snapshot'
-import { getBlockReceipts, getBlock } from '../../foundation/db'
+import { getBlockReceipts, getBlock, insertSnapshot, removeSnapshot, listRecentSnapshot, clearSnapShot } from '../../foundation/db'
 import { Processor } from '../processor'
-import { AssetType } from '../../types'
+import { AssetType, SnapType } from '../../types'
 
 export class DualToken extends Processor {
     private persist: Persist
@@ -100,7 +100,7 @@ export class DualToken extends Processor {
 
         const snap = proc.snapshot()
         if (snap && saveSnapshot) {
-            await this.persist.insertSnapshot(snap, manager)
+            await insertSnapshot(snap, manager)
         }
 
         return proc.Movement.length + accs.length
@@ -113,7 +113,7 @@ export class DualToken extends Processor {
             return
         }
 
-        const snapshots = await this.persist.listRecentSnapshot(head)
+        const snapshots = await listRecentSnapshot(head, SnapType.DualToken)
 
         if (snapshots.length) {
             for (; snapshots.length;) {
@@ -128,7 +128,7 @@ export class DualToken extends Processor {
         }
 
         head = await this.getHead()
-        await this.persist.clearSnapShot(head)
+        await clearSnapShot(head, SnapType.DualToken)
     }
 
     protected async processGenesis() {
@@ -176,7 +176,7 @@ export class DualToken extends Processor {
 
             await this.persist.saveAccounts(toSave, manager)
             await this.persist.removeMovements(toRevert, manager)
-            await this.persist.removeSnapshot(toRevert)
+            await removeSnapshot(toRevert, SnapType.DualToken, manager)
             await this.persist.saveHead(headNum, manager)
             console.log('-> revert to head:', headNum)
        })

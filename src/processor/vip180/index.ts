@@ -4,7 +4,7 @@ import { displayID, blockIDtoNum } from '../../utils'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
 import { $Master, TransferEvent, ZeroAddress } from '../../const'
-import { getBlockReceipts } from '../../foundation/db'
+import { getBlockReceipts, insertSnapshot, listRecentSnapshot, removeSnapshot, clearSnapShot } from '../../foundation/db'
 import { EntityManager, getConnection } from 'typeorm'
 import { TokenBalance } from '../../db/entity/token-balance'
 import { Snapshot } from '../../db/entity/snapshot'
@@ -151,7 +151,7 @@ export class VIP180Transfer extends Processor {
             snapshot.blockID = block.id
             snapshot.type = SnapType.VIP180Token + AssetType[this.token.symbol]
             snapshot.data = x
-            this.persist.saveSnapshot(snapshot, manager)
+            insertSnapshot(snapshot, manager)
         }
 
         return movements.length + acc.size
@@ -164,7 +164,7 @@ export class VIP180Transfer extends Processor {
             return
         }
 
-        const snapshots = await this.persist.listRecentSnapshot(head)
+        const snapshots = await listRecentSnapshot(head, SnapType.VIP180Token + AssetType[this.token.symbol])
 
         if (snapshots.length) {
             for (; snapshots.length;) {
@@ -199,7 +199,7 @@ export class VIP180Transfer extends Processor {
 
                     await this.persist.saveAccounts(toSave, manager)
                     await this.persist.removeMovements(toRevert, manager)
-                    await this.persist.removeSnapshot(toRevert)
+                    await removeSnapshot(toRevert, SnapType.VIP180Token + AssetType[this.token.symbol], manager)
                     await this.persist.saveHead(headNum, manager)
                 })
 
@@ -208,7 +208,7 @@ export class VIP180Transfer extends Processor {
         }
 
         head = await this.getHead()
-        await this.persist.clearSnapShot(head)
+        await clearSnapShot(head, SnapType.VIP180Token + AssetType[this.token.symbol])
     }
 
     protected async processGenesis() {

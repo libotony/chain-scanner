@@ -14,6 +14,6 @@ export class Snapshot {
     @Index()
     public blockID: string
 
-    @Column({ type: 'longtext', transformer: simpleJSON<object>('snapshot.data')})
+    @Column({ type: 'longtext', nullable: true, transformer: simpleJSON<object>('snapshot.data')})
     public data: object
 }

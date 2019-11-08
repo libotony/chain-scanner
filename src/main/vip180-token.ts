@@ -1,4 +1,3 @@
-
 import { initConnection } from '../db'
 import { VIP180Transfer } from '../processor/vip180'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
