@@ -2,7 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm'
 import {fixedBytes, amount, movementIndex} from '../transformers'
 import { AssetType, MovementIndex } from '../../types'
 
-@Index(['blockID', 'multiIndex'])
+@Index(['blockID', 'moveIndex'])
 @Entity()
 export class AssetMovement {
 
