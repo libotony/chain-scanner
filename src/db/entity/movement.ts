@@ -5,7 +5,6 @@ import { AssetType, MovementIndex } from '../../types'
 @Index(['blockID', 'moveIndex'])
 @Entity()
 export class AssetMovement {
-
     @PrimaryGeneratedColumn('increment')
     public id: number
 

@@ -77,8 +77,10 @@ export class Persist {
             manager = getConnection().manager
         }
         const head = b.id
+        const prevBlock = await thor.getBlock(b.parentID)
+        const score = b.totalScore - prevBlock.totalScore
+        let reward = BigInt(0)
 
-        const block = manager.create(Block, { ...b, isTrunk: trunk })
         const txs: Transaction[] = []
         const receipts: Receipt[] = []
 
@@ -102,7 +104,11 @@ export class Persist {
                 paid: BigInt(r.paid),
                 reward: BigInt(r.reward)
             }))
+
+            reward += BigInt(r.reward)
         }
+        const block = manager.create(Block, { ...b, isTrunk: trunk, score, reward })
+
         await manager.insert(Block, block)
         if (txs.length) {
             await manager.insert(Transaction, txs)

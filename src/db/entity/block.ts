@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryColumn, Index } from 'typeorm'
-import {fixedBytes} from '../transformers'
+import {fixedBytes, amount} from '../transformers'
 
 @Entity()
 
@@ -48,6 +48,12 @@ export class Block {
 
     @Column()
     public txsFeatures: number
+
+    @Column()
+    public score: number
+
+    @Column({ type: 'binary', length: 24, transformer: amount })
+    public reward: bigint
 
     @Column()
     public size: number
