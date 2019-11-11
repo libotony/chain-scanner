@@ -76,10 +76,15 @@ export class Persist {
         if (!manager) {
             manager = getConnection().manager
         }
+
         const head = b.id
-        const prevBlock = await thor.getBlock(b.parentID)
-        const score = b.totalScore - prevBlock.totalScore
         let reward = BigInt(0)
+        let score = 0
+
+        if (b.number > 0) {
+            const prevBlock = await thor.getBlock(b.parentID)
+            score = b.totalScore - prevBlock.totalScore
+        }
 
         const txs: Transaction[] = []
         const receipts: Receipt[] = []
