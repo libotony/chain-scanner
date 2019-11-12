@@ -1,5 +1,5 @@
 
-import { EntityManager, getConnection, LessThan } from 'typeorm'
+import { EntityManager, getConnection } from 'typeorm'
 import { Config } from '../../db/entity/config'
 import { AssetMovement } from '../../db/entity/movement'
 import { TokenBasic, AssetType } from '../../types'

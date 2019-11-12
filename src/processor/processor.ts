@@ -8,7 +8,7 @@ const SAMPLING_INTERVAL = 1 * 1000
 
 export abstract class Processor {
     protected head: number | null = null
-    private birthNumber: number | null = null
+    protected birthNumber: number | null = null
     private shutdown = false
     private init = new PromInt()
     private ev = new EventEmitter()

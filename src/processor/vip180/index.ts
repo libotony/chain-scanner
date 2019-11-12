@@ -215,19 +215,22 @@ export class VIP180Transfer extends Processor {
     protected async processGenesis() {
         if (this.token.genesis) {
             const balances: TokenBalance[] = []
-            const manager = getConnection().manager
-            for (const addr in this.token.genesis) {
-                if (this.token.genesis[addr]) {
-                    balances.push(manager.create(TokenBalance, {
-                        address: addr,
-                        balance: BigInt(this.token.genesis[addr]),
-                        type: AssetType[this.token.symbol]
-                    }))
+            await getConnection().transaction(async (manager) => {
+                for (const addr in this.token.genesis) {
+                    if (this.token.genesis[addr]) {
+                        balances.push(manager.create(TokenBalance, {
+                            address: addr,
+                            balance: BigInt(this.token.genesis[addr]),
+                            type: AssetType[this.token.symbol]
+                        }))
+                    }
                 }
-            }
-            if (balances.length) {
-                this.persist.saveAccounts(balances, manager)
-            }
+                if (balances.length) {
+                    await this.persist.saveAccounts(balances, manager)
+                }
+                await this.saveHead(this.birthNumber - 1)
+            })
+            this.head = this.birthNumber - 1
         }
     }
 
