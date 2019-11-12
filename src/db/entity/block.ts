@@ -2,9 +2,6 @@ import { Entity, Column, PrimaryColumn, Index } from 'typeorm'
 import {fixedBytes, amount} from '../transformers'
 
 @Entity()
-
-@Index(['id', 'isTrunk'])
-@Index(['id', 'number'])
 export class Block {
     @PrimaryColumn({type: 'binary', length: 32, transformer: fixedBytes(32, 'block.id')})
     public id: string
@@ -38,6 +35,7 @@ export class Block {
     public receiptsRoot: string
 
     @Column({ type: 'binary', length: 20, transformer: fixedBytes(20, 'block.signer') })
+    @Index()
     public signer: string
 
     @Column({ type: 'binary', length: 20, transformer: fixedBytes(20, 'block.beneficiary') })

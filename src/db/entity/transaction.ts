@@ -3,16 +3,17 @@ import { fixedBytes, simpleJSON, compactFixedBytes } from '../transformers'
 import { Clause } from '../../types'
 
 @Entity()
-@Index('txUnique', ['txID', 'blockID'], {unique: true})
+@Index('txUnique', ['blockID', 'txID'], { unique: true })
+@Index(['blockID', 'txIndex'])
 export class Transaction {
     @PrimaryGeneratedColumn('increment')
     public id: number
 
-    @Column({ type: 'binary', length: 32, transformer: fixedBytes(32 , 'tx.txID') })
+    @Column({ type: 'binary', length: 32, transformer: fixedBytes(32, 'tx.txID') })
+    @Index()
     public txID: string
 
     @Column({ type: 'binary', length: 32, transformer: fixedBytes(32, 'tx.blockID') })
-    @Index()
     public blockID: string
 
     @Column()
@@ -40,6 +41,7 @@ export class Transaction {
     public dependsOn: string
 
     @Column({ type: 'binary', length: 20, transformer: fixedBytes(20, 'tx.origin') })
+    @Index()
     public origin: string
 
     @Column({ type: 'binary', length: 20, nullable: true, transformer: fixedBytes(20, 'tx.delegator', true) })

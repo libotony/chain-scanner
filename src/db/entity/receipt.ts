@@ -9,10 +9,10 @@ export class Receipt {
     public id: number
 
     @Column({ type: 'binary', length: 32, transformer: fixedBytes(32, 'receipt.txID') })
+    @Index()
     public txID: string
 
     @Column({ type: 'binary', length: 32, transformer: fixedBytes(32, 'transaction.blockID') })
-    @Index()
     public blockID: string
 
     @Column()
