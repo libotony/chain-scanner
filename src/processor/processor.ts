@@ -42,7 +42,7 @@ export abstract class Processor {
         } else {
             const head = await this.loadHead()
 
-            if (!head) {
+            if (head === null) {
                 return this.birthNumber - 1
             } else {
                 return head
