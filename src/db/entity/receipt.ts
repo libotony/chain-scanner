@@ -3,7 +3,7 @@ import { Output } from '../../types'
 import { fixedBytes, simpleJSON, amount } from '../transformers'
 
 @Entity()
-@Index('receiptUnique', ['txID', 'blockID'], { unique: true })
+@Index('receiptUnique', ['blockID', 'txID'], { unique: true })
 export class Receipt {
     @PrimaryGeneratedColumn('increment')
     public id: number
