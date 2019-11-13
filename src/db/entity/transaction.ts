@@ -1,5 +1,5 @@
 import { Entity, Column, Index, PrimaryGeneratedColumn } from 'typeorm'
-import { fixedBytes, simpleJSON, compactFixedBytes } from '../transformers'
+import { fixedBytes, simpleJSON, compactFixedBytes, chainTag } from '../transformers'
 import { Clause } from '../../types'
 
 @Entity()
@@ -19,7 +19,7 @@ export class Transaction {
     @Column()
     public txIndex: number
 
-    @Column({ type: 'int', unsigned: true })
+    @Column({ type: 'binary', length: 1, transformer: chainTag })
     public chainTag: number
 
     @Column({ type: 'binary', length: 8, transformer: fixedBytes(8 , 'tx.blockRef') })
@@ -28,10 +28,10 @@ export class Transaction {
     @Column({ unsigned: true })
     public expiration: number
 
-    @Column({ type: 'int', unsigned: true })
+    @Column({ unsigned: true })
     public gasPriceCoef: number
 
-    @Column({ unsigned: true, type: 'bigint' })
+    @Column({ unsigned: true })
     public gas: number
 
     @Column({ type: 'binary', length: 8, transformer: compactFixedBytes(8, 'tx.nonce') })

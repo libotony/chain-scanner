@@ -18,7 +18,7 @@ export class Receipt {
     @Column()
     public txIndex: number
 
-    @Column({unsigned: true, type: 'bigint'})
+    @Column({unsigned: true})
     public gasUsed: number
 
     @Column({ type: 'binary', length: 20, transformer: fixedBytes(20, 'receipt.gasPayer') })

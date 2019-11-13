@@ -10,16 +10,16 @@ export class Block {
     @Column()
     public number: number
 
-    @Column({unsigned: true, type: 'bigint'})
+    @Column({unsigned: true})
     public timestamp: number
 
-    @Column({unsigned: true, type: 'bigint'})
+    @Column({unsigned: true})
     public gasLimit: number
 
-    @Column({unsigned: true, type: 'bigint'})
+    @Column({unsigned: true})
     public gasUsed: number
 
-    @Column({unsigned: true, type: 'bigint'})
+    @Column({unsigned: true})
     public totalScore: number
 
     @Column({ type: 'binary', length: 32, transformer: fixedBytes(32, 'block.parentID') })

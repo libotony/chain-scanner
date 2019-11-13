@@ -12,7 +12,7 @@ export class Account {
     @Column({ type: 'binary', length: 24, transformer: amount })
     public energy: bigint
 
-    @Column({ unsigned: true, type: 'bigint' })
+    @Column({ unsigned: true })
     public blockTime: number
 
     @Column({ type: 'blob', nullable: true, transformer: bytes('account.code', true) })

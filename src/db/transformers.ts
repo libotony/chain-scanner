@@ -155,3 +155,15 @@ export const movementIndex = makeTransformer({
         return buf
     }
 })
+
+export const chainTag = makeTransformer({
+    from: (val: Buffer): number => {
+        return val.readUInt8(0)
+    },
+    to: (val: number) => {
+        const buf = Buffer.alloc(1)
+        buf.writeUInt8(val, 0)
+
+        return buf
+    }
+})
