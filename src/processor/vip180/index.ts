@@ -4,13 +4,14 @@ import { displayID, blockIDtoNum } from '../../utils'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
 import { $Master, TransferEvent, ZeroAddress } from '../../const'
-import { getBlockReceipts, insertSnapshot, listRecentSnapshot, removeSnapshot, clearSnapShot } from '../../foundation/db'
+import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../snapshot'
 import { EntityManager, getConnection } from 'typeorm'
 import { TokenBalance } from '../../db/entity/token-balance'
 import { Snapshot } from '../../db/entity/snapshot'
 import { Processor } from '../processor'
 import { abi } from 'thor-devkit'
 import { TokenConfig } from '../../const/tokens'
+import { getBlockByNumber, getBlockReceipts } from '../../service'
 
 interface SnapAccount {
     address: string
@@ -56,7 +57,8 @@ export class VIP180Transfer extends Processor {
      * @return inserted column number
      */
     protected async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
-        const { block, receipts } = await getBlockReceipts(blockNum, manager)
+        const block = await getBlockByNumber(blockNum, manager)
+        const receipts = await getBlockReceipts(block.id, manager)
 
         const movements: AssetMovement[] = []
         const acc = new Map<string, TokenBalance>()

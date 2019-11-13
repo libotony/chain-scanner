@@ -1,86 +1,10 @@
 import { EntityManager, getConnection, LessThan } from 'typeorm'
 import { Block } from '../db/entity/block'
-import { Receipt } from '../db/entity/receipt'
-import { Transaction } from '../db/entity/transaction'
 import { hexToBuffer, REVERSIBLE_WINDOW, bufferToHex } from '../utils'
 import { Snapshot } from '../db/entity/snapshot'
 import { SnapType } from '../types'
 
 export type RecentSnapshot = Snapshot & {isTrunk: boolean}
-
-export const getBest = (manager?: EntityManager) => {
-    if (!manager) {
-        manager = getConnection().manager
-    }
-
-    return manager
-        .getRepository(Block)
-        .createQueryBuilder('block')
-        .where('isTrunk=:isTrunk', { isTrunk: true })
-        .orderBy('id', 'DESC')
-        .limit(1)
-        .getOne()
-}
-
-export const getBlock = (blockNum: number, manager?: EntityManager) => {
-    if (!manager) {
-        manager = getConnection().manager
-    }
-
-    return manager
-        .getRepository(Block)
-        .findOne({ number: blockNum, isTrunk: true })
-}
-
-export const getBlockByID = (blockID: string, manager?: EntityManager) => {
-    if (!manager) {
-        manager = getConnection().manager
-    }
-
-    return manager
-        .getRepository(Block)
-        .findOne({ id: blockID })
-}
-
-export const getBlockReceipts = async (blockNum: number, manager?: EntityManager) => {
-    if (!manager) {
-        manager = getConnection().manager
-    }
-
-    const block = await getBlock(blockNum, manager)
-
-    if (block) {
-        const receipts = await manager
-            .getRepository(Receipt)
-            .createQueryBuilder()
-            .where('blockID = :blockID', { blockID: hexToBuffer(block.id) })
-            .orderBy('txIndex', 'ASC')
-            .getMany()
-        return { block, receipts }
-    } else {
-        throw new Error('Block not found: ' + blockNum)
-    }
-}
-
-export const getBlockTransactions = async (blockNum: number, manager?: EntityManager) => {
-    if (!manager) {
-        manager = getConnection().manager
-    }
-
-    const block = await getBlock(blockNum, manager)
-
-    if (block) {
-        const txs = await manager
-            .getRepository(Transaction)
-            .createQueryBuilder()
-            .where('blockID = :blockID', { blockID: hexToBuffer(block.id) })
-            .orderBy('txIndex', 'ASC')
-            .getMany()
-        return { block, txs }
-    } else {
-        throw new Error('Block not found: ' + blockNum)
-    }
-}
 
 export const insertSnapshot = (snap: Snapshot, manager?: EntityManager) => {
     if (!manager) {

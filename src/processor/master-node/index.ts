@@ -3,11 +3,12 @@ import { blockIDtoNum } from '../../utils'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
 import { ZeroAddress, AuthorityAddress, authority } from '../../const'
-import { getBlockReceipts, insertSnapshot, listRecentSnapshot, removeSnapshot, clearSnapShot } from '../../foundation/db'
+import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../snapshot'
 import { EntityManager, getConnection } from 'typeorm'
 import { Authority } from '../../db/entity/authority'
 import { Snapshot } from '../../db/entity/snapshot'
 import { Processor } from '../processor'
+import { getBlockByNumber, getBlockReceipts } from '../../service'
 
 interface SnapAuthority {
     node?: {
@@ -53,7 +54,8 @@ export class MasterNode extends Processor {
      * @return inserted column number
      */
     protected async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
-        const { block, receipts } = await getBlockReceipts(blockNum, manager)
+        const block = await getBlockByNumber(blockNum, manager)
+        const receipts = await getBlockReceipts(block.id, manager)
         const actions = []
         for (const r of receipts) {
             for (const [_, o] of r.outputs.entries()) {

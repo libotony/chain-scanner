@@ -7,9 +7,10 @@ import { BlockProcessor, SnapAccount } from './block-processor'
 import { AssetMovement } from '../../db/entity/movement'
 import { Account } from '../../db/entity/account'
 import { Snapshot } from '../../db/entity/snapshot'
-import { getBlockReceipts, getBlock, insertSnapshot, removeSnapshot, listRecentSnapshot, clearSnapShot } from '../../foundation/db'
+import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../snapshot'
 import { Processor } from '../processor'
 import { AssetType, SnapType } from '../../types'
+import { getBlockByNumber, getBlockReceipts } from '../../service'
 
 export class DualToken extends Processor {
     private persist: Persist
@@ -36,7 +37,8 @@ export class DualToken extends Processor {
      * @return inserted column number
      */
     protected async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
-        const { block, receipts } = await getBlockReceipts(blockNum, manager)
+        const block = await getBlockByNumber(blockNum, manager)
+        const receipts = await getBlockReceipts(block.id, manager)
 
         const proc = new BlockProcessor(block, this.thor, manager)
         for (const r of receipts) {
@@ -132,7 +134,7 @@ export class DualToken extends Processor {
     }
 
     protected async processGenesis() {
-        const block = await getBlock(0)
+        const block = await getBlockByNumber(0)
 
         await getConnection().transaction(async (manager) => {
             const proc = new BlockProcessor(block, this.thor, manager)
