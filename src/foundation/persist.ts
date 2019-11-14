@@ -64,10 +64,34 @@ export class Persist {
             .getMany()
     }
 
+    public insertBlock(block: Block, manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager.insert(Block, block)
+    }
+
+    public insertTXs(txs: Transaction[], manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager.insert(Transaction, txs)
+    }
+
+    public insertReceipts(receipts: Receipt[], manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager.insert(Receipt, receipts)
+    }
+
     /**
      * @return inserted column number
      */
-    public async insertBlock(
+    public async insertBlock2(
         b: Required<Connex.Thor.Block>,
         thor: Thor,
         manager?: EntityManager,
@@ -86,11 +110,29 @@ export class Persist {
             score = b.totalScore - prevBlock.totalScore
         }
 
+        const getBlockDetail = async (b: Required<Connex.Thor.Block>) => {
+            const txs: Connex.Thor.Transaction[] = []
+            const receipts: Connex.Thor.Receipt[] = []
+
+            try {
+                for (const txID of b.transactions) {
+                    const [t, r] = await Promise.all([thor.getTransaction(txID, head), thor.getReceipt(txID, head)])
+                    txs.push(t)
+                    receipts.push(r)
+                }
+            } catch (e) {
+                throw new Error('Failed to get block detail')
+            }
+            return {txs, receipts}
+        }
+
         const txs: Transaction[] = []
         const receipts: Receipt[] = []
 
-        for (const [index, txID] of b.transactions.entries()) {
-            const [t, r] = await Promise.all([thor.getTransaction(txID, head), thor.getReceipt(txID, head)])
+        const detail = await getBlockDetail(b)
+        for (const [index, _] of b.transactions.entries()) {
+            const t = detail.txs[index]
+            const r = detail.receipts[index]
 
             const txE = manager.create(Transaction, {
                 ...t,

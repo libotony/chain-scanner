@@ -1,10 +1,12 @@
 import { Thor } from '../thor-rest'
 import { Persist } from './persist'
-import { getConnection } from 'typeorm'
-import { blockIDtoNum, displayID, REVERSIBLE_WINDOW, sleep } from '../utils'
+import { getConnection, EntityManager } from 'typeorm'
+import { blockIDtoNum, displayID, REVERSIBLE_WINDOW, sleep, InterruptedError } from '../utils'
 import { EventEmitter } from 'events'
-import { PromInt, InterruptedError } from '@vechain/connex.driver-nodejs/dist/promint'
 import { getBlockByID } from '../explorer-db/service/block'
+import { Transaction } from '../explorer-db/entity/transaction'
+import { Receipt } from '../explorer-db/entity/receipt'
+import { Block } from '../explorer-db/entity/block'
 
 const SAMPLING_INTERVAL = 1 * 1000
 
@@ -12,7 +14,6 @@ export class Foundation {
     private head: string | null = null
     private persist: Persist
     private shutdown = false
-    private init = new PromInt()
     private ev = new EventEmitter()
 
     constructor(readonly thor: Thor) {
@@ -26,7 +27,6 @@ export class Foundation {
 
     public stop() {
         this.shutdown = true
-        this.init.interrupt()
 
         return new Promise((resolve) => {
             this.ev.on('closed', resolve)
@@ -46,47 +46,44 @@ export class Foundation {
         }
 
         let newHead: string = null
-        const blocks = await this.init.wrap(this.persist.listRecentBlock(headNum))
+        const blocks = await this.persist.listRecentBlock(headNum)
         if (blocks.length) {
             await getConnection().transaction(async (manager) => {
-                const func = async () => {
-                    const toBranch: string[] = []
-                    const toTrunk: string[] = []
+                const toBranch: string[] = []
+                const toTrunk: string[] = []
 
-                    for (const b of blocks) {
-                        const chainB = await this.thor.getBlock(b.id)
-                        if (chainB.isTrunk !== b.isTrunk) {
-                            b.isTrunk = chainB.isTrunk
-                            if (chainB.isTrunk) {
-                                toTrunk.push(b.id)
-                            } else {
-                                toBranch.push(b.id)
-                            }
+                for (const b of blocks) {
+                    const chainB = await this.thor.getBlock(b.id)
+                    if (chainB.isTrunk !== b.isTrunk) {
+                        b.isTrunk = chainB.isTrunk
+                        if (chainB.isTrunk) {
+                            toTrunk.push(b.id)
+                        } else {
+                            toBranch.push(b.id)
                         }
-                    }
-                    if (toBranch.length) {
-                        await this.persist.toBranch(toBranch, manager)
-                    }
-                    if (toTrunk.length) {
-                        await this.persist.toTrunk(toTrunk, manager)
-                    }
-
-                    const trunks = blocks.filter(x => x.isTrunk === true)
-                    let current = trunks[0]
-                    for (let i = 1; i < trunks.length; i++) {
-                        if (trunks[i].parentID !== current.id) {
-                            break
-                        }
-                        current = trunks[i]
-                    }
-
-                    if (current.id !== head) {
-                        await this.persist.saveHead(current.id, manager)
-                        console.log('-> revert to head:', displayID(current.id))
-                        newHead = current.id
                     }
                 }
-                await this.init.wrap(func())
+                if (toBranch.length) {
+                    await this.persist.toBranch(toBranch, manager)
+                }
+                if (toTrunk.length) {
+                    await this.persist.toTrunk(toTrunk, manager)
+                }
+
+                const trunks = blocks.filter(x => x.isTrunk === true)
+                let current = trunks[0]
+                for (let i = 1; i < trunks.length; i++) {
+                    if (trunks[i].parentID !== current.id) {
+                        break
+                    }
+                    current = trunks[i]
+                }
+
+                if (current.id !== head) {
+                    await this.persist.saveHead(current.id, manager)
+                    console.log('-> revert to head:', displayID(current.id))
+                    newHead = current.id
+                }
             })
             if (newHead) {
                 this.head = newHead
@@ -96,12 +93,12 @@ export class Foundation {
 
     private async loop() {
         for (; ;) {
-            if (this.shutdown) {
-                this.ev.emit('closed')
-                break
-            }
             try {
-                await this.init.wrap(sleep(SAMPLING_INTERVAL))
+                if (this.shutdown) {
+                    this.ev.emit('closed')
+                    break
+                }
+                await sleep(SAMPLING_INTERVAL)
                 await this.latestTrunkCheck()
 
                 let head = await this.getHead()
@@ -118,55 +115,56 @@ export class Foundation {
 
                 if (best.parentID === head) {
                     await getConnection().transaction(async (manager) => {
-                        await this.init.wrap(this.persist.insertBlock(best, this.thor, manager))
-                        await this.init.wrap(this.persist.saveHead(best.id, manager))
+                        await this.processBlock(best, manager)
+                        await this.persist.saveHead(best.id, manager)
                         console.log('-> save head:', displayID(best.id))
                     })
                     this.head = best.id
                 } else {
-                    const headBlock = await this.init.wrap(this.thor.getBlock(head))
-                    const { trunk, branch } = await this.init.wrap(this.buildFork(best, headBlock))
+                    const headBlock = await this.thor.getBlock(head)
+                    const { trunk, branch } = await this.buildFork(best, headBlock)
 
                     await getConnection().transaction(async (manager) => {
-                        const func = async () => {
-                            const toBranch: string[] = []
-                            const toTrunk: string[] = []
+                        const toBranch: string[] = []
+                        const toTrunk: string[] = []
 
-                            for (const b of branch) {
-                                const tmp = await getBlockByID(b.id, manager)
-                                if (!tmp) {
-                                    await this.persist.insertBlock(b, this.thor, manager, false)
-                                } else if (tmp.isTrunk) {
-                                    toBranch.push(tmp.id)
-                                }
+                        for (const b of branch) {
+                            const tmp = await getBlockByID(b.id, manager)
+                            if (!tmp) {
+                                await this.processBlock(b, manager, false)
+                            } else if (tmp.isTrunk) {
+                                toBranch.push(tmp.id)
                             }
-                            for (const b of trunk) {
-                                const tmp = await getBlockByID(b.id, manager)
-                                if (!tmp) {
-                                    await this.persist.insertBlock(b, this.thor, manager)
-                                } else if (!tmp.isTrunk) {
-                                    toTrunk.push(tmp.id)
-                                }
+                        }
+                        for (const b of trunk) {
+                            const tmp = await getBlockByID(b.id, manager)
+                            if (!tmp) {
+                                await this.processBlock(b, manager)
+                            } else if (!tmp.isTrunk) {
+                                toTrunk.push(tmp.id)
                             }
-
-                            if (toBranch.length) {
-                                await this.persist.toBranch(toBranch, manager)
-                            }
-                            if (toTrunk.length) {
-                                await this.persist.toTrunk(toTrunk, manager)
-                            }
-
-                            await this.persist.saveHead(best.id, manager)
-                            console.log('-> save head:', displayID(best.id))
                         }
 
-                        await this.init.wrap(func())
+                        if (toBranch.length) {
+                            await this.persist.toBranch(toBranch, manager)
+                        }
+                        if (toTrunk.length) {
+                            await this.persist.toTrunk(toTrunk, manager)
+                        }
+
+                        await this.persist.saveHead(best.id, manager)
+                        console.log('-> save head:', displayID(best.id))
                     })
                     this.head = best.id
                 }
             } catch (e) {
                 if (!(e instanceof InterruptedError)) {
                     console.log(`foundation loop:`, e)
+                } else {
+                    if (this.shutdown) {
+                        this.ev.emit('closed')
+                        break
+                    }
                 }
             }
         }
@@ -224,6 +222,73 @@ export class Foundation {
         }
     }
 
+    private async getBlockDetail(b: Required<Connex.Thor.Block>) {
+        const head = b.id
+        const txs: Connex.Thor.Transaction[] = []
+        const receipts: Connex.Thor.Receipt[] = []
+
+        try {
+            for (const txID of b.transactions) {
+                const [t, r] = await Promise.all([
+                    this.thor.getTransaction(txID, head),
+                    this.thor.getReceipt(txID, head)
+                ])
+                txs.push(t)
+                receipts.push(r)
+            }
+        } catch (e) {
+            throw new Error('Failed to get block detail')
+        }
+        return {txs, receipts}
+    }
+
+    private async processBlock(b: Required<Connex.Thor.Block>, manager: EntityManager, trunk = true): Promise<number> {
+        let reward = BigInt(0)
+        let score = 0
+
+        if (b.number > 0) {
+            const prevBlock = await this.thor.getBlock(b.parentID)
+            score = b.totalScore - prevBlock.totalScore
+        }
+
+        const txs: Transaction[] = []
+        const receipts: Receipt[] = []
+
+        const detail = await this.getBlockDetail(b)
+        for (const [index, _] of b.transactions.entries()) {
+            const t = detail.txs[index]
+            const r = detail.receipts[index]
+
+            const txE = manager.create(Transaction, {
+                ...t,
+                id: undefined,
+                txID: t.id,
+                txIndex: index,
+                blockID: b.id
+            })
+            txs.push(txE)
+
+            receipts.push(manager.create(Receipt, {
+                ...r,
+                txID: t.id,
+                txIndex: index,
+                blockID: b.id,
+                paid: BigInt(r.paid),
+                reward: BigInt(r.reward)
+            }))
+
+            reward += BigInt(r.reward)
+        }
+        const block = manager.create(Block, { ...b, isTrunk: trunk, score, reward })
+
+        await this.persist.insertBlock(block, manager)
+        if (txs.length) {
+            await this.persist.insertTXs(txs, manager)
+            await this.persist.insertReceipts(receipts, manager)
+        }
+        return 1 + txs.length + receipts.length
+    }
+
     private async fastForward(target: number) {
         const head = await this.getHead()
         const headNum = head ? blockIDtoNum(head) : -1
@@ -239,11 +304,11 @@ export class Foundation {
                     if (this.shutdown) {
                         throw new InterruptedError()
                     }
-                    b = await this.init.wrap(this.thor.getBlock(i++))
-                    count += await this.init.wrap(this.persist.insertBlock(b, this.thor, manager))
+                    b = await this.thor.getBlock(i++)
+                    count += await this.processBlock(b, manager)
 
-                    if (count >= 5000) {
-                        await this.init.wrap(this.persist.saveHead(b.id, manager))
+                    if (count >= 3000) {
+                        await this.persist.saveHead(b.id, manager)
                         process.stdout.write(`imported blocks(${i - startNum}) at block(${displayID(b.id)}) `)
                         console.timeEnd('time')
                         count = 0
@@ -251,7 +316,7 @@ export class Foundation {
                     }
 
                     if (i === target + 1) {
-                        await this.init.wrap(this.persist.saveHead(b.id, manager))
+                        await this.persist.saveHead(b.id, manager)
                         process.stdout.write(`imported blocks(${i - startNum}) at block(${displayID(b.id)}) `)
                         console.timeEnd('time')
                         break

@@ -21,3 +21,11 @@ export const sleep = (ms: number) => {
 export const displayID = (blockID: string) => {
     return `${blockIDtoNum(blockID)}...${blockID.slice(58)}`
 }
+
+export class InterruptedError extends Error {
+    constructor() {
+        super('interrupted')
+    }
+}
+
+InterruptedError.prototype.name = 'InterruptedError'
