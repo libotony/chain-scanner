@@ -10,7 +10,7 @@ import { Snapshot } from '../../db/entity/snapshot'
 import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../snapshot'
 import { Processor } from '../processor'
 import { AssetType, SnapType } from '../../types'
-import { getBlockByNumber, getBlockReceipts } from '../../service'
+import { getBlockByNumber, getBlockReceipts } from '../../service/block'
 
 export class DualToken extends Processor {
     private persist: Persist

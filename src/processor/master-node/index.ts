@@ -8,7 +8,7 @@ import { EntityManager, getConnection } from 'typeorm'
 import { Authority } from '../../db/entity/authority'
 import { Snapshot } from '../../db/entity/snapshot'
 import { Processor } from '../processor'
-import { getBlockByNumber, getBlockReceipts } from '../../service'
+import { getBlockByNumber, getBlockReceipts } from '../../service/block'
 
 interface SnapAuthority {
     node?: {

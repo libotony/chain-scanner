@@ -11,7 +11,7 @@ import { Snapshot } from '../../db/entity/snapshot'
 import { Processor } from '../processor'
 import { abi } from 'thor-devkit'
 import { TokenConfig } from '../../const/tokens'
-import { getBlockByNumber, getBlockReceipts } from '../../service'
+import { getBlockByNumber, getBlockReceipts } from '../../service/block'
 
 interface SnapAccount {
     address: string
