@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm'
-import { SnapType } from '../../types'
+import { SnapType } from '../types'
 import { simpleJSON, fixedBytes } from '../transformers'
 
 @Entity()

@@ -1,6 +1,6 @@
 import { getConnection, EntityManager } from 'typeorm'
-import { Config } from '../../db/entity/config'
-import { Authority } from '../../db/entity/authority'
+import { Config } from '../../explorer-db/entity/config'
+import { Authority } from '../../explorer-db/entity/authority'
 
 const HEAD_KEY = 'authority-head'
 

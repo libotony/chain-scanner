@@ -1,10 +1,10 @@
 import { getConnection, EntityManager } from 'typeorm'
-import { Account } from '../db/entity/account'
-import { AssetMovement } from '../db/entity/movement'
+import { Account } from '../entity/account'
+import { AssetMovement } from '../entity/movement'
 import { hexToBuffer } from '../utils'
 import { AssetType } from '../types'
-import { Transaction } from '../db/entity/transaction'
-import { Block } from '../db/entity/block'
+import { Transaction } from '../entity/transaction'
+import { Block } from '../entity/block'
 
 export const getAccount = (addr: string, manager?: EntityManager) => {
     if (!manager) {

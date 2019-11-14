@@ -2,7 +2,7 @@ import { EntityManager, getConnection } from 'typeorm'
 import { PromInt, InterruptedError } from '@vechain/connex.driver-nodejs/dist/promint'
 import { sleep, REVERSIBLE_WINDOW } from '../utils'
 import { EventEmitter } from 'events'
-import { getBest } from '../service/block'
+import { getBest } from '../explorer-db/service/block'
 
 const SAMPLING_INTERVAL = 1 * 1000
 

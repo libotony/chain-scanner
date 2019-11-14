@@ -1,11 +1,11 @@
-import { initConnection } from '../../db'
+import { initConnection } from '../../explorer-db'
 import { getConnection, LessThanOrEqual } from 'typeorm'
 import { Thor } from '../../thor-rest'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { Persist } from '../../processor/master-node/persist'
 import { AuthorityAddress, authority } from '../../const'
-import { Authority } from '../../db/entity/authority'
-import { Block } from '../../db/entity/block'
+import { Authority } from '../../explorer-db/entity/authority'
+import { Block } from '../../explorer-db/entity/block'
 
 const thor = new Thor(new SimpleNet('http://localhost:8669'))
 const persist = new Persist()

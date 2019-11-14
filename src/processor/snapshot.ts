@@ -1,8 +1,9 @@
 import { EntityManager, getConnection, LessThan } from 'typeorm'
-import { Block } from '../db/entity/block'
-import { hexToBuffer, REVERSIBLE_WINDOW, bufferToHex } from '../utils'
-import { Snapshot } from '../db/entity/snapshot'
-import { SnapType } from '../types'
+import { Block } from '../explorer-db/entity/block'
+import { REVERSIBLE_WINDOW, bufferToHex } from '../utils'
+import { Snapshot } from '../explorer-db/entity/snapshot'
+import { SnapType } from '../explorer-db/types'
+import { hexToBuffer } from '../explorer-db/utils'
 
 export type RecentSnapshot = Snapshot & {isTrunk: boolean}
 

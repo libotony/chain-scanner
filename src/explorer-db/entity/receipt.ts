@@ -1,5 +1,5 @@
 import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm'
-import { Output } from '../../types'
+import { Output } from '../types'
 import { fixedBytes, simpleJSON, amount } from '../transformers'
 
 @Entity()

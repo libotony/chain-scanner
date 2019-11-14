@@ -1,9 +1,9 @@
 import { getConnection, EntityManager, LessThan } from 'typeorm'
-import { Config } from '../../db/entity/config'
-import { AssetMovement } from '../../db/entity/movement'
-import { Account } from '../../db/entity/account'
-import { hexToBuffer} from '../../utils'
-import { AssetType } from '../../types'
+import { Config } from '../../explorer-db/entity/config'
+import { AssetMovement } from '../../explorer-db/entity/movement'
+import { Account } from '../../explorer-db/entity/account'
+import { hexToBuffer} from '../../explorer-db/utils'
+import { AssetType } from '../../explorer-db/types'
 
 const HEAD_KEY = 'dual-token-head'
 

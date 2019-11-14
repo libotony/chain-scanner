@@ -1,4 +1,9 @@
-import { TokenBasic } from '../types'
+export interface TokenBasic {
+    name: string
+    address: string
+    symbol: string
+    decimals: number,
+}
 
 export interface TokenConfig {
     genesis?: {

@@ -1,17 +1,17 @@
-import { TokenBasic, SnapType, AssetType } from '../../types'
-import { AssetMovement } from '../../db/entity/movement'
+import { SnapType, AssetType } from '../../explorer-db/types'
+import { AssetMovement } from '../../explorer-db/entity/movement'
 import { displayID, blockIDtoNum } from '../../utils'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
 import { $Master, TransferEvent, ZeroAddress } from '../../const'
 import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../snapshot'
 import { EntityManager, getConnection } from 'typeorm'
-import { TokenBalance } from '../../db/entity/token-balance'
-import { Snapshot } from '../../db/entity/snapshot'
+import { TokenBalance } from '../../explorer-db/entity/token-balance'
+import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { Processor } from '../processor'
 import { abi } from 'thor-devkit'
-import { TokenConfig } from '../../const/tokens'
-import { getBlockByNumber, getBlockReceipts } from '../../service/block'
+import { TokenConfig, TokenBasic } from '../../const/tokens'
+import { getBlockByNumber, getBlockReceipts } from '../../explorer-db/service/block'
 
 interface SnapAccount {
     address: string

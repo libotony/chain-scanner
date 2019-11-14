@@ -1,9 +1,9 @@
-import { initConnection } from '../../db'
+import { initConnection } from '../../explorer-db'
 import { getConnection } from 'typeorm'
 import { Persist } from '../../processor/dual-token/persist'
 import { Thor } from '../../thor-rest'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
-import { Account } from '../../db/entity/account'
+import { Account } from '../../explorer-db/entity/account'
 import { PrototypeAddress, methodMaster, ZeroAddress } from '../../const'
 
 const persist = new Persist()

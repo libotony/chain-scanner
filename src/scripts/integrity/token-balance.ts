@@ -1,10 +1,10 @@
-import { initConnection } from '../../db'
+import { initConnection } from '../../explorer-db'
 import { getConnection } from 'typeorm'
 import { Thor } from '../../thor-rest'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { balanceOf } from '../../const'
-import { TokenBalance } from '../../db/entity/token-balance'
-import { AssetType } from '../../types'
+import { TokenBalance } from '../../explorer-db/entity/token-balance'
+import { AssetType } from '../../explorer-db/types'
 import { Persist } from '../../processor/vip180/persist'
 import { getVIP180Token } from '../../const/tokens'
 

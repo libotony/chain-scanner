@@ -1,6 +1,6 @@
-import { sanitizeHex } from '../utils'
+import { sanitizeHex } from './utils'
 import { FindOperator} from 'typeorm'
-import { MovementIndex } from '../types'
+import { MovementIndex } from './types'
 
 interface ValueTransformer<DBType, EntityType> {
     from: (val: DBType) => EntityType,

@@ -1,9 +1,9 @@
-import { initConnection } from '../db'
-import { Account } from '../db/entity/account'
-import { AssetMovement } from '../db/entity/movement'
-import { Config } from '../db/entity/config'
-import { Snapshot } from '../db/entity/snapshot'
-import { SnapType, AssetType } from '../types'
+import { initConnection } from '../explorer-db'
+import { Account } from '../explorer-db/entity/account'
+import { AssetMovement } from '../explorer-db/entity/movement'
+import { Config } from '../explorer-db/entity/config'
+import { Snapshot } from '../explorer-db/entity/snapshot'
+import { SnapType, AssetType } from '../explorer-db/types'
 import { In } from 'typeorm'
 
 initConnection().then(async (conn) => {

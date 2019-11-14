@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryColumn, Index } from 'typeorm'
 import {fixedBytes, amount} from '../transformers'
-import { AssetType } from '../../types'
+import { AssetType } from '../types'
 
 @Entity()
 export class TokenBalance {

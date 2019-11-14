@@ -1,4 +1,4 @@
-import { initConnection } from '../db'
+import { initConnection } from '../explorer-db'
 import { MasterNode } from '../processor/master-node'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { Thor } from '../thor-rest'

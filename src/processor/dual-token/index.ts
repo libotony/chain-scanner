@@ -4,13 +4,13 @@ import { blockIDtoNum } from '../../utils'
 import { $Master, EnergyAddress, TransferEvent, getPreAllocAccount } from '../../const'
 import { getConnection, EntityManager } from 'typeorm'
 import { BlockProcessor, SnapAccount } from './block-processor'
-import { AssetMovement } from '../../db/entity/movement'
-import { Account } from '../../db/entity/account'
-import { Snapshot } from '../../db/entity/snapshot'
+import { AssetMovement } from '../../explorer-db/entity/movement'
+import { Account } from '../../explorer-db/entity/account'
+import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../snapshot'
 import { Processor } from '../processor'
-import { AssetType, SnapType } from '../../types'
-import { getBlockByNumber, getBlockReceipts } from '../../service/block'
+import { AssetType, SnapType } from '../../explorer-db/types'
+import { getBlockByNumber, getBlockReceipts } from '../../explorer-db/service/block'
 
 export class DualToken extends Processor {
     private persist: Persist

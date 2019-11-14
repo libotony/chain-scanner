@@ -1,7 +1,7 @@
 import { EntityManager, getConnection } from 'typeorm'
-import { Block } from '../db/entity/block'
-import { Transaction } from '../db/entity/transaction'
-import { Receipt } from '../db/entity/receipt'
+import { Block } from '../entity/block'
+import { Transaction } from '../entity/transaction'
+import { Receipt } from '../entity/receipt'
 import { hexToBuffer } from '../utils'
 
 export const getTransaction = (txID: string, manager?: EntityManager) => {

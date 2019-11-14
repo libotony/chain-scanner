@@ -1,6 +1,6 @@
 import { Entity, Column, Index, PrimaryGeneratedColumn } from 'typeorm'
 import { fixedBytes, simpleJSON, compactFixedBytes, chainTag } from '../transformers'
-import { Clause } from '../../types'
+import { Clause } from '../types'
 
 @Entity()
 @Index('txUnique', ['blockID', 'txID'], { unique: true })

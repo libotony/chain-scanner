@@ -1,4 +1,4 @@
-import { initConnection } from '../db'
+import { initConnection } from '../explorer-db'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { Thor } from '../thor-rest'
 import { Foundation } from '../foundation'

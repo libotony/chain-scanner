@@ -1,4 +1,4 @@
-import { initConnection } from '../db'
+import { initConnection } from '../explorer-db'
 import { VIP180Transfer } from '../processor/vip180'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { Thor } from '../thor-rest'

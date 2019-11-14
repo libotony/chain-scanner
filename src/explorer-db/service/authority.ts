@@ -1,6 +1,6 @@
 import { getConnection, EntityManager, } from 'typeorm'
-import { Authority } from '../db/entity/authority'
-import { Block } from '../db/entity/block'
+import { Authority } from '../entity/authority'
+import { Block } from '../entity/block'
 import { hexToBuffer } from '../utils'
 
 export const getAuthority = (addr: string, manager?: EntityManager) => {

@@ -28,13 +28,6 @@ export enum SnapType {
     VIP180Token = 100
 }
 
-export interface TokenBasic {
-    name: string
-    address: string
-    symbol: string
-    decimals: number,
-}
-
 export enum AssetType {
     VET = 0,
     Energy,

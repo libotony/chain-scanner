@@ -1,11 +1,12 @@
 
 import { EntityManager, getConnection } from 'typeorm'
-import { Config } from '../../db/entity/config'
-import { AssetMovement } from '../../db/entity/movement'
-import { TokenBasic, AssetType } from '../../types'
-import { TokenBalance } from '../../db/entity/token-balance'
-import { Snapshot } from '../../db/entity/snapshot'
-import { hexToBuffer } from '../../utils'
+import { Config } from '../../explorer-db/entity/config'
+import { AssetMovement } from '../../explorer-db/entity/movement'
+import { AssetType } from '../../explorer-db/types'
+import { TokenBalance } from '../../explorer-db/entity/token-balance'
+import { Snapshot } from '../../explorer-db/entity/snapshot'
+import { TokenBasic } from '../../const/tokens'
+import { hexToBuffer } from '../../explorer-db/utils'
 
 export type RecentSnapshot = Snapshot & { isTrunk: boolean }
 

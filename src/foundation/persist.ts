@@ -1,10 +1,10 @@
 import { Thor } from '../thor-rest'
-import { Config } from '../db/entity/config'
+import { Config } from '../explorer-db/entity/config'
 import { EntityManager, getConnection, In } from 'typeorm'
-import { Block } from '../db/entity/block'
+import { Block } from '../explorer-db/entity/block'
 import { REVERSIBLE_WINDOW } from '../utils'
-import { Transaction } from '../db/entity/transaction'
-import { Receipt } from '../db/entity/receipt'
+import { Transaction } from '../explorer-db/entity/transaction'
+import { Receipt } from '../explorer-db/entity/receipt'
 
 const HEAD_KEY = 'foundation-head'
 

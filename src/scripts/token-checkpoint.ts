@@ -1,12 +1,12 @@
-import { initConnection } from '../db'
-import { AssetMovement } from '../db/entity/movement'
-import { Config } from '../db/entity/config'
-import { Snapshot } from '../db/entity/snapshot'
-import { SnapType, AssetType } from '../types'
+import { initConnection } from '../explorer-db'
+import { AssetMovement } from '../explorer-db/entity/movement'
+import { Config } from '../explorer-db/entity/config'
+import { Snapshot } from '../explorer-db/entity/snapshot'
+import { SnapType, AssetType } from '../explorer-db/types'
 import { Thor } from '../thor-rest'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { getVIP180Token } from '../const/tokens'
-import { TokenBalance } from '../db/entity/token-balance'
+import { TokenBalance } from '../explorer-db/entity/token-balance'
 
 const thor = new Thor(new SimpleNet('http://localhost:8669'))
 const token = getVIP180Token(thor.genesisID, process.argv[2] || 'OCE')

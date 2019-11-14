@@ -1,7 +1,7 @@
-import { initConnection } from '../../db'
+import { initConnection } from '../../explorer-db'
 import { Persist } from '../../foundation/persist'
 import { getConnection } from 'typeorm'
-import { Block } from '../../db/entity/block'
+import { Block } from '../../explorer-db/entity/block'
 import { displayID, REVERSIBLE_WINDOW } from '../../utils'
 
 const STOP_NUMBER = 0

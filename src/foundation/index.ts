@@ -4,7 +4,7 @@ import { getConnection } from 'typeorm'
 import { blockIDtoNum, displayID, REVERSIBLE_WINDOW, sleep } from '../utils'
 import { EventEmitter } from 'events'
 import { PromInt, InterruptedError } from '@vechain/connex.driver-nodejs/dist/promint'
-import { getBlockByID } from '../service/block'
+import { getBlockByID } from '../explorer-db/service/block'
 
 const SAMPLING_INTERVAL = 1 * 1000
 
@@ -41,7 +41,7 @@ export class Foundation {
         }
 
         const headNum = blockIDtoNum(head)
-        if ( headNum < REVERSIBLE_WINDOW) {
+        if (headNum < REVERSIBLE_WINDOW) {
             return
         }
 

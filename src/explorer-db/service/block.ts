@@ -1,8 +1,8 @@
 import { getConnection, EntityManager, } from 'typeorm'
-import { Block } from '../db/entity/block'
-import { Transaction } from '../db/entity/transaction'
+import { Block } from '../entity/block'
+import { Transaction } from '../entity/transaction'
 import { hexToBuffer } from '../utils'
-import { Receipt } from '../db/entity/receipt'
+import { Receipt } from '../entity/receipt'
 
 export const getBest = (manager?: EntityManager) => {
     if (!manager) {

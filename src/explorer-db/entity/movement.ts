@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, Index } from 'typeorm'
 import {fixedBytes, amount, movementIndex} from '../transformers'
-import { AssetType, MovementIndex } from '../../types'
+import { AssetType, MovementIndex } from '../types'
 
 @Entity()
 @Index(['blockID', 'moveIndex'])
