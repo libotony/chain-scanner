@@ -24,7 +24,6 @@ export interface Clause {
 
 export enum SnapType {
     DualToken = 0,
-    ClauseExtractor,
     Authority,
     VIP180Token = 100
 }

@@ -22,6 +22,7 @@ export const getSignedBlocks = (addr: string, offset: number, limit: number, man
         .getRepository(Block)
         .createQueryBuilder()
         .where('block.signer = :signer', { signer: hexToBuffer(addr) })
+        .andWhere('block.isTrunk = :isTrunk', {isTrunk: true})
         .orderBy('block.id', 'DESC')
         .offset(offset)
         .limit(limit)
