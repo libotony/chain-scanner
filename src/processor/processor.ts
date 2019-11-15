@@ -1,6 +1,5 @@
 import { EntityManager, getConnection } from 'typeorm'
-import { PromInt, InterruptedError } from '@vechain/connex.driver-nodejs/dist/promint'
-import { sleep, REVERSIBLE_WINDOW } from '../utils'
+import { sleep, REVERSIBLE_WINDOW, InterruptedError } from '../utils'
 import { EventEmitter } from 'events'
 import { getBest } from '../explorer-db/service/block'
 
@@ -10,7 +9,6 @@ export abstract class Processor {
     protected head: number | null = null
     protected birthNumber: number | null = null
     private shutdown = false
-    private init = new PromInt()
     private ev = new EventEmitter()
 
     public start() {
@@ -19,9 +17,9 @@ export abstract class Processor {
 
     public stop(): Promise<void> {
         this.shutdown = true
-        this.init.interrupt()
 
         return new Promise((resolve) => {
+            console.log('shutting down......')
             this.ev.on('closed', resolve)
         })
     }
@@ -60,11 +58,10 @@ export abstract class Processor {
 
         for (; ;) {
             if (this.shutdown) {
-                this.ev.emit('closed')
-                break
+                throw new InterruptedError()
             }
             try {
-                await this.init.wrap(sleep(SAMPLING_INTERVAL))
+                await sleep(SAMPLING_INTERVAL)
                 await this.latestTrunkCheck()
 
                 let head = await this.getHead()
@@ -83,7 +80,7 @@ export abstract class Processor {
                 }
                 await getConnection().transaction(async (manager) => {
                     for (let i = head + 1; i <= best.number; i++) {
-                        await this.init.wrap(this.processBlock(i, manager, true))
+                        await this.processBlock(i, manager, true)
                     }
                     await this.saveHead(best.number, manager)
                     console.log('-> save head:', best.number)
@@ -92,6 +89,11 @@ export abstract class Processor {
             } catch (e) {
                 if (!(e instanceof InterruptedError)) {
                     console.log(`processor(${this.constructor.name}) loop:`, e)
+                } else {
+                    if (this.shutdown) {
+                        this.ev.emit('closed')
+                        break
+                    }
                 }
             }
         }
@@ -109,7 +111,7 @@ export abstract class Processor {
                         throw new InterruptedError()
                     }
 
-                    const count = await this.init.wrap(this.processBlock(i++, manager))
+                    const count = await this.processBlock(i++, manager)
                     if (count) {
                         await this.saveHead(i - 1, manager)
                         if ((i - startNum) >= 1000) {
