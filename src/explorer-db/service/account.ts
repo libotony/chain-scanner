@@ -45,7 +45,7 @@ export const getAccountTransaction = (addr: string, offset: number, limit: numbe
         .addOrderBy('txIndex', 'DESC')
         .offset(offset)
         .limit(limit)
-        .getManyAndCount()
+        .getMany ()
 }
 
 export const countAccountTransfer = (addr: string, manager?: EntityManager) => {
