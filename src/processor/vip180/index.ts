@@ -196,6 +196,7 @@ export class VIP180Transfer extends Processor {
                     const toSave: TokenBalance[] = []
                     for (const [_, acc] of accounts.entries()) {
                         toSave.push(acc)
+                        console.log(`Account(${acc.address})'s Token(${this.token.symbol}) reverted to ${acc.balance} at Block(${displayID(snapshots[0].blockID)})`)
                     }
 
                     await this.persist.saveAccounts(toSave, manager)

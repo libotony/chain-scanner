@@ -1,6 +1,6 @@
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
-import { blockIDtoNum } from '../../utils'
+import { blockIDtoNum, displayID } from '../../utils'
 import { $Master, EnergyAddress, TransferEvent, getPreAllocAccount, Network } from '../../const'
 import { getConnection, EntityManager } from 'typeorm'
 import { BlockProcessor, SnapAccount } from './block-processor'
@@ -174,6 +174,7 @@ export class DualToken extends Processor {
             const toSave: Account[] = []
             for (const [_, acc] of accounts.entries()) {
                 toSave.push(acc)
+                console.log(`Account(${acc.address}) reverted to VET(${acc.balance}) Energy(${acc.balance}) BlockTime(${acc.blockTime}) at Block(${displayID(snapshots[0].blockID)})`)
             }
 
             await this.persist.saveAccounts(toSave, manager)
