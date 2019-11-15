@@ -57,10 +57,10 @@ export abstract class Processor {
         this.birthNumber = await this.bornAt()
 
         for (; ;) {
-            if (this.shutdown) {
-                throw new InterruptedError()
-            }
             try {
+                if (this.shutdown) {
+                    throw new InterruptedError()
+                }
                 await sleep(SAMPLING_INTERVAL)
                 await this.latestTrunkCheck()
 
