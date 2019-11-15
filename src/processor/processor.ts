@@ -88,7 +88,7 @@ export abstract class Processor {
                 this.head = best.number
             } catch (e) {
                 if (!(e instanceof InterruptedError)) {
-                    console.log(`processor(${this.constructor.name}) loop:`, e)
+                    process.stderr.write(`processor(${this.constructor.name}) loop: ` + (e as Error).stack + '\r\n')
                 } else {
                     if (this.shutdown) {
                         this.ev.emit('closed')

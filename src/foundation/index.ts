@@ -29,6 +29,7 @@ export class Foundation {
         this.shutdown = true
 
         return new Promise((resolve) => {
+            console.log('shutting down......')
             this.ev.on('closed', resolve)
         })
     }
@@ -95,8 +96,7 @@ export class Foundation {
         for (; ;) {
             try {
                 if (this.shutdown) {
-                    this.ev.emit('closed')
-                    break
+                    throw new InterruptedError()
                 }
                 await sleep(SAMPLING_INTERVAL)
                 await this.latestTrunkCheck()
@@ -159,7 +159,7 @@ export class Foundation {
                 }
             } catch (e) {
                 if (!(e instanceof InterruptedError)) {
-                    console.log(`foundation loop:`, e)
+                    process.stderr.write('foundation loop: ' + (e as Error).stack + '\r\n')
                 } else {
                     if (this.shutdown) {
                         this.ev.emit('closed')
