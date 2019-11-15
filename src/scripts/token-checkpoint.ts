@@ -5,11 +5,11 @@ import { Snapshot } from '../explorer-db/entity/snapshot'
 import { SnapType, AssetType } from '../explorer-db/types'
 import { Thor } from '../thor-rest'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
-import { getVIP180Token } from '../const/tokens'
+import { getVIP180Token, Network } from '../const'
 import { TokenBalance } from '../explorer-db/entity/token-balance'
 
 const thor = new Thor(new SimpleNet('http://localhost:8669'))
-const token = getVIP180Token(thor.genesisID, process.argv[2] || 'OCE')
+const token = getVIP180Token(Network.MainNet, process.argv[2] || 'OCE')
 
 initConnection().then(async (conn) => {
     await conn.getRepository(AssetMovement).delete({type: AssetType[token.symbol]})

@@ -1,3 +1,5 @@
+import { Network } from './network'
+
 export interface TokenBasic {
     name: string
     address: string
@@ -49,14 +51,14 @@ test.set(oce.symbol, { ...oce, address: '0x9652aead889e8df7b5717ed984f147c132f85
 test.set(jur.symbol, { ...jur, address: '0x602b7a4309b3412d269c6cdddad962c0b94494d8' })
 test.set(yeet.symbol, { ...yeet, address: '0x32456c328f647f5b35757d38fe634868d9fe3808' })
 
-export const getVIP180Token = (net: string, symbol: string) => {
-    if (net === '0x00000000851caf3cfdb6e899cf5958bfb1ac3413d346d43539627e6be7ec1b4a') {
+export const getVIP180Token = (net: Network, symbol: string) => {
+    if (net === Network.MainNet) {
         if (main.has(symbol)) {
             return main.get(symbol)
         } else {
             throw new Error('unknown token ' + symbol)
         }
-    } else if (net === '0x000000000b2bce3c70bc649a02749e8687721b09ed2e15997f466536b20bb127') {
+    } else if (net === Network.TestNet) {
         if (test.has(symbol)) {
             return test.get(symbol)
         } else {

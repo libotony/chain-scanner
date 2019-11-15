@@ -1,7 +1,6 @@
 import { Thor } from '../thor-rest'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
-import { getVIP180Token } from '../const/tokens'
-import { $Master, TransferEvent, totalSupply, ZeroAddress, balanceOf } from '../const'
+import { $Master, TransferEvent, totalSupply, getVIP180Token} from '../const'
 import { displayID } from '../utils'
 
 const thor = new Thor(new SimpleNet('http://localhost:8669'))

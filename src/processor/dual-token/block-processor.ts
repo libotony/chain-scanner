@@ -6,8 +6,7 @@ import { displayID } from '../../utils'
 import { EntityManager } from 'typeorm'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { SnapType } from '../../explorer-db/types'
-import { getForkConfig } from '../../const/fork'
-import { ExtensionAddress } from '../../const'
+import { ExtensionAddress, getForkConfig } from '../../const'
 
 export interface SnapAccount {
     address: string

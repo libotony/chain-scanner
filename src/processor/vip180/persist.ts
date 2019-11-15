@@ -5,7 +5,7 @@ import { AssetMovement } from '../../explorer-db/entity/movement'
 import { AssetType } from '../../explorer-db/types'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
-import { TokenBasic } from '../../const/tokens'
+import { TokenBasic } from '../../const'
 import { hexToBuffer } from '../../explorer-db/utils'
 
 export type RecentSnapshot = Snapshot & { isTrunk: boolean }

@@ -2,10 +2,10 @@ import { initConnection } from '../explorer-db'
 import { VIP180Transfer } from '../processor/vip180'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { Thor } from '../thor-rest'
-import { getVIP180Token } from '../const/tokens'
+import { getVIP180Token, Network } from '../const'
 
 const thor = new Thor(new SimpleNet('http://localhost:8669'))
-const token = getVIP180Token(thor.genesisID, process.argv[2] || 'OCE')
+const token = getVIP180Token(Network.MainNet, process.argv[2] || 'OCE')
 
 const tokenTransfer = new VIP180Transfer(thor, token)
 let shutdown = false

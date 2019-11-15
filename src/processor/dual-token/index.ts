@@ -1,7 +1,7 @@
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
 import { blockIDtoNum } from '../../utils'
-import { $Master, EnergyAddress, TransferEvent, getPreAllocAccount } from '../../const'
+import { $Master, EnergyAddress, TransferEvent, getPreAllocAccount, Network } from '../../const'
 import { getConnection, EntityManager } from 'typeorm'
 import { BlockProcessor, SnapAccount } from './block-processor'
 import { AssetMovement } from '../../explorer-db/entity/movement'
@@ -139,7 +139,7 @@ export class DualToken extends Processor {
         await getConnection().transaction(async (manager) => {
             const proc = new BlockProcessor(block, this.thor, manager)
 
-            for (const addr of getPreAllocAccount(block.id)) {
+            for (const addr of getPreAllocAccount(block.id as Network)) {
                 await proc.touchAccount(addr)
             }
 
