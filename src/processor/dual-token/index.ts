@@ -152,6 +152,7 @@ export class DualToken extends Processor {
 
     private async revertSnapshot(snapshots: Snapshot[]) {
         const headNum = blockIDtoNum(snapshots[0].blockID) - 1
+        const headID = snapshots[0].blockID
         const toRevert = snapshots.map(x => x.blockID)
         await getConnection().transaction(async (manager) => {
             const accounts = new Map<string, Account>()
@@ -174,7 +175,7 @@ export class DualToken extends Processor {
             const toSave: Account[] = []
             for (const [_, acc] of accounts.entries()) {
                 toSave.push(acc)
-                console.log(`Account(${acc.address}) reverted to VET(${acc.balance}) Energy(${acc.balance}) BlockTime(${acc.blockTime}) at Block(${displayID(snapshots[0].blockID)})`)
+                console.log(`Account(${acc.address}) reverted to VET(${acc.balance}) Energy(${acc.balance}) BlockTime(${acc.blockTime}) at Block(${displayID(headID)})`)
             }
 
             await this.persist.saveAccounts(toSave, manager)
@@ -182,7 +183,7 @@ export class DualToken extends Processor {
             await removeSnapshot(toRevert, SnapType.DualToken, manager)
             await this.persist.saveHead(headNum, manager)
             console.log('-> revert to head:', headNum)
-       })
+        })
         this.head = headNum
     }
 
