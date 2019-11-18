@@ -203,7 +203,7 @@ export class VIP180Transfer extends Processor {
                     await this.persist.saveAccounts(toSave, manager)
                     await this.persist.removeMovements(toRevert, manager)
                     await removeSnapshot(toRevert, SnapType.VIP180Token + AssetType[this.token.symbol], manager)
-                    await this.persist.saveHead(headNum, manager)
+                    await this.saveHead(headNum, manager)
                     console.log('-> revert to head:', headNum)
                 })
 

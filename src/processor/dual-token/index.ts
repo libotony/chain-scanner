@@ -145,7 +145,7 @@ export class DualToken extends Processor {
 
             await proc.finalize()
             await this.persist.saveAccounts(proc.accounts(), manager)
-            await this.persist.saveHead(0, manager)
+            await this.saveHead(0, manager)
         })
         this.head = 0
     }
@@ -181,7 +181,7 @@ export class DualToken extends Processor {
             await this.persist.saveAccounts(toSave, manager)
             await this.persist.removeMovements(toRevert, manager)
             await removeSnapshot(toRevert, SnapType.DualToken, manager)
-            await this.persist.saveHead(headNum, manager)
+            await this.saveHead(headNum, manager)
             console.log('-> revert to head:', headNum)
         })
         this.head = headNum

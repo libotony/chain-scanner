@@ -158,7 +158,7 @@ export class MasterNode extends Processor {
                     }
 
                     await removeSnapshot(toRevert, SnapType.Authority, manager)
-                    await this.persist.saveHead(headNum, manager)
+                    await this.saveHead(headNum, manager)
                     console.log('-> revert to head:', headNum)
                 })
 
@@ -171,7 +171,6 @@ export class MasterNode extends Processor {
     }
 
     protected async processGenesis() {
-        console.log('processGenesis')
         const nodes: Authority[] = []
         let current = await this.first('0')
 
