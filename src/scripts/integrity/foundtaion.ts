@@ -20,7 +20,7 @@ const getBlock = async (id: string) => {
 }
 
 initConnection().then(async () => {
-    const head = await persist.getHead()
+    const head = (await persist.getHead())!
     const headNum = blockIDtoNum(head.value)
 
     const count = await getConnection().getRepository(Block).count({ number: MoreThan(headNum) })
@@ -28,7 +28,7 @@ initConnection().then(async () => {
         throw new Error('larger number block exist than head')
     }
     const data = await getBlock(head.value)
-    let current = data.block
+    let current = data.block!
 
     for (; ;) {
         const { block, txs, receipts } = await getBlock(current.parentID)

@@ -51,7 +51,7 @@ export class Persist {
 
         return manager
             .getRepository(TokenBalance)
-            .findOne({ address: addr, type: AssetType[this.token.symbol] })
+            .findOne({ address: addr, type: AssetType[this.token.symbol as keyof typeof AssetType] })
     }
 
     public insertMovements(movements: AssetMovement[], manager?: EntityManager) {
@@ -80,7 +80,7 @@ export class Persist {
             .delete()
             .from(AssetMovement)
             .where('blockID IN(:...ids)', { ids: ids.map(x => hexToBuffer(x)) })
-            .andWhere('type = :type', { type: AssetType[this.token.symbol] })
+            .andWhere('type = :type', { type: AssetType[this.token.symbol as keyof typeof AssetType] })
             .execute()
     }
 

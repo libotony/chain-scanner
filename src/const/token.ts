@@ -54,13 +54,13 @@ test.set(yeet.symbol, { ...yeet, address: '0x32456c328f647f5b35757d38fe634868d9f
 export const getVIP180Token = (net: Network, symbol: string) => {
     if (net === Network.MainNet) {
         if (main.has(symbol)) {
-            return main.get(symbol)
+            return main.get(symbol)!
         } else {
             throw new Error('unknown token ' + symbol)
         }
     } else if (net === Network.TestNet) {
         if (test.has(symbol)) {
-            return test.get(symbol)
+            return test.get(symbol)!
         } else {
             throw new Error('unknown token ' + symbol)
         }

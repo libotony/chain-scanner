@@ -37,7 +37,7 @@ export class DualToken extends Processor {
      * @return inserted column number
      */
     protected async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
-        const block = await getBlockByNumber(blockNum, manager)
+        const block = (await getBlockByNumber(blockNum, manager))!
         const receipts = await getBlockReceipts(block.id, manager)
 
         const proc = new BlockProcessor(block, this.thor, manager)
@@ -134,7 +134,7 @@ export class DualToken extends Processor {
     }
 
     protected async processGenesis() {
-        const block = await getBlockByNumber(0)
+        const block = (await getBlockByNumber(0))!
 
         await getConnection().transaction(async (manager) => {
             const proc = new BlockProcessor(block, this.thor, manager)
@@ -158,7 +158,7 @@ export class DualToken extends Processor {
             const accounts = new Map<string, Account>()
 
             for (; snapshots.length;) {
-                const snap = snapshots.pop()
+                const snap = snapshots.pop()!
                 for (const snapAcc of snap.data as SnapAccount[]) {
                     const acc = manager.create(Account, {
                         address: snapAcc.address,

@@ -46,7 +46,7 @@ export class Foundation {
             return
         }
 
-        let newHead: string = null
+        let newHead: string|null  = null
         const blocks = await this.persist.listRecentBlock(headNum)
         if (blocks.length) {
             await getConnection().transaction(async (manager) => {
@@ -323,7 +323,7 @@ export class Foundation {
                     }
                 }
             })
-            this.head = b.id
+            this.head = b!.id
         }
     }
 

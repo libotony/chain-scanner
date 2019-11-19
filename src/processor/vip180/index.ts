@@ -46,7 +46,7 @@ export class VIP180Transfer extends Processor {
             order: 'asc'
         })
         if (events.length) {
-            return events[0].meta.blockNumber
+            return events[0].meta!.blockNumber
         } else {
             throw new Error('Fatal: no $Master event found')
         }
@@ -56,7 +56,7 @@ export class VIP180Transfer extends Processor {
      * @return inserted column number
      */
     protected async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
-        const block = await getBlockByNumber(blockNum, manager)
+        const block = (await getBlockByNumber(blockNum, manager))!
         const receipts = await getBlockReceipts(block.id, manager)
 
         const movements: AssetMovement[] = []
@@ -65,7 +65,7 @@ export class VIP180Transfer extends Processor {
 
         const account = async (addr: string) => {
             if (acc.has(addr)) {
-                return acc.get(addr)
+                return acc.get(addr)!
             }
             const dbAcc = await this.persist.getAccount(addr, manager)
 
@@ -76,7 +76,7 @@ export class VIP180Transfer extends Processor {
             } else {
                 const newAcc = manager.create(TokenBalance, {
                     address: addr,
-                    type: AssetType[this.token.symbol],
+                    type: AssetType[this.token.symbol as keyof typeof AssetType],
                     balance: BigInt(0)
                 })
                 acc.set(addr, newAcc)
@@ -102,7 +102,7 @@ export class VIP180Transfer extends Processor {
                             amount: BigInt(decoded._value),
                             txID: r.txID,
                             blockID: block.id,
-                            type: AssetType[this.token.symbol],
+                            type: AssetType[this.token.symbol as keyof typeof AssetType],
                             moveIndex: {
                                 txIndex: r.txIndex,
                                 clauseIndex,
@@ -150,7 +150,7 @@ export class VIP180Transfer extends Processor {
 
             const snapshot = new Snapshot()
             snapshot.blockID = block.id
-            snapshot.type = SnapType.VIP180Token + AssetType[this.token.symbol]
+            snapshot.type = SnapType.VIP180Token + AssetType[this.token.symbol as keyof typeof AssetType]
             snapshot.data = x
             insertSnapshot(snapshot, manager)
         }
@@ -165,7 +165,10 @@ export class VIP180Transfer extends Processor {
             return
         }
 
-        const snapshots = await listRecentSnapshot(head, SnapType.VIP180Token + AssetType[this.token.symbol])
+        const snapshots = await listRecentSnapshot(
+            head,
+            SnapType.VIP180Token + AssetType[this.token.symbol as keyof typeof AssetType]
+        )
 
         if (snapshots.length) {
             for (; snapshots.length;) {
@@ -183,7 +186,7 @@ export class VIP180Transfer extends Processor {
                     const accounts = new Map<string, TokenBalance>()
 
                     for (; snapshots.length;) {
-                        const snap = snapshots.pop()
+                        const snap = snapshots.pop()!
                         for (const snapAcc of snap.data as SnapAccount[]) {
                             const acc = manager.create(TokenBalance, {
                                 address: snapAcc.address,
@@ -202,7 +205,11 @@ export class VIP180Transfer extends Processor {
 
                     await this.persist.saveAccounts(toSave, manager)
                     await this.persist.removeMovements(toRevert, manager)
-                    await removeSnapshot(toRevert, SnapType.VIP180Token + AssetType[this.token.symbol], manager)
+                    await removeSnapshot(
+                        toRevert,
+                        SnapType.VIP180Token + AssetType[this.token.symbol as keyof typeof AssetType],
+                        manager
+                    )
                     await this.saveHead(headNum, manager)
                     console.log('-> revert to head:', headNum)
                 })
@@ -212,7 +219,7 @@ export class VIP180Transfer extends Processor {
         }
 
         head = await this.getHead()
-        await clearSnapShot(head, SnapType.VIP180Token + AssetType[this.token.symbol])
+        await clearSnapShot(head, SnapType.VIP180Token + AssetType[this.token.symbol as keyof typeof AssetType])
     }
 
     protected async processGenesis() {
@@ -224,16 +231,16 @@ export class VIP180Transfer extends Processor {
                         balances.push(manager.create(TokenBalance, {
                             address: addr,
                             balance: BigInt(this.token.genesis[addr]),
-                            type: AssetType[this.token.symbol]
+                            type: AssetType[this.token.symbol as keyof typeof AssetType]
                         }))
                     }
                 }
                 if (balances.length) {
                     await this.persist.saveAccounts(balances, manager)
                 }
-                await this.saveHead(this.birthNumber - 1)
+                await this.saveHead(this.birthNumber! - 1)
             })
-            this.head = this.birthNumber - 1
+            this.head = this.birthNumber! - 1
         }
     }
 

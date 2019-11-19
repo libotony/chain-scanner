@@ -35,7 +35,7 @@ switch (process.argv[2]) {
         printUsage('invalid network')
 }
 
-const thor = new Thor(new SimpleNet('http://localhost:8669'), net)
+const thor = new Thor(new SimpleNet('http://localhost:8669'), net!)
 
 let task: Foundation | Processor
 switch (process.argv[3]) {
@@ -50,7 +50,7 @@ switch (process.argv[3]) {
             printUsage('token symbol needed')
         }
         try {
-            const token = getVIP180Token(net, process.argv[4])
+            const token = getVIP180Token(net!, process.argv[4])
             task =  new VIP180Transfer(thor, token)
         } catch (e) {
             printUsage(e.message)

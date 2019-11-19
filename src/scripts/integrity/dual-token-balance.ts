@@ -10,7 +10,7 @@ const persist = new Persist()
 
 initConnection().then(async (conn) => {
     const thor = new Thor(new SimpleNet('http://localhost:8669'))
-    const head = await persist.getHead()
+    const head = (await persist.getHead())!
 
     const block = await thor.getBlock(head)
 

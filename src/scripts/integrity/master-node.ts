@@ -23,7 +23,7 @@ const get = async (master: string, revision: string) => {
 }
 
 initConnection().then(async (conn) => {
-    const head = await persist.getHead()
+    const head = (await persist.getHead())!
     let count = 0
 
     const nodes = await getConnection()
@@ -41,6 +41,7 @@ initConnection().then(async (conn) => {
         const signed = await getConnection()
             .getRepository(Block)
             .count({ signer: node.address, isTrunk: true, number: LessThanOrEqual(head) })
+
         if (node.signed !== signed) {
             throw new Error(`Fatal: Master(${node.address} signed block count mismatch, want ${node.signed} got ${signed}`)
         }

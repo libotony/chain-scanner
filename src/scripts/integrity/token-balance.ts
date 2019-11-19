@@ -12,7 +12,7 @@ const token = getVIP180Token(thor.genesisID, process.argv[2] || 'OCE')
 const persist = new Persist(token)
 
 initConnection().then(async (conn) => {
-    const head = await persist.getHead()
+    const head = (await persist.getHead())!
     const block = await thor.getBlock(head)
 
     let hasMore = true
@@ -23,7 +23,7 @@ initConnection().then(async (conn) => {
         const accs = await getConnection()
             .getRepository(TokenBalance)
             .createQueryBuilder()
-            .where({type: AssetType[token.symbol]})
+            .where({type: AssetType[token.symbol as keyof typeof AssetType]})
             .offset(offset)
             .limit(step)
             .getMany()

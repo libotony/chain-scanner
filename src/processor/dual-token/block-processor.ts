@@ -134,7 +134,7 @@ export class BlockProcessor {
 
     private async account(addr: string) {
         if (this.acc.has(addr)) {
-            return this.acc.get(addr)
+            return this.acc.get(addr)!
         }
 
         const acc = await this.manager.getRepository(Account).findOne({ address: addr })

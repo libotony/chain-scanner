@@ -40,7 +40,7 @@ export class Thor {
     }
 
     public explain(arg: Connex.Driver.ExplainArg, revision: string) {
-        return this.httpPost('accounts/*', arg, { revision })
+        return this.httpPost<Connex.Thor.VMOutput[]>('accounts/*', arg, { revision })
     }
 
     public httpPost<T>(path: string, body: object,  query?: Record<string, string>): Promise<T> {

@@ -14,8 +14,8 @@ console.log(token);
         criteriaSet: [{address: token.address, topic0: $Master.signature}],
         order: 'asc'
     })
-    console.log('bornAt ', events[0].meta.blockNumber)
-    const birthNumber = events[0].meta.blockNumber
+    console.log('bornAt ', events[0].meta!.blockNumber)
+    const birthNumber = events[0].meta!.blockNumber
 
     const ret = await thor.explain({
         clauses: [{
@@ -35,7 +35,7 @@ console.log(token);
 
     const formated = events.map(x => {
         return { decoded: TransferEvent.decode(x.data, x.topics), meta: x.meta  }
-    }).map(x => `Block(${displayID(x.meta.blockID)}): ${x.decoded._from} -> ${x.decoded._to}: ${x.decoded._value}`)
+    }).map(x => `Block(${displayID(x.meta!.blockID)}): ${x.decoded._from} -> ${x.decoded._to}: ${x.decoded._value}`)
 
     console.log('first 5 transfer:')
     console.log(formated.join('\n'))

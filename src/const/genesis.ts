@@ -135,4 +135,4 @@ const mainnet = [
     '0x28518e904c0bbed782b39fb7dd3dc24b99a65295',
 ]
 
-const testnet = []
+const testnet: string[] = []

@@ -91,8 +91,8 @@ export class GasAdjustmentWatcher extends Processor {
      * @return inserted column number
      */
     protected async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
-        const block = await getBlockByNumber(blockNum, manager)
-        const parentBlock = await getBlockByID(block.parentID, manager)
+        const block = (await getBlockByNumber(blockNum, manager))!
+        const parentBlock = (await getBlockByID(block.parentID, manager))!
 
         if (block.gasLimit !== parentBlock.gasLimit) {
             const prevBlock = await persist.getLastBlockBySignerAndBlockNumber(block.number, block.signer, manager)

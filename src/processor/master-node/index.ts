@@ -54,7 +54,7 @@ export class MasterNode extends Processor {
      * @return inserted column number
      */
     protected async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
-        const block = await getBlockByNumber(blockNum, manager)
+        const block = (await getBlockByNumber(blockNum, manager))!
         const receipts = await getBlockReceipts(block.id, manager)
         const actions = []
         for (const r of receipts) {
@@ -89,7 +89,7 @@ export class MasterNode extends Processor {
             }
         }
 
-        const authNode = await this.persist.getAuthority(block.signer, manager)
+        const authNode = (await this.persist.getAuthority(block.signer, manager))!
         const snapNode = {
             address: authNode.address,
             reward: authNode.reward.toString(10),
@@ -138,11 +138,11 @@ export class MasterNode extends Processor {
                 await getConnection().transaction(async (manager) => {
 
                     for (; snapshots.length;) {
-                        const snap = snapshots.pop()
+                        const snap = snapshots.pop()!
                         const snapData = snap.data as SnapAuthority
 
                         if (snapData.node) {
-                            const auth = await this.persist.getAuthority(snapData.node.address, manager)
+                            const auth = (await this.persist.getAuthority(snapData.node.address, manager))!
                             auth.reward = BigInt(snapData.node.reward)
                             auth.signed = snapData.node.signed
                             await this.persist.saveAuthority(auth, manager)

@@ -24,7 +24,7 @@ export abstract class Processor {
         })
     }
 
-    protected abstract loadHead(manager?: EntityManager): Promise<number>
+    protected abstract loadHead(manager?: EntityManager): Promise<number|null>
     protected abstract saveHead(head: number,  manager?: EntityManager): Promise<void>
     protected abstract bornAt(): Promise<number>
     protected abstract processBlock(
@@ -41,7 +41,7 @@ export abstract class Processor {
             const head = await this.loadHead()
 
             if (head === null) {
-                return this.birthNumber - 1
+                return this.birthNumber! - 1
             } else {
                 return head
             }
