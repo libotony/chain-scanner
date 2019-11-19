@@ -47,6 +47,7 @@ const persist = {
             .createQueryBuilder('block')
             .where({ number: LessThan(num), signer })
             .orderBy('number', 'DESC')
+            .limit(1)
             .getOne()
     },
     insertAdjustment: (adj: GasAdjustment, manager?: EntityManager) => {
