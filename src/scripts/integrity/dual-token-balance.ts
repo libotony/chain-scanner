@@ -1,5 +1,4 @@
-import { initConnection } from '../../explorer-db'
-import { getConnection } from 'typeorm'
+import { getConnection, createConnection } from 'typeorm'
 import { Persist } from '../../processor/dual-token/persist'
 import { Thor } from '../../thor-rest'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
@@ -8,7 +7,7 @@ import { PrototypeAddress, methodMaster, ZeroAddress } from '../../const'
 
 const persist = new Persist()
 
-initConnection().then(async (conn) => {
+createConnection().then(async () => {
     const thor = new Thor(new SimpleNet('http://localhost:8669'))
     const head = (await persist.getHead())!
 
@@ -78,7 +77,7 @@ initConnection().then(async (conn) => {
 
 }).then(() => {
     process.exit(0)
-}).catch(e => {
+}).catch((e: Error) => {
     console.log('Integrity check: ')
     console.log(e)
     process.exit(-1)

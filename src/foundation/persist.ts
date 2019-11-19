@@ -1,6 +1,5 @@
-import { Thor } from '../thor-rest'
 import { Config } from '../explorer-db/entity/config'
-import { EntityManager, getConnection, In } from 'typeorm'
+import { EntityManager, getConnection, In, MoreThan } from 'typeorm'
 import { Block } from '../explorer-db/entity/block'
 import { REVERSIBLE_WINDOW } from '../utils'
 import { Transaction } from '../explorer-db/entity/transaction'
@@ -58,10 +57,10 @@ export class Persist {
 
         return manager
             .getRepository(Block)
-            .createQueryBuilder('block')
-            .where('id > :blockID', { blockID })
-            .orderBy('block.id', 'ASC')
-            .getMany()
+            .find({
+                where: { id: MoreThan(blockID) },
+                order: {id: 'ASC'}
+            })
     }
 
     public insertBlock(block: Block, manager?: EntityManager) {
@@ -86,81 +85,5 @@ export class Persist {
         }
 
         return manager.insert(Receipt, receipts)
-    }
-
-    /**
-     * @return inserted column number
-     */
-    public async insertBlock2(
-        b: Required<Connex.Thor.Block>,
-        thor: Thor,
-        manager?: EntityManager,
-        trunk = true
-    ): Promise<number> {
-        if (!manager) {
-            manager = getConnection().manager
-        }
-
-        const head = b.id
-        let reward = BigInt(0)
-        let score = 0
-
-        if (b.number > 0) {
-            const prevBlock = await thor.getBlock(b.parentID)
-            score = b.totalScore - prevBlock.totalScore
-        }
-
-        const getBlockDetail = async (b: Required<Connex.Thor.Block>) => {
-            const txs: Connex.Thor.Transaction[] = []
-            const receipts: Connex.Thor.Receipt[] = []
-
-            try {
-                for (const txID of b.transactions) {
-                    const [t, r] = await Promise.all([thor.getTransaction(txID, head), thor.getReceipt(txID, head)])
-                    txs.push(t)
-                    receipts.push(r)
-                }
-            } catch (e) {
-                throw new Error('Failed to get block detail')
-            }
-            return {txs, receipts}
-        }
-
-        const txs: Transaction[] = []
-        const receipts: Receipt[] = []
-
-        const detail = await getBlockDetail(b)
-        for (const [index, _] of b.transactions.entries()) {
-            const t = detail.txs[index]
-            const r = detail.receipts[index]
-
-            const txE = manager.create(Transaction, {
-                ...t,
-                id: undefined,
-                txID: t.id,
-                txIndex: index,
-                blockID: b.id
-            })
-            txs.push(txE)
-
-            receipts.push(manager.create(Receipt, {
-                ...r,
-                txID: t.id,
-                txIndex: index,
-                blockID: b.id,
-                paid: BigInt(r.paid),
-                reward: BigInt(r.reward)
-            }))
-
-            reward += BigInt(r.reward)
-        }
-        const block = manager.create(Block, { ...b, isTrunk: trunk, score, reward })
-
-        await manager.insert(Block, block)
-        if (txs.length) {
-            await manager.insert(Transaction, txs)
-            await manager.insert(Receipt, receipts)
-        }
-        return 1 + txs.length + receipts.length
     }
 }

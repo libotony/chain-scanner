@@ -1,5 +1,4 @@
-import { initConnection } from '../../explorer-db'
-import { getConnection, LessThanOrEqual } from 'typeorm'
+import { LessThanOrEqual, createConnection } from 'typeorm'
 import { Thor } from '../../thor-rest'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { Persist } from '../../processor/master-node/persist'
@@ -22,11 +21,11 @@ const get = async (master: string, revision: string) => {
     return { master, listed: getRet.listed, endorsor: getRet.endorsor, identity: getRet.identity }
 }
 
-initConnection().then(async (conn) => {
+createConnection().then(async (conn) => {
     const head = (await persist.getHead())!
     let count = 0
 
-    const nodes = await getConnection()
+    const nodes = await conn
         .getRepository(Authority)
         .find()
 
@@ -38,7 +37,7 @@ initConnection().then(async (conn) => {
         if (chain.listed) {
             count++
         }
-        const signed = await getConnection()
+        const signed = await conn
             .getRepository(Block)
             .count({ signer: node.address, isTrunk: true, number: LessThanOrEqual(head) })
 

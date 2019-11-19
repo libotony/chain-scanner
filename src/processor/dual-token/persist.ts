@@ -1,8 +1,7 @@
-import { getConnection, EntityManager, LessThan } from 'typeorm'
+import { getConnection, EntityManager, In } from 'typeorm'
 import { Config } from '../../explorer-db/entity/config'
 import { AssetMovement } from '../../explorer-db/entity/movement'
 import { Account } from '../../explorer-db/entity/account'
-import { hexToBuffer} from '../../explorer-db/utils'
 import { AssetType } from '../../explorer-db/types'
 
 const HEAD_KEY = 'dual-token-head'
@@ -57,13 +56,12 @@ export class Persist {
             manager = getConnection().manager
         }
 
-        return  manager
-            .createQueryBuilder()
-            .delete()
-            .from(AssetMovement)
-            .where('blockID IN(:...ids)', { ids: ids.map(x => hexToBuffer(x)) })
-            .andWhere('type IN (:...types)', {types: [AssetType.VET, AssetType.Energy]})
-            .execute()
+        return manager
+            .getRepository(AssetMovement)
+            .delete({
+                blockID: In(ids),
+                type: In( [AssetType.VET, AssetType.Energy])
+            })
     }
 
 }

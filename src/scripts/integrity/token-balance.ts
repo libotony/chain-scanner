@@ -1,5 +1,4 @@
-import { initConnection } from '../../explorer-db'
-import { getConnection } from 'typeorm'
+import { createConnection } from 'typeorm'
 import { Thor } from '../../thor-rest'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { balanceOf, getVIP180Token } from '../../const'
@@ -11,7 +10,7 @@ const thor = new Thor(new SimpleNet('http://localhost:8669'))
 const token = getVIP180Token(thor.genesisID, process.argv[2] || 'OCE')
 const persist = new Persist(token)
 
-initConnection().then(async (conn) => {
+createConnection().then(async (conn) => {
     const head = (await persist.getHead())!
     const block = await thor.getBlock(head)
 
@@ -20,7 +19,7 @@ initConnection().then(async (conn) => {
     let offset = 0
     for (; hasMore === true;) {
 
-        const accs = await getConnection()
+        const accs = await conn
             .getRepository(TokenBalance)
             .createQueryBuilder()
             .where({type: AssetType[token.symbol as keyof typeof AssetType]})

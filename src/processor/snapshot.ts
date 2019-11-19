@@ -1,9 +1,8 @@
-import { EntityManager, getConnection, LessThan } from 'typeorm'
+import { EntityManager, getConnection, LessThan, In } from 'typeorm'
 import { Block } from '../explorer-db/entity/block'
 import { REVERSIBLE_WINDOW, bufferToHex } from '../utils'
 import { Snapshot } from '../explorer-db/entity/snapshot'
 import { SnapType } from '../explorer-db/types'
-import { hexToBuffer } from '../explorer-db/utils'
 
 export type RecentSnapshot = Snapshot & {isTrunk: boolean}
 
@@ -55,12 +54,11 @@ export const removeSnapshot = (blockIDs: string[], type: SnapType, manager ?: En
     }
 
     return manager
-        .createQueryBuilder()
-        .delete()
-        .from(Snapshot)
-        .where('blockID IN(:...ids)', { ids: blockIDs.map(x => hexToBuffer(x)) })
-        .andWhere('type=:type', { type })
-        .execute()
+        .getRepository(Snapshot)
+        .delete({
+            blockID: In(blockIDs),
+            type
+        })
 }
 
 export const  clearSnapShot = (blockNum: number, type: SnapType, manager ?: EntityManager) => {

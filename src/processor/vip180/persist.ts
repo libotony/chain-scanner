@@ -1,12 +1,11 @@
 
-import { EntityManager, getConnection } from 'typeorm'
+import { EntityManager, getConnection, In } from 'typeorm'
 import { Config } from '../../explorer-db/entity/config'
 import { AssetMovement } from '../../explorer-db/entity/movement'
 import { AssetType } from '../../explorer-db/types'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { TokenBasic } from '../../const'
-import { hexToBuffer } from '../../explorer-db/utils'
 
 export type RecentSnapshot = Snapshot & { isTrunk: boolean }
 
@@ -76,12 +75,11 @@ export class Persist {
         }
 
         return manager
-            .createQueryBuilder()
-            .delete()
-            .from(AssetMovement)
-            .where('blockID IN(:...ids)', { ids: ids.map(x => hexToBuffer(x)) })
-            .andWhere('type = :type', { type: AssetType[this.token.symbol as keyof typeof AssetType] })
-            .execute()
+            .getRepository(AssetMovement)
+            .delete({
+                blockID: In(ids),
+                type: AssetType[this.token.symbol as keyof typeof AssetType]
+            })
     }
 
 }

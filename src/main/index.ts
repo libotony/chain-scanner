@@ -4,10 +4,10 @@ import { Processor } from '../processor/processor'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { Thor } from '../thor-rest'
 import { DualToken } from '../processor/dual-token'
-import { initConnection } from '../explorer-db'
 import { VIP180Transfer } from '../processor/vip180'
 import { MasterNode } from '../processor/master-node'
 import { GasAdjustmentWatcher } from '../processor/gas-adjust'
+import { createConnection } from 'typeorm'
 
 const printUsage = (msg = '') => {
     process.stderr.write(`${msg ? msg + '\n\n' : ''}Usage: node index.js [Network][Task][...Args]
@@ -67,9 +67,9 @@ switch (process.argv[3]) {
 }
 let shutdown =  false
 
-initConnection().then(async () => {
+createConnection().then(async () => {
     task.start()
-}).catch(e => {
+}).catch((e: Error) => {
     process.stderr.write(`Start task(${process.argv[3]}) at Net(${process.argv[2]}): ` + (e as Error).stack + '\r\n')
 })
 

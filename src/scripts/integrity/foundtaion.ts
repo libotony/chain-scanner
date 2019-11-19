@@ -1,6 +1,5 @@
-import { initConnection } from '../../explorer-db'
 import { Persist } from '../../foundation/persist'
-import { getConnection, MoreThan } from 'typeorm'
+import { getConnection, MoreThan, createConnection } from 'typeorm'
 import { Block } from '../../explorer-db/entity/block'
 import { displayID, REVERSIBLE_WINDOW, blockIDtoNum } from '../../utils'
 import { getBlockTransactions, getBlockReceipts } from '../../explorer-db/service/block'
@@ -19,7 +18,7 @@ const getBlock = async (id: string) => {
     return {block, txs, receipts}
 }
 
-initConnection().then(async () => {
+createConnection().then(async () => {
     const head = (await persist.getHead())!
     const headNum = blockIDtoNum(head.value)
 
@@ -62,7 +61,7 @@ initConnection().then(async () => {
     }
 
     process.exit(0)
-}). catch (e => {
+}). catch ((e: Error) => {
     console.log('Integrity check: ')
     console.log(e)
     process.exit(1)
