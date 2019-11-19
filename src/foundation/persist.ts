@@ -53,7 +53,7 @@ export class Persist {
         }
 
         // get [head-REVERSIBLE_WINDOW, head]
-        const blockID = Buffer.from(BigInt(head - REVERSIBLE_WINDOW).toString(16).padStart(8, '0').padEnd(64, '0'), 'hex')
+        const blockID = '0x' + BigInt(head - REVERSIBLE_WINDOW).toString(16).padStart(8, '0').padEnd(64, '0')
 
         return manager
             .getRepository(Block)
