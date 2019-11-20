@@ -20,10 +20,10 @@ createConnection().then(async () => {
 
         const accs = await getConnection()
             .getRepository(Account)
-            .createQueryBuilder('account')
-            .offset(offset)
-            .limit(step)
-            .getMany()
+            .find({
+                skip: offset,
+                take: step
+            })
 
         offset += step
 
@@ -71,6 +71,7 @@ createConnection().then(async () => {
         } else {
             hasMore = false
         }
+        console.log('checked ', offset)
 
     }
     console.log('all done!')

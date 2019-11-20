@@ -44,11 +44,10 @@ const persist = {
 
         return manager
             .getRepository(Block)
-            .createQueryBuilder('block')
-            .where({ number: LessThan(num), signer })
-            .orderBy('number', 'DESC')
-            .limit(1)
-            .getOne()
+            .findOne({
+                where: { number: LessThan(num), signer },
+                order: { number: 'DESC' }
+            })
     },
     insertAdjustment: (adj: GasAdjustment, manager?: EntityManager) => {
         if (!manager) {

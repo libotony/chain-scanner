@@ -21,11 +21,11 @@ createConnection().then(async (conn) => {
 
         const accs = await conn
             .getRepository(TokenBalance)
-            .createQueryBuilder()
-            .where({type: AssetType[token.symbol as keyof typeof AssetType]})
-            .offset(offset)
-            .limit(step)
-            .getMany()
+            .find({
+                where: { type: AssetType[token.symbol as keyof typeof AssetType] },
+                skip: offset,
+                take: step
+            })
 
         offset += step
 
