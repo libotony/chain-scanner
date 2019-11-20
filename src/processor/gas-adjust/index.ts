@@ -130,7 +130,7 @@ export class GasAdjustmentWatcher extends Processor {
 
         if (snapshots.length) {
             for (; snapshots.length;) {
-                if (snapshots[0].isTrunk === false) {
+                if (snapshots[0].block.isTrunk === false) {
                     break
                 }
                 snapshots.shift()

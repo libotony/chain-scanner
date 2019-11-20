@@ -1,10 +1,7 @@
-import { EntityManager, getConnection, LessThan, In } from 'typeorm'
-import { Block } from '../explorer-db/entity/block'
-import { REVERSIBLE_WINDOW, bufferToHex } from '../utils'
+import { EntityManager, getConnection, LessThan, In, MoreThan } from 'typeorm'
+import { REVERSIBLE_WINDOW } from '../utils'
 import { Snapshot } from '../explorer-db/entity/snapshot'
 import { SnapType } from '../explorer-db/types'
-
-export type RecentSnapshot = Snapshot & {isTrunk: boolean}
 
 export const insertSnapshot = (snap: Snapshot, manager?: EntityManager) => {
     if (!manager) {
@@ -18,34 +15,24 @@ export const listRecentSnapshot = async (
     head: number,
     type: SnapType,
     manager?: EntityManager
-): Promise<RecentSnapshot[]> => {
+) => {
     if (!manager) {
         manager = getConnection().manager
     }
 
-    const ret: RecentSnapshot[] = []
-
     // get [head-REVERSIBLE_WINDOW, head]
-    const blockID = Buffer.from(BigInt(head - REVERSIBLE_WINDOW).toString(16).padStart(8, '0').padEnd(64, '0'), 'hex')
-    const result = await manager
+    const blockID = '0x' + BigInt(head - REVERSIBLE_WINDOW).toString(16).padStart(8, '0').padEnd(64, '0')
+    return manager
         .getRepository(Snapshot)
-        .createQueryBuilder('snap')
-        .leftJoinAndSelect(Block, 'block', 'snap.blockID = block.id')
-        .where('snap.type = :type', { type })
-        .andWhere('snap.blockID > :blockID', { blockID })
-        .getRawMany()
-
-    for (const r of result) {
-        ret.push({
-            id: r.snap_id,
-            type: r.snap_type,
-            blockID: bufferToHex(r.snap_blockID),
-            data: JSON.parse(r.snap_data),
-            isTrunk: !!r.block_isTrunk
+        .find({
+            where: {
+                type,
+                block: {
+                    id: MoreThan(blockID)
+                }
+            },
+            relations: ['block']
         })
-    }
-
-    return ret
 }
 
 export const removeSnapshot = (blockIDs: string[], type: SnapType, manager ?: EntityManager) => {
