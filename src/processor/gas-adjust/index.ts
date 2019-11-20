@@ -64,7 +64,7 @@ const persist = {
 
         return manager
             .getRepository(GasAdjustment)
-            .delete({ blockID: In(ids) })
+            .delete({ blockID: In([...ids]) })
     }
 }
 

@@ -56,7 +56,7 @@ export const removeSnapshot = (blockIDs: string[], type: SnapType, manager ?: En
     return manager
         .getRepository(Snapshot)
         .delete({
-            blockID: In(blockIDs),
+            blockID: In([...blockIDs]),
             type
         })
 }

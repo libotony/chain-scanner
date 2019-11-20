@@ -34,7 +34,7 @@ export class Persist {
 
         return manager
             .getRepository(Block)
-            .update({ id: In(ids) }, { isTrunk: false })
+            .update({ id: In([...ids]) }, { isTrunk: false })
     }
 
     public toTrunk(ids: string[], manager?: EntityManager) {
@@ -44,7 +44,7 @@ export class Persist {
 
         return manager
             .getRepository(Block)
-            .update({ id: In(ids) }, { isTrunk: true })
+            .update({ id: In([...ids]) }, { isTrunk: true })
     }
 
     public listRecentBlock(head: number, manager?: EntityManager) {

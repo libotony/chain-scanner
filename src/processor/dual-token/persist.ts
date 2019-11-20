@@ -59,7 +59,7 @@ export class Persist {
         return manager
             .getRepository(AssetMovement)
             .delete({
-                blockID: In(ids),
+                blockID: In([...ids]),
                 type: In( [AssetType.VET, AssetType.Energy])
             })
     }
