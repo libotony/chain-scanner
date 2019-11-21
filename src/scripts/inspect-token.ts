@@ -1,6 +1,6 @@
 import { Thor } from '../thor-rest'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
-import { $Master, TransferEvent, totalSupply, getVIP180Token} from '../const'
+import { prototype, TransferEvent, totalSupply, getVIP180Token} from '../const'
 import { displayID } from '../utils'
 
 const thor = new Thor(new SimpleNet('http://localhost:8669'))
@@ -11,7 +11,7 @@ console.log(token);
     let events = await thor.filterEventLogs({
         range: {unit: 'block', from: 0, to: Number.MAX_SAFE_INTEGER },
         options: {offset: 0, limit: 1},
-        criteriaSet: [{address: token.address, topic0: $Master.signature}],
+        criteriaSet: [{address: token.address, topic0: prototype.$Master.signature}],
         order: 'asc'
     })
     console.log('bornAt ', events[0].meta!.blockNumber)

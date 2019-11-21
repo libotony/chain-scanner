@@ -3,9 +3,15 @@ import { AssetMovement } from '../explorer-db/entity/movement'
 import { Config } from '../explorer-db/entity/config'
 import { Snapshot } from '../explorer-db/entity/snapshot'
 import { SnapType, AssetType } from '../explorer-db/types'
-import { In, createConnection } from 'typeorm'
+import { In, createConnection, getConnectionOptions } from 'typeorm'
 
-createConnection().then(async (conn) => {
+Promise.resolve().then(async () => {
+    const opt = await getConnectionOptions()
+    const conn = await createConnection(Object.assign({}, opt, {
+      logging: true,
+      logger: undefined
+   }))
+
     await conn.getRepository(Account).clear()
     await conn.getRepository(AssetMovement).delete({type: In([AssetType.VET, AssetType.Energy])})
     await conn.getRepository(Snapshot).delete({type: SnapType.DualToken})

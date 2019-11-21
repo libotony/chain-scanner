@@ -3,7 +3,7 @@ import { AssetMovement } from '../../explorer-db/entity/movement'
 import { displayID, blockIDtoNum } from '../../utils'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
-import { $Master, TransferEvent, ZeroAddress, TokenConfig, TokenBasic  } from '../../const'
+import { TransferEvent, ZeroAddress, TokenConfig, TokenBasic, prototype  } from '../../const'
 import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../snapshot'
 import { EntityManager, getConnection } from 'typeorm'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
@@ -42,7 +42,7 @@ export class VIP180Transfer extends Processor {
         const events = await this.thor.filterEventLogs({
             range: {unit: 'block', from: 0, to: Number.MAX_SAFE_INTEGER },
             options: {offset: 0, limit: 1},
-            criteriaSet: [{address: this.token.address, topic0: $Master.signature}],
+            criteriaSet: [{address: this.token.address, topic0: prototype.$Master.signature}],
             order: 'asc'
         })
         if (events.length) {

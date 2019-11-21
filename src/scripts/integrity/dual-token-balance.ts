@@ -3,7 +3,7 @@ import { Persist } from '../../processor/dual-token/persist'
 import { Thor } from '../../thor-rest'
 import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { Account } from '../../explorer-db/entity/account'
-import { PrototypeAddress, methodMaster, ZeroAddress } from '../../const'
+import { PrototypeAddress, ZeroAddress, prototype } from '../../const'
 
 const persist = new Persist()
 
@@ -31,21 +31,46 @@ createConnection().then(async () => {
             for (const acc of accs) {
                 let chainAcc: Connex.Thor.Account
                 let chainCode: Connex.Thor.Code
-                let chainMaster: string|null = null
+                let chainMaster: string | null = null
+                let chainSponsor: string | null = null
                 try {
                     chainAcc = await thor.getAccount(acc.address, head.toString())
                     chainCode = await thor.getCode(acc.address, head.toString())
-                    const ret = await thor.explain({
+                    let ret = await thor.explain({
                         clauses: [{
                             to: PrototypeAddress,
                             value: '0x0',
-                            data: methodMaster.encode(acc.address)
+                            data: prototype.master.encode(acc.address)
                         }]
                     }, head.toString())
-                    const decoded = methodMaster.decode(ret[0].data)
+                    let decoded = prototype.master.decode(ret[0].data)
                     if (decoded['0'] !== ZeroAddress) {
                         chainMaster = decoded['0']
                     }
+
+                    ret = await thor.explain({
+                        clauses: [{
+                            to: PrototypeAddress,
+                            value: '0x0',
+                            data: prototype.currentSponsor.encode(acc.address)
+                        }]
+                    }, head.toString())
+                    decoded = prototype.currentSponsor.decode(ret[0].data)
+                    const sponsor = decoded['0']
+                    if (sponsor !== ZeroAddress) {
+                        ret = await thor.explain({
+                            clauses: [{
+                                to: PrototypeAddress,
+                                value: '0x0',
+                                data: prototype.isSponsor.encode(acc.address, sponsor)
+                            }]
+                        }, head.toString())
+                        decoded = prototype.isSponsor.decode(ret[0].data)
+                        if (decoded['0'] === true) {
+                            chainSponsor = sponsor
+                        }
+                    }
+
                 } catch {
                     continue
                 }
@@ -64,9 +89,13 @@ createConnection().then(async () => {
                 if (acc.master !== chainMaster) {
                     throw new Error(`Fatal: master of Account(${acc.address}) mismatch,chain:${chainMaster} db:${acc.master}`)
                 }
+                if (acc.sponsor !== chainSponsor) {
+                    throw new Error(`Fatal: sponsor of Account(${acc.address}) mismatch,chain:${chainSponsor} db:${acc.sponsor}`)
+                }
                 if (chainAcc.hasCode === true && acc.code !== chainCode.code) {
                     throw new Error(`Fatal: Account(${acc.address}) code mismatch`)
                 }
+
             }
         } else {
             hasMore = false

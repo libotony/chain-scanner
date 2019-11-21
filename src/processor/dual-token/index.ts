@@ -1,7 +1,7 @@
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
 import { blockIDtoNum, displayID } from '../../utils'
-import { $Master, EnergyAddress, TransferEvent, getPreAllocAccount, Network } from '../../const'
+import { EnergyAddress, TransferEvent, getPreAllocAccount, Network, prototype } from '../../const'
 import { getConnection, EntityManager } from 'typeorm'
 import { BlockProcessor, SnapAccount } from './block-processor'
 import { AssetMovement } from '../../explorer-db/entity/movement'
@@ -61,9 +61,16 @@ export class DualToken extends Processor {
                     await proc.transferVeChain(transfer)
                 }
                 for (const [logIndex, e] of o.events.entries()) {
-                    if (e.topics[0] === $Master.signature) {
-                        const decoded = $Master.decode(e.data, e.topics)
+                    if (e.topics[0] === prototype.$Master.signature) {
+                        const decoded = prototype.$Master.decode(e.data, e.topics)
                         await proc.master(e.address, decoded.newMaster)
+                    } else if (e.topics[0] === prototype.$Sponsor.signature) {
+                        const decoded = prototype.$Sponsor.decode(e.data, e.topics)
+                        if (decoded.action === prototype.selected) {
+                            await proc.sponsorSelected(e.address, decoded.sponsor)
+                        } else if (decoded.action === prototype.unsponsored) {
+                            await proc.sponsorUnSponsored(e.address, decoded.sponsor)
+                        }
                     } else if (e.address === EnergyAddress && e.topics[0] === TransferEvent.signature) {
                         const decoded = TransferEvent.decode(e.data, e.topics)
                         const transfer = manager.create(AssetMovement, {

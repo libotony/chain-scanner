@@ -279,7 +279,7 @@ export class Foundation {
 
             reward += BigInt(r.reward)
         }
-        const block = manager.create(Block, { ...b, isTrunk: trunk, score, reward })
+        const block = manager.create(Block, { ...b, isTrunk: trunk, score, reward, txCount: b.transactions.length })
 
         await this.persist.insertBlock(block, manager)
         if (txs.length) {

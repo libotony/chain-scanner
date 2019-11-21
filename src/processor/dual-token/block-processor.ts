@@ -13,8 +13,9 @@ export interface SnapAccount {
     balance: string
     energy: string
     blockTime: number
-    code: string | null
+    code: string|null
     master: string|null
+    sponsor: string|null
 }
 
 export class BlockProcessor {
@@ -42,6 +43,22 @@ export class BlockProcessor {
 
         acc.master = master
         this.code.add(addr)
+        return acc
+    }
+
+    public async sponsorSelected(addr: string, sponsor: string) {
+        const acc = await this.account(addr)
+
+        acc.sponsor = sponsor
+        return acc
+    }
+
+    public async sponsorUnSponsored(addr: string, sponsor: string) {
+        const acc = await this.account(addr)
+
+        if (acc.sponsor === sponsor) {
+            acc.sponsor = null
+        }
         return acc
     }
 
@@ -128,7 +145,8 @@ export class BlockProcessor {
             energy: acc.energy.toString(10),
             blockTime: acc.blockTime,
             code: acc.code,
-            master: acc.master
+            master: acc.master,
+            sponsor: acc.sponsor
         })
     }
 
@@ -149,7 +167,8 @@ export class BlockProcessor {
                 balance: BigInt(0),
                 energy: BigInt(0),
                 code: null,
-                master: null
+                master: null,
+                sponsor: null
             })
 
             if (this.block.number === 0) {
