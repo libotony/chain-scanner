@@ -100,7 +100,9 @@ createConnection().then(async () => {
         } else {
             hasMore = false
         }
-        console.log('checked ', offset)
+        if (offset % 5000 === 0) {
+            console.log('checked ', offset)
+        }
 
     }
     console.log('all done!')

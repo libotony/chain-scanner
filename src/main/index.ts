@@ -4,7 +4,7 @@ import { Processor } from '../processor/processor'
 import { Thor } from '../thor-rest'
 import { DualToken } from '../processor/dual-token'
 import { VIP180Transfer } from '../processor/vip180'
-import { MasterNode } from '../processor/master-node'
+import { MasterNodeWatcher } from '../processor/master-node'
 import { GasAdjustmentWatcher } from '../processor/gas-adjust'
 import { createConnection } from 'typeorm'
 import { Net } from '../net'
@@ -57,7 +57,7 @@ switch (process.argv[3]) {
         }
         break
     case 'authority':
-        task = new MasterNode(thor)
+        task = new MasterNodeWatcher(thor)
         break
     case 'gas-adjust':
         task = new GasAdjustmentWatcher()

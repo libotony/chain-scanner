@@ -27,7 +27,7 @@ enum CandidateType {
     Revoke
 }
 
-export class MasterNode extends Processor {
+export class MasterNodeWatcher extends Processor {
     private persist: Persist
 
     constructor(
@@ -48,6 +48,10 @@ export class MasterNode extends Processor {
 
     protected bornAt() {
         return Promise.resolve(0)
+    }
+
+    protected enoughToWrite(count: number) {
+        return count >= 50
     }
 
     /**
@@ -112,7 +116,7 @@ export class MasterNode extends Processor {
             await insertSnapshot(snapshot, manager)
         }
 
-        return 1 + actions.length
+        return 1
     }
 
     protected async latestTrunkCheck() {

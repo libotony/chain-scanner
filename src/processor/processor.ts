@@ -53,6 +53,10 @@ export abstract class Processor {
         return
     }
 
+    protected enoughToWrite(count: number) {
+        return !!count
+    }
+
     private async loop() {
         this.birthNumber = await this.bornAt()
 
@@ -104,6 +108,7 @@ export abstract class Processor {
 
         let startNum = head + 1
         console.time('time')
+        let count = 0
         for (let i = head + 1 ; i <= target;) {
             await getConnection().transaction(async (manager) => {
                 for (; i <= target;) {
@@ -111,9 +116,10 @@ export abstract class Processor {
                         throw new InterruptedError()
                     }
 
-                    const count = await this.processBlock(i++, manager)
-                    if (count) {
+                    count += await this.processBlock(i++, manager)
+                    if (this.enoughToWrite(count)) {
                         await this.saveHead(i - 1, manager)
+                        count = 0
                         if ((i - startNum) >= 1000) {
                             process.stdout.write(`imported blocks(${i - startNum}) at block(${i - 1}) `)
                             console.timeEnd('time')
