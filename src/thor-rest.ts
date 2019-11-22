@@ -1,6 +1,7 @@
-import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import '@vechain/connex'
+import '@vechain/connex.driver'
 import { Network } from './const'
+import { Net } from './net'
 
 export class Thor {
 
@@ -14,7 +15,7 @@ export class Thor {
     }
 
     // default genesis ID to mainnet
-    constructor(readonly net: SimpleNet, readonly genesisID = Network.MainNet) { }
+    constructor(readonly net: Net, readonly genesisID = Network.MainNet) { }
 
     public getBlock(revision: string | number) {
         return this.httpGet<Required<Connex.Thor.Block>>(`blocks/${revision}`)
