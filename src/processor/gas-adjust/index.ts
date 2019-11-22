@@ -45,7 +45,7 @@ const persist = {
         return manager
             .getRepository(Block)
             .findOne({
-                where: { number: LessThan(num), signer },
+                where: { number: LessThan(num), signer, isTrunk: true },
                 order: { number: 'DESC' }
             })
     },
@@ -101,7 +101,7 @@ export class GasAdjustmentWatcher extends Processor {
                     prevBlock: prevBlock.id,
                     gasDiff: block.gasLimit - prevBlock.gasLimit
                 })
-                await persist.insertAdjustment(adjustment)
+                await persist.insertAdjustment(adjustment, manager)
 
                 if (saveSnapshot) {
                     const snap = manager.create(Snapshot, {
@@ -139,7 +139,7 @@ export class GasAdjustmentWatcher extends Processor {
                 const toRevert = snapshots.map(x => x.blockID)
 
                 await getConnection().transaction(async (manager) => {
-                    await persist.removeAdjustments(toRevert)
+                    await persist.removeAdjustments(toRevert, manager)
                     await removeSnapshot(toRevert, SnapType.Authority, manager)
                     await this.saveHead(headNum, manager)
                     console.log('-> revert to head:', headNum)
