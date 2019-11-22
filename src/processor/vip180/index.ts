@@ -9,7 +9,7 @@ import { EntityManager, getConnection } from 'typeorm'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { Processor } from '../processor'
-import { abi } from 'thor-devkit'
+import { abi } from '@vechain/abi'
 import { getBlockByNumber, getBlockReceipts } from '../../explorer-db/service/block'
 
 interface SnapAccount {

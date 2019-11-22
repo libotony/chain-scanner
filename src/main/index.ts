@@ -1,13 +1,13 @@
 import { Network, getVIP180Token } from '../const'
 import { Foundation } from '../foundation'
 import { Processor } from '../processor/processor'
-import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { Thor } from '../thor-rest'
 import { DualToken } from '../processor/dual-token'
 import { VIP180Transfer } from '../processor/vip180'
 import { MasterNode } from '../processor/master-node'
 import { GasAdjustmentWatcher } from '../processor/gas-adjust'
 import { createConnection } from 'typeorm'
+import { Net } from '../net'
 
 const printUsage = (msg = '') => {
     process.stderr.write(`${msg ? msg + '\n\n' : ''}Usage: node index.js [Network][Task][...Args]
@@ -35,7 +35,7 @@ switch (process.argv[2]) {
         printUsage('invalid network')
 }
 
-const thor = new Thor(new SimpleNet('http://localhost:8669'), net!)
+const thor = new Thor(new Net('http://localhost:8669'), net!)
 
 let task: Foundation | Processor
 switch (process.argv[3]) {

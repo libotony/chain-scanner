@@ -1,9 +1,9 @@
 import { Thor } from '../thor-rest'
-import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { prototype, TransferEvent, totalSupply, getVIP180Token} from '../const'
 import { displayID } from '../utils'
+import { Net } from '../net'
 
-const thor = new Thor(new SimpleNet('http://localhost:8669'))
+const thor = new Thor(new Net('http://localhost:8669'))
 const token = getVIP180Token(thor.genesisID, process.argv[2] || 'OCE')
 console.log(token);
 

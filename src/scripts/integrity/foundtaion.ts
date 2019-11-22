@@ -4,11 +4,11 @@ import { Block } from '../../explorer-db/entity/block'
 import { displayID, REVERSIBLE_WINDOW, blockIDtoNum } from '../../utils'
 import { getBlockTransactions, getBlockReceipts } from '../../explorer-db/service/block'
 import { Thor } from '../../thor-rest'
-import { SimpleNet } from '@vechain/connex.driver-nodejs'
+import { Net } from '../../net'
 
 const STOP_NUMBER = 0
 const persist = new Persist()
-const thor = new Thor(new SimpleNet('http://localhost:8669'))
+const thor = new Thor(new Net('http://localhost:8669'))
 
 const getBlock = async (id: string) => {
     const block = await getConnection().getRepository(Block).findOne({ id })

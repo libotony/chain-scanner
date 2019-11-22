@@ -1,12 +1,12 @@
 import { createConnection } from 'typeorm'
 import { Thor } from '../../thor-rest'
-import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { balanceOf, getVIP180Token } from '../../const'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
 import { AssetType } from '../../explorer-db/types'
 import { Persist } from '../../processor/vip180/persist'
+import { Net } from '../../net'
 
-const thor = new Thor(new SimpleNet('http://localhost:8669'))
+const thor = new Thor(new Net('http://localhost:8669'))
 const token = getVIP180Token(thor.genesisID, process.argv[2] || 'OCE')
 const persist = new Persist(token)
 

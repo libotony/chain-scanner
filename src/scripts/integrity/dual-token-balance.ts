@@ -1,14 +1,14 @@
 import { getConnection, createConnection } from 'typeorm'
 import { Persist } from '../../processor/dual-token/persist'
 import { Thor } from '../../thor-rest'
-import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { Account } from '../../explorer-db/entity/account'
 import { PrototypeAddress, ZeroAddress, prototype } from '../../const'
+import { Net } from '../../net'
 
 const persist = new Persist()
 
 createConnection().then(async () => {
-    const thor = new Thor(new SimpleNet('http://localhost:8669'))
+    const thor = new Thor(new Net('http://localhost:8669'))
     const head = (await persist.getHead())!
 
     const block = await thor.getBlock(head)

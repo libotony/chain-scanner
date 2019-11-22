@@ -1,12 +1,12 @@
 import { LessThanOrEqual, createConnection } from 'typeorm'
 import { Thor } from '../../thor-rest'
-import { SimpleNet } from '@vechain/connex.driver-nodejs'
 import { Persist } from '../../processor/master-node/persist'
 import { AuthorityAddress, authority } from '../../const'
 import { Authority } from '../../explorer-db/entity/authority'
 import { Block } from '../../explorer-db/entity/block'
+import { Net } from '../../net'
 
-const thor = new Thor(new SimpleNet('http://localhost:8669'))
+const thor = new Thor(new Net('http://localhost:8669'))
 const persist = new Persist()
 
 const get = async (master: string, revision: string) => {
