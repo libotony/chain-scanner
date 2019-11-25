@@ -6,9 +6,10 @@ import { Authority } from '../../explorer-db/entity/authority'
 import { Block } from '../../explorer-db/entity/block'
 import { Net } from '../../net'
 import { getNetwork, checkNetworkWithDB } from '../network'
+import { getThorREST } from '../../utils'
 
 const net = getNetwork()
-const thor = new Thor(new Net('http://localhost:8669'), net)
+const thor = new Thor(new Net(getThorREST()), net)
 const persist = new Persist()
 
 const get = async (master: string, revision: string) => {

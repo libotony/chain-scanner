@@ -1,12 +1,12 @@
 import { Thor } from '../thor-rest'
 import { prototype, TransferEvent, totalSupply, getVIP180Token} from '../const'
-import { displayID } from '../utils'
+import { displayID, getThorREST } from '../utils'
 import { Net } from '../net'
 import { getNetwork } from './network'
 
 const net = getNetwork()
 
-const thor = new Thor(new Net('http://localhost:8669'), net)
+const thor = new Thor(new Net(getThorREST()), net)
 const token = getVIP180Token(thor.genesisID, process.argv[3] || 'OCE')
 console.log(token);
 

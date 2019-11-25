@@ -1,7 +1,7 @@
 import { Persist } from '../../foundation/persist'
 import { getConnection, MoreThan, createConnection } from 'typeorm'
 import { Block } from '../../explorer-db/entity/block'
-import { displayID, REVERSIBLE_WINDOW, blockIDtoNum } from '../../utils'
+import { displayID, REVERSIBLE_WINDOW, blockIDtoNum, getThorREST } from '../../utils'
 import { getBlockTransactions, getBlockReceipts } from '../../service/block'
 import { Thor } from '../../thor-rest'
 import { Net } from '../../net'
@@ -11,7 +11,7 @@ const net = getNetwork()
 
 const STOP_NUMBER = 0
 const persist = new Persist()
-const thor = new Thor(new Net('http://localhost:8669'), net)
+const thor = new Thor(new Net(getThorREST()), net)
 
 const getBlock = async (id: string) => {
     const block = await getConnection().getRepository(Block).findOne({ id })

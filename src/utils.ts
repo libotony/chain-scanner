@@ -40,6 +40,10 @@ export const hexToBuffer = (val: string) => {
     return Buffer.from(sanitizeHex(val), 'hex')
 }
 
+export const getThorREST = () => {
+    return process.env.THOR_REST || 'http://localhost:8669'
+}
+
 export class InterruptedError extends Error {
     constructor() {
         super('interrupted')

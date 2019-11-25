@@ -6,9 +6,10 @@ import { AssetType } from '../../explorer-db/types'
 import { Persist } from '../../processor/vip180/persist'
 import { Net } from '../../net'
 import { getNetwork, checkNetworkWithDB } from '../network'
+import { getThorREST } from '../../utils'
 
 const net = getNetwork()
-const thor = new Thor(new Net('http://localhost:8669'), net)
+const thor = new Thor(new Net(getThorREST()), net)
 const token = getVIP180Token(thor.genesisID, process.argv[3] || 'OCE')
 const persist = new Persist(token)
 
