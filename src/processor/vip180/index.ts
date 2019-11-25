@@ -4,13 +4,13 @@ import { displayID, blockIDtoNum } from '../../utils'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
 import { TransferEvent, ZeroAddress, TokenConfig, TokenBasic, prototype  } from '../../const'
-import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../snapshot'
+import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { EntityManager, getConnection } from 'typeorm'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { Processor } from '../processor'
 import { abi } from '@vechain/abi'
-import { getBlockByNumber, getBlockReceipts } from '../../explorer-db/service/block'
+import { getBlockByNumber, getBlockReceipts } from '../../service/block'
 
 interface SnapAccount {
     address: string

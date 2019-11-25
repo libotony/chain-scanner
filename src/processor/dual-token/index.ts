@@ -7,10 +7,10 @@ import { BlockProcessor, SnapAccount } from './block-processor'
 import { AssetMovement } from '../../explorer-db/entity/movement'
 import { Account } from '../../explorer-db/entity/account'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
-import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../snapshot'
+import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { Processor } from '../processor'
 import { AssetType, SnapType } from '../../explorer-db/types'
-import { getBlockByNumber, getBlockReceipts } from '../../explorer-db/service/block'
+import { getBlockByNumber, getBlockReceipts } from '../../service/block'
 
 export class DualToken extends Processor {
     private persist: Persist

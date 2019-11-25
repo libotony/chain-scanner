@@ -3,12 +3,12 @@ import { blockIDtoNum } from '../../utils'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
 import { ZeroAddress, AuthorityAddress, authority } from '../../const'
-import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../snapshot'
+import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { EntityManager, getConnection } from 'typeorm'
 import { Authority } from '../../explorer-db/entity/authority'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { Processor } from '../processor'
-import { getBlockByNumber, getBlockReceipts } from '../../explorer-db/service/block'
+import { getBlockByNumber, getBlockReceipts } from '../../service/block'
 
 interface SnapAuthority {
     node?: {

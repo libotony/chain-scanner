@@ -2,7 +2,7 @@ import { Persist } from '../../foundation/persist'
 import { getConnection, MoreThan, createConnection } from 'typeorm'
 import { Block } from '../../explorer-db/entity/block'
 import { displayID, REVERSIBLE_WINDOW, blockIDtoNum } from '../../utils'
-import { getBlockTransactions, getBlockReceipts } from '../../explorer-db/service/block'
+import { getBlockTransactions, getBlockReceipts } from '../../service/block'
 import { Thor } from '../../thor-rest'
 import { Net } from '../../net'
 

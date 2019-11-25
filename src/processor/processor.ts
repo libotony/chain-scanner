@@ -1,7 +1,7 @@
 import { EntityManager, getConnection } from 'typeorm'
 import { sleep, REVERSIBLE_WINDOW, InterruptedError } from '../utils'
 import { EventEmitter } from 'events'
-import { getBest } from '../explorer-db/service/block'
+import { getBest } from '../service/block'
 
 const SAMPLING_INTERVAL = 1 * 1000
 
