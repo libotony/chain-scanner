@@ -7,4 +7,4 @@
 *.tgz
 .env
 *.log
-
+ecosystem.config.js
