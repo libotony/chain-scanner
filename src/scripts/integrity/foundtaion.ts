@@ -5,10 +5,13 @@ import { displayID, REVERSIBLE_WINDOW, blockIDtoNum } from '../../utils'
 import { getBlockTransactions, getBlockReceipts } from '../../service/block'
 import { Thor } from '../../thor-rest'
 import { Net } from '../../net'
+import { getNetwork, checkNetworkWithDB } from '../network'
+
+const net = getNetwork()
 
 const STOP_NUMBER = 0
 const persist = new Persist()
-const thor = new Thor(new Net('http://localhost:8669'))
+const thor = new Thor(new Net('http://localhost:8669'), net)
 
 const getBlock = async (id: string) => {
     const block = await getConnection().getRepository(Block).findOne({ id })
@@ -19,6 +22,8 @@ const getBlock = async (id: string) => {
 }
 
 createConnection().then(async () => {
+    await checkNetworkWithDB(net)
+
     const head = (await persist.getHead())!
     const headNum = blockIDtoNum(head.value)
 

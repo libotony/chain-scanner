@@ -2,9 +2,12 @@ import { Thor } from '../thor-rest'
 import { prototype, TransferEvent, totalSupply, getVIP180Token} from '../const'
 import { displayID } from '../utils'
 import { Net } from '../net'
+import { getNetwork } from './network'
 
-const thor = new Thor(new Net('http://localhost:8669'))
-const token = getVIP180Token(thor.genesisID, process.argv[2] || 'OCE')
+const net = getNetwork()
+
+const thor = new Thor(new Net('http://localhost:8669'), net)
+const token = getVIP180Token(thor.genesisID, process.argv[3] || 'OCE')
 console.log(token);
 
 (async () => {
@@ -39,4 +42,8 @@ console.log(token);
 
     console.log('first 5 transfer:')
     console.log(formated.join('\n'))
-})().catch(console.log)
+    process.exit(0)
+})().catch((e) => {
+    console.log(e)
+    process.exit(-1)
+})

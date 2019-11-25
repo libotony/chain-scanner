@@ -5,8 +5,10 @@ import { AuthorityAddress, authority } from '../../const'
 import { Authority } from '../../explorer-db/entity/authority'
 import { Block } from '../../explorer-db/entity/block'
 import { Net } from '../../net'
+import { getNetwork, checkNetworkWithDB } from '../network'
 
-const thor = new Thor(new Net('http://localhost:8669'))
+const net = getNetwork()
+const thor = new Thor(new Net('http://localhost:8669'), net)
 const persist = new Persist()
 
 const get = async (master: string, revision: string) => {
@@ -22,6 +24,7 @@ const get = async (master: string, revision: string) => {
 }
 
 createConnection().then(async (conn) => {
+    await checkNetworkWithDB(net)
     const head = (await persist.getHead())!
     let count = 0
 

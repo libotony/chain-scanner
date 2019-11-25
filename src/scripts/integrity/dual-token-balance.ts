@@ -4,11 +4,14 @@ import { Thor } from '../../thor-rest'
 import { Account } from '../../explorer-db/entity/account'
 import { PrototypeAddress, ZeroAddress, prototype } from '../../const'
 import { Net } from '../../net'
+import { getNetwork, checkNetworkWithDB } from '../network'
 
+const net = getNetwork()
 const persist = new Persist()
 
 createConnection().then(async () => {
-    const thor = new Thor(new Net('http://localhost:8669'))
+    const thor = new Thor(new Net('http://localhost:8669'), net)
+    await checkNetworkWithDB(net)
     const head = (await persist.getHead())!
 
     const block = await thor.getBlock(head)

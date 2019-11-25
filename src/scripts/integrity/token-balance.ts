@@ -5,12 +5,15 @@ import { TokenBalance } from '../../explorer-db/entity/token-balance'
 import { AssetType } from '../../explorer-db/types'
 import { Persist } from '../../processor/vip180/persist'
 import { Net } from '../../net'
+import { getNetwork, checkNetworkWithDB } from '../network'
 
-const thor = new Thor(new Net('http://localhost:8669'))
-const token = getVIP180Token(thor.genesisID, process.argv[2] || 'OCE')
+const net = getNetwork()
+const thor = new Thor(new Net('http://localhost:8669'), net)
+const token = getVIP180Token(thor.genesisID, process.argv[3] || 'OCE')
 const persist = new Persist(token)
 
 createConnection().then(async (conn) => {
+    await checkNetworkWithDB(net)
     const head = (await persist.getHead())!
     const block = await thor.getBlock(head)
 
