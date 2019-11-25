@@ -45,8 +45,10 @@ main.set(yeet.symbol, { ...yeet, address: '0xae4c53b120cba91a44832f875107cbc8fbe
 
 test.set(pla.symbol, { ...pla, address: '0x645d2019ed39e58db76af602317d177b53ba8b9d' })
 test.set(sha.symbol, { ...sha, address: '0x9c6e62b3334294d70c8e410941f52d482557955b' })
-test.set(ehrt.symbol, { ...ehrt, address: '0xdeff1d52f3fbf551b3337b9a02f719cd21da956b' })
-test.set(dbet.symbol, { ...dbet, address: '0x510fcddc9424b1bbb328a574f45bfddb130e1f03' })
+test.set(ehrt.symbol, { ...ehrt, address: '0xdeff1d52f3fbf551b3337b9a02f719cd21da956b',
+    burnOnZero: true,
+    genesis: { '0xb5d8da87b6a92cc37477048b4bcd7b8070c843a7': '10000000000000000000000000000' }})
+test.set(dbet.symbol, { ...dbet, address: '0x510fcddc9424b1bbb328a574f45bfddb130e1f03', genesis: {'0x510fcddc9424b1bbb328a574f45bfddb130e1f03': '205903294831970956466297922'} })
 test.set(oce.symbol, { ...oce, address: '0x9652aead889e8df7b5717ed984f147c132f85a69' })
 test.set(jur.symbol, { ...jur, address: '0x602b7a4309b3412d269c6cdddad962c0b94494d8' })
 test.set(yeet.symbol, { ...yeet, address: '0x32456c328f647f5b35757d38fe634868d9fe3808' })
