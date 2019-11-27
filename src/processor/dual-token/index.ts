@@ -79,7 +79,7 @@ export class DualToken extends Processor {
                             amount: BigInt(decoded._value),
                             txID: r.txID,
                             blockID: block.id,
-                            type: AssetType.Energy,
+                            type: AssetType.VTHO,
                             moveIndex: {
                                 txIndex: r.txIndex,
                                 clauseIndex,

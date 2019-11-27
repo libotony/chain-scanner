@@ -13,7 +13,7 @@ Promise.resolve().then(async () => {
    }))
 
     await conn.getRepository(Account).clear()
-    await conn.getRepository(AssetMovement).delete({type: In([AssetType.VET, AssetType.Energy])})
+    await conn.getRepository(AssetMovement).delete({type: In([AssetType.VET, AssetType.VTHO])})
     await conn.getRepository(Snapshot).delete({type: SnapType.DualToken})
     await conn.getRepository(Config).delete({ key: 'dual-token-head'})
 }).then(() => {
