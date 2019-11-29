@@ -43,18 +43,26 @@ export class Net {
                 res.setEncoding('utf-8')
 
                 if (params!.validateResponseHeader) {
-                    params!.validateResponseHeader(res.headers as Record<string, string>)
+                    try {
+                        params!.validateResponseHeader(res.headers as Record<string, string>)
+                    } catch (e) {
+                        return reject(e)
+                    }
                 }
 
                 let resStr = ''
                 res.on('data', (data) => {
                     resStr += data
-                  })
+                })
 
                 res.on('end', () => {
-                    const ret = JSON.parse(resStr)
-                    resolve(ret)
-                  })
+                    try {
+                        const ret = JSON.parse(resStr)
+                        resolve(ret)
+                    } catch (e) {
+                        reject(e)
+                    }
+                })
 
                 req.on('error', e => {
                       reject(e)
