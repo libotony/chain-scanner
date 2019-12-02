@@ -10,7 +10,7 @@ import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { Processor } from '../processor'
 import { AssetType, SnapType } from '../../explorer-db/types'
-import { getBlockByNumber, getBlockReceipts } from '../../service/block'
+import { getBlockByNumber, getBlockReceipts, getBlockTransactions } from '../../service/block'
 
 export class DualToken extends Processor {
     private persist: Persist
@@ -39,6 +39,7 @@ export class DualToken extends Processor {
     protected async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
         const block = (await getBlockByNumber(blockNum, manager))!
         const receipts = await getBlockReceipts(block.id, manager)
+        const txs = await getBlockTransactions(block.id, manager)
 
         const proc = new BlockProcessor(block, this.thor, manager)
         for (const r of receipts) {
@@ -92,6 +93,7 @@ export class DualToken extends Processor {
                 }
             }
             await proc.touchAccount(r.gasPayer)
+            await proc.increaseTxCount(txs[r.txIndex].origin)
         }
         if (receipts.length) {
             await proc.touchAccount(block.beneficiary)

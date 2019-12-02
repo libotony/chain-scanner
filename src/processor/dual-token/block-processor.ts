@@ -13,6 +13,7 @@ export interface SnapAccount {
     balance: string
     energy: string
     blockTime: number
+    txCount: number
     code: string|null
     master: string|null
     sponsor: string|null
@@ -87,6 +88,12 @@ export class BlockProcessor {
         this.Movement.push(move)
     }
 
+    public async increaseTxCount(addr: string) {
+        const acc = await this.account(addr)
+
+        acc.txCount = acc.txCount + 1
+    }
+
     public accounts() {
         const accs: Account[] = []
         for (const [_, acc] of this.acc.entries()) {
@@ -144,6 +151,7 @@ export class BlockProcessor {
             balance: acc.balance.toString(10),
             energy: acc.energy.toString(10),
             blockTime: acc.blockTime,
+            txCount: acc.txCount,
             code: acc.code,
             master: acc.master,
             sponsor: acc.sponsor
@@ -166,9 +174,11 @@ export class BlockProcessor {
                 address: addr,
                 balance: BigInt(0),
                 energy: BigInt(0),
+                blockTime: 0,
                 code: null,
                 master: null,
-                sponsor: null
+                sponsor: null,
+                txCount: 0
             })
 
             if (this.block.number === 0) {
