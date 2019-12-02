@@ -24,8 +24,8 @@ export class BlockProcessor {
 
     private acc = new Map<string, Account>()
     private snap = new Map<string, SnapAccount>()
-    private code = new Set<string>()
-    private balance = new Set<string>()
+    private updateCode = new Set<string>()
+    private updateEnergy = new Set<string>()
 
     constructor(
         readonly block: Block,
@@ -35,7 +35,7 @@ export class BlockProcessor {
         const forkConfig = getForkConfig(thor.genesisID)
         if (block.number === forkConfig.VIP191) {
             this.account(ExtensionAddress)
-            this.code.add(ExtensionAddress)
+            this.updateCode.add(ExtensionAddress)
         }
     }
 
@@ -43,7 +43,7 @@ export class BlockProcessor {
         const acc = await this.account(addr)
 
         acc.master = master
-        this.code.add(addr)
+        this.updateCode.add(addr)
         return acc
     }
 
@@ -79,6 +79,9 @@ export class BlockProcessor {
         recipientAcc.balance = balance
 
         this.Movement.push(move)
+
+        this.updateEnergy.add(move.sender)
+        this.updateEnergy.add(move.recipient)
     }
 
     public async transferEnergy(move: AssetMovement) {
@@ -86,6 +89,9 @@ export class BlockProcessor {
         await this.account(move.recipient)
 
         this.Movement.push(move)
+
+        this.updateEnergy.add(move.sender)
+        this.updateEnergy.add(move.recipient)
     }
 
     public async increaseTxCount(addr: string) {
@@ -104,21 +110,18 @@ export class BlockProcessor {
 
     public async finalize() {
         for (const [_, acc] of this.acc.entries()) {
-            const ret = await this.thor.getAccount(acc.address, this.block.id)
-            acc.energy = BigInt(ret.energy)
-            acc.blockTime = this.block.timestamp
-
-            if (this.balance.has(acc.address)) {
-                acc.balance = BigInt(ret.balance)
+            if (this.updateEnergy.has(acc.address)) {
+                const ret = await this.thor.getAccount(acc.address, this.block.id)
+                acc.energy = BigInt(ret.energy)
+                acc.blockTime = this.block.timestamp
             }
 
-            if (this.code.has(acc.address) && ret.hasCode) {
+            if (this.updateCode.has(acc.address)) {
                 const code = await this.thor.getCode(acc.address, this.block.id)
                 if (code && code.code !== '0x') {
                     acc.code = code.code
                 }
             }
-
         }
     }
 
@@ -140,9 +143,27 @@ export class BlockProcessor {
         return snap
     }
 
-    public async touchAccount(addr: string) {
+    public async touchEnergy(addr: string) {
         await this.account(addr)
+        this.updateEnergy.add(addr)
         return
+    }
+
+    public async genesisAccount(addr: string) {
+        if (this.block.number !== 0) {
+            throw new Error('calling genesisAccount is forbid in block #' + this.block.number)
+        }
+        const acc = await this.account(addr)
+        const chainAcc = await this.thor.getAccount(acc.address, this.block.id)
+
+        acc.balance = BigInt(chainAcc.balance)
+        acc.energy = BigInt(chainAcc.energy)
+        acc.blockTime = this.block.timestamp
+
+        if (chainAcc.hasCode) {
+            const chainCode = await this.thor.getCode(acc.address, this.block.id)
+            acc.code = chainCode.code
+        }
     }
 
     private takeSnap(acc: Account) {
@@ -181,10 +202,6 @@ export class BlockProcessor {
                 txCount: 0
             })
 
-            if (this.block.number === 0) {
-                this.balance.add(addr)
-            }
-            this.code.add(addr)
             this.acc.set(addr, newAcc)
             this.takeSnap(newAcc)
             return newAcc

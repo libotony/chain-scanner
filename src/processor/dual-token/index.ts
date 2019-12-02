@@ -92,11 +92,11 @@ export class DualToken extends Processor {
                     }
                 }
             }
-            await proc.touchAccount(r.gasPayer)
+            await proc.touchEnergy(r.gasPayer)
             await proc.increaseTxCount(txs[r.txIndex].origin)
         }
         if (receipts.length) {
-            await proc.touchAccount(block.beneficiary)
+            await proc.touchEnergy(block.beneficiary)
         }
         await proc.finalize()
 
@@ -149,7 +149,7 @@ export class DualToken extends Processor {
             const proc = new BlockProcessor(block, this.thor, manager)
 
             for (const addr of getPreAllocAccount(block.id as Network)) {
-                await proc.touchAccount(addr)
+                await proc.genesisAccount(addr)
             }
 
             await proc.finalize()
