@@ -1,5 +1,6 @@
 import * as http from 'http'
 import * as querystring from 'querystring'
+import { Thor } from './thor-rest'
 
 interface Params {
     query?: Record<string, string>
@@ -56,6 +57,10 @@ export class Net {
                 })
 
                 res.on('end', () => {
+                    if (res.statusCode !== 200) {
+                        reject(new Error(`${method} ${url} ${res.statusCode} - ${resStr}`))
+                        return
+                    }
                     try {
                         const ret = JSON.parse(resStr)
                         resolve(ret)
@@ -65,7 +70,7 @@ export class Net {
                 })
 
                 req.on('error', e => {
-                      reject(e)
+                    reject(e)
                 })
             })
             if (method === 'POST' && params!.body) {
