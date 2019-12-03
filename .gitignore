@@ -4,6 +4,7 @@
 /.vscode/
 /coverage/
 /.nyc_output/
+.DS_Store
 *.tgz
 .env
 *.log
