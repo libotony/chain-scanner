@@ -26,20 +26,27 @@ const get = async (master: string, revision: string) => {
 
 createConnection().then(async (conn) => {
     await checkNetworkWithDB(net)
-    const head = (await persist.getHead())!
+
+    const {head, nodes} = await new Promise((resolve, reject) => {
+        conn.manager.transaction('SERIALIZABLE', async manager => {
+            const h = (await persist.getHead(manager))!
+            const n = await manager
+                .getRepository(Authority)
+                .find()
+            resolve({head: h, nodes: n})
+        }).catch(reject)
+    })
+
+    console.log('start checking...')
     let count = 0
-
-    const nodes = await conn
-        .getRepository(Authority)
-        .find()
-
+    let listed = 0
     for (const node of nodes) {
         const chain = await get(node.address, head.toString())
         if (chain.listed !== node.listed) {
             throw new Error(`Fatal: Master(${node.address} listed status mismatch, want ${node.listed} got ${chain.listed}`)
         }
         if (chain.listed) {
-            count++
+            listed++
         }
         const signed = await conn
             .getRepository(Block)
@@ -48,9 +55,14 @@ createConnection().then(async (conn) => {
         if (node.signed !== signed) {
             throw new Error(`Fatal: Master(${node.address} signed block count mismatch, want ${node.signed} got ${signed}`)
         }
+
+        count++
+        if (count % 10 === 0) {
+            console.log('checked ', count)
+        }
     }
 
-    console.log(`Total master: ${nodes.length}, inPower: ${count}`)
+    console.log(`Total master: ${nodes.length}, inPower: ${listed}`)
     console.log('all done!')
 
 }).then(() => {

@@ -15,49 +15,44 @@ const persist = new Persist(token)
 
 createConnection().then(async (conn) => {
     await checkNetworkWithDB(net)
-    const head = (await persist.getHead())!
+    const {head, accounts} = await new Promise((resolve, reject) => {
+        conn.manager.transaction('SERIALIZABLE', async manager => {
+            const h = (await persist.getHead(manager))!
+            const accs = await manager
+                .getRepository(TokenBalance)
+                .find({
+                    where: { type: AssetType[token.symbol as keyof typeof AssetType] }
+                })
+            resolve({head: h, accounts: accs})
+        }).catch(reject)
+    })
     const block = await thor.getBlock(head)
+    let count = 0
 
-    let hasMore = true
-    const step = 100
-    let offset = 0
-    for (; hasMore === true;) {
+    console.log('start checking...')
+    for (const acc of accounts) {
+        let chainBalance: bigint
+        try {
+            const ret = await thor.explain({
+                clauses: [{
+                    to:  token.address,
+                    value: '0x0',
+                    data: balanceOf.encode(acc.address)
+                }]
+            }, block.id)
+            const decoded = balanceOf.decode(ret[0].data)
 
-        const accs = await conn
-            .getRepository(TokenBalance)
-            .find({
-                where: { type: AssetType[token.symbol as keyof typeof AssetType] },
-                skip: offset,
-                take: step
-            })
-
-        offset += step
-
-        if (accs.length) {
-            for (const acc of accs) {
-                let chainBalance: bigint
-                try {
-                    const ret = await thor.explain({
-                        clauses: [{
-                            to:  token.address,
-                            value: '0x0',
-                            data: balanceOf.encode(acc.address)
-                        }]
-                    }, block.id)
-                    const decoded = balanceOf.decode(ret[0].data)
-
-                    chainBalance = BigInt(decoded.balance)
-                } catch {
-                    continue
-                }
-                if (acc.balance !== chainBalance) {
-                    throw new Error(`Fatal: ${token.symbol} balance mismatch of Account(${acc.address}), want ${acc.balance} got ${chainBalance}`)
-                }
-            }
-        } else {
-            hasMore = false
+            chainBalance = BigInt(decoded.balance)
+        } catch {
+            continue
         }
-
+        if (acc.balance !== chainBalance) {
+            throw new Error(`Fatal: ${token.symbol} balance mismatch of Account(${acc.address}), want ${acc.balance} got ${chainBalance}`)
+        }
+        count++
+        if (count % 1000 === 0) {
+            console.log('checked ', count)
+        }
     }
     console.log('all done!')
 
