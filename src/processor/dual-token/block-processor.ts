@@ -195,7 +195,7 @@ export class BlockProcessor {
                 address: addr,
                 balance: BigInt(0),
                 energy: BigInt(0),
-                blockTime: 0,
+                blockTime: this.block.timestamp,
                 code: null,
                 master: null,
                 sponsor: null,
