@@ -150,6 +150,7 @@ export class MasterNodeWatcher extends Processor {
                             auth.reward = BigInt(snapData.node.reward)
                             auth.signed = snapData.node.signed
                             await this.persist.saveAuthority(auth, manager)
+                            console.log(`MasterNode(${snapData.node.address})'s Signed block reverted to ${snapData.node.signed} at Block(${blockIDtoNum(snap.blockID) - 1})`)
                         }
 
                         for (const a of snapData.actions) {
