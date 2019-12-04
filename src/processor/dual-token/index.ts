@@ -174,6 +174,7 @@ export class DualToken extends Processor {
                         balance: BigInt(snapAcc.balance),
                         energy: BigInt(snapAcc.energy),
                         blockTime: snapAcc.blockTime,
+                        txCount: snapAcc.txCount,
                         code: snapAcc.code,
                         master: snapAcc.master
                     })
