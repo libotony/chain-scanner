@@ -140,7 +140,7 @@ export class GasAdjustmentWatcher extends Processor {
 
                 await getConnection().transaction(async (manager) => {
                     await persist.removeAdjustments(toRevert, manager)
-                    await removeSnapshot(toRevert, SnapType.Authority, manager)
+                    await removeSnapshot(toRevert, SnapType.GasAdjustment, manager)
                     await this.saveHead(headNum, manager)
                     console.log('-> revert to head:', headNum)
                 })
