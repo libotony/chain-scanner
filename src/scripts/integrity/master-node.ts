@@ -43,7 +43,7 @@ createConnection().then(async (conn) => {
     for (const node of nodes) {
         const chain = await get(node.address, head.toString())
         if (chain.listed !== node.listed) {
-            throw new Error(`Fatal: Master(${node.address} listed status mismatch, want ${node.listed} got ${chain.listed}`)
+            throw new Error(`Fatal: Master(${node.address}) listed status mismatch, want ${node.listed} got ${chain.listed}`)
         }
         if (chain.listed) {
             listed++
