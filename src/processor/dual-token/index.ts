@@ -33,6 +33,10 @@ export class DualToken extends Processor {
         return Promise.resolve(0)
     }
 
+    protected get snapType() {
+        return SnapType.DualToken
+    }
+
     /**
      * @return inserted column number
      */
@@ -124,7 +128,7 @@ export class DualToken extends Processor {
             return
         }
 
-        const snapshots = await listRecentSnapshot(head, SnapType.DualToken)
+        const snapshots = await listRecentSnapshot(head, this.snapType)
 
         if (snapshots.length) {
             for (; snapshots.length;) {
@@ -139,7 +143,7 @@ export class DualToken extends Processor {
         }
 
         head = await this.getHead()
-        await clearSnapShot(head, SnapType.DualToken)
+        await clearSnapShot(head, this.snapType)
     }
 
     protected async processGenesis() {
@@ -190,7 +194,7 @@ export class DualToken extends Processor {
 
             await this.persist.saveAccounts(toSave, manager)
             await this.persist.removeMovements(toRevert, manager)
-            await removeSnapshot(toRevert, SnapType.DualToken, manager)
+            await removeSnapshot(toRevert, this.snapType, manager)
             await this.saveHead(headNum, manager)
             console.log('-> revert to head:', headNum)
         })

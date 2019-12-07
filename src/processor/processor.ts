@@ -2,6 +2,7 @@ import { EntityManager, getConnection } from 'typeorm'
 import { sleep, REVERSIBLE_WINDOW, InterruptedError } from '../utils'
 import { EventEmitter } from 'events'
 import { getBest } from '../service/block'
+import { SnapType } from '../explorer-db/types'
 
 const SAMPLING_INTERVAL = 1 * 1000
 
@@ -33,6 +34,7 @@ export abstract class Processor {
         saveSnapshot?: boolean
     ): Promise<number>
     protected abstract async latestTrunkCheck(): Promise<void>
+    protected abstract get snapType(): SnapType
 
     protected async getHead() {
         if (this.head !== null) {

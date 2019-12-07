@@ -54,6 +54,10 @@ export class MasterNodeWatcher extends Processor {
         return count >= 50
     }
 
+    protected get snapType() {
+        return SnapType.Authority
+    }
+
     /**
      * @return inserted column number
      */
@@ -108,7 +112,7 @@ export class MasterNodeWatcher extends Processor {
         if (saveSnapshot) {
             const snapshot = new Snapshot()
             snapshot.blockID = block.id
-            snapshot.type = SnapType.Authority
+            snapshot.type = this.snapType
             snapshot.data = {
                 node: snapNode,
                 actions
@@ -126,7 +130,7 @@ export class MasterNodeWatcher extends Processor {
             return
         }
 
-        const snapshots = await listRecentSnapshot(head, SnapType.Authority)
+        const snapshots = await listRecentSnapshot(head, this.snapType)
 
         if (snapshots.length) {
             for (; snapshots.length;) {
@@ -162,7 +166,7 @@ export class MasterNodeWatcher extends Processor {
                         }
                     }
 
-                    await removeSnapshot(toRevert, SnapType.Authority, manager)
+                    await removeSnapshot(toRevert, this.snapType, manager)
                     await this.saveHead(headNum, manager)
                     console.log('-> revert to head:', headNum)
                 })
@@ -172,7 +176,7 @@ export class MasterNodeWatcher extends Processor {
         }
 
         head = await this.getHead()
-        await clearSnapShot(head, SnapType.Authority)
+        await clearSnapShot(head, this.snapType)
     }
 
     protected async processGenesis() {
@@ -211,6 +215,7 @@ export class MasterNodeWatcher extends Processor {
         }, revision)
         return authority.first.decode(ret[0].data)['0'] as string
     }
+
     private async get(master: string, revision: string) {
         const ret = await this.thor.explain({
             clauses: [{

@@ -86,6 +86,10 @@ export class GasAdjustmentWatcher extends Processor {
         return Promise.resolve(1)
     }
 
+    protected get snapType() {
+        return SnapType.GasAdjustment
+    }
+
     /**
      * @return inserted column number
      */
@@ -106,7 +110,7 @@ export class GasAdjustmentWatcher extends Processor {
                 if (saveSnapshot) {
                     const snap = manager.create(Snapshot, {
                         blockID: block.id,
-                        type: SnapType.GasAdjustment,
+                        type: this.snapType,
                         data: null
                     })
                     await insertSnapshot(snap, manager)
@@ -125,7 +129,7 @@ export class GasAdjustmentWatcher extends Processor {
             return
         }
 
-        const snapshots = await listRecentSnapshot(head, SnapType.GasAdjustment)
+        const snapshots = await listRecentSnapshot(head, this.snapType)
 
         if (snapshots.length) {
             for (; snapshots.length;) {
@@ -140,7 +144,7 @@ export class GasAdjustmentWatcher extends Processor {
 
                 await getConnection().transaction(async (manager) => {
                     await persist.removeAdjustments(toRevert, manager)
-                    await removeSnapshot(toRevert, SnapType.GasAdjustment, manager)
+                    await removeSnapshot(toRevert, this.snapType, manager)
                     await this.saveHead(headNum, manager)
                     console.log('-> revert to head:', headNum)
                 })
@@ -150,7 +154,7 @@ export class GasAdjustmentWatcher extends Processor {
         }
 
         head = await this.getHead()
-        await clearSnapShot(head, SnapType.GasAdjustment)
+        await clearSnapShot(head, this.snapType)
     }
 
 }
