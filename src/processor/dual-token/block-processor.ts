@@ -125,20 +125,20 @@ export class BlockProcessor {
         }
     }
 
-    public snapshot(): Snapshot|null {
-        const ret: object[] = []
-        for (const [_, acc] of this.snap.entries()) {
-            ret.push(acc)
-        }
-
-        if (!ret.length) {
-            return null
-        }
-
+    public snapshot(): Snapshot {
         const snap = new Snapshot()
         snap.blockID = this.block.id
         snap.type = SnapType.DualToken
-        snap.data = ret
+
+        if (!this.snap.size) {
+            snap.data = null
+        } else {
+            const data: object[] = []
+            for (const [_, acc] of this.snap.entries()) {
+                data.push(acc)
+            }
+            snap.data = data
+        }
 
         return snap
     }

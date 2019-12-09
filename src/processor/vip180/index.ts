@@ -146,17 +146,21 @@ export class VIP180Transfer extends Processor {
             await this.persist.saveAccounts(x, manager)
         }
 
-        if (snap.size && saveSnapshot) {
-            const x: object[] = []
-            for (const [_, s] of snap.entries()) {
-                x.push(s)
-            }
-
+        if (saveSnapshot) {
             const snapshot = new Snapshot()
             snapshot.blockID = block.id
             snapshot.type = this.snapType
-            snapshot.data = x
-            insertSnapshot(snapshot, manager)
+
+            if (!snap.size) {
+                snapshot.data = null
+            } else {
+                const data: object[] = []
+                for (const [_, s] of snap.entries()) {
+                    data.push(s)
+                }
+                snapshot.data = data
+            }
+            await insertSnapshot(snapshot, manager)
         }
 
         return movements.length + acc.size
@@ -188,13 +192,15 @@ export class VIP180Transfer extends Processor {
 
                     for (; snapshots.length;) {
                         const snap = snapshots.pop()!
-                        for (const snapAcc of snap.data as SnapAccount[]) {
-                            const acc = manager.create(TokenBalance, {
-                                address: snapAcc.address,
-                                balance: BigInt(snapAcc.balance),
-                                type: snapAcc.type,
-                            })
-                            accounts.set(snapAcc.address, acc)
+                        if (snap.data) {
+                            for (const snapAcc of snap.data as SnapAccount[]) {
+                                const acc = manager.create(TokenBalance, {
+                                    address: snapAcc.address,
+                                    balance: BigInt(snapAcc.balance),
+                                    type: snapAcc.type,
+                                })
+                                accounts.set(snapAcc.address, acc)
+                            }
                         }
                     }
 

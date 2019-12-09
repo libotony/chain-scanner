@@ -114,7 +114,7 @@ export class DualToken extends Processor {
         }
 
         const snap = proc.snapshot()
-        if (snap && saveSnapshot) {
+        if (saveSnapshot) {
             await insertSnapshot(snap, manager)
         }
 
@@ -172,17 +172,19 @@ export class DualToken extends Processor {
 
             for (; snapshots.length;) {
                 const snap = snapshots.pop()!
-                for (const snapAcc of snap.data as SnapAccount[]) {
-                    const acc = manager.create(Account, {
-                        address: snapAcc.address,
-                        balance: BigInt(snapAcc.balance),
-                        energy: BigInt(snapAcc.energy),
-                        blockTime: snapAcc.blockTime,
-                        txCount: snapAcc.txCount,
-                        code: snapAcc.code,
-                        master: snapAcc.master
-                    })
-                    accounts.set(snapAcc.address, acc)
+                if (snap.data) {
+                    for (const snapAcc of snap.data as SnapAccount[]) {
+                        const acc = manager.create(Account, {
+                            address: snapAcc.address,
+                            balance: BigInt(snapAcc.balance),
+                            energy: BigInt(snapAcc.energy),
+                            blockTime: snapAcc.blockTime,
+                            txCount: snapAcc.txCount,
+                            code: snapAcc.code,
+                            master: snapAcc.master
+                        })
+                        accounts.set(snapAcc.address, acc)
+                    }
                 }
             }
 
