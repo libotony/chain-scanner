@@ -7,6 +7,8 @@ import { getBlockByID } from '../service/block'
 import { Transaction } from '../explorer-db/entity/transaction'
 import { Receipt } from '../explorer-db/entity/receipt'
 import { Block } from '../explorer-db/entity/block'
+import { BranchTransaction } from '../explorer-db/entity/branch-transaction'
+import { BranchReceipt } from '../explorer-db/entity/branch-receipt'
 
 const SAMPLING_INTERVAL = 1 * 1000
 
@@ -251,31 +253,31 @@ export class Foundation {
             score = b.totalScore - prevBlock.totalScore
         }
 
-        const txs: Transaction[] = []
-        const receipts: Receipt[] = []
+        const txs: any[] = []
+        const receipts: any[] = []
 
         const detail = await this.getBlockDetail(b)
         for (const [index, _] of b.transactions.entries()) {
             const t = detail.txs[index]
             const r = detail.receipts[index]
 
-            const txE = manager.create(Transaction, {
+            txs.push({
                 ...t,
                 id: undefined,
                 txID: t.id,
                 txIndex: index,
                 blockID: b.id
             })
-            txs.push(txE)
 
-            receipts.push(manager.create(Receipt, {
+            receipts.push({
                 ...r,
                 txID: t.id,
+                id: undefined,
                 txIndex: index,
                 blockID: b.id,
                 paid: BigInt(r.paid),
                 reward: BigInt(r.reward)
-            }))
+            })
 
             reward += BigInt(r.reward)
         }
@@ -283,8 +285,29 @@ export class Foundation {
 
         await this.persist.insertBlock(block, manager)
         if (txs.length) {
-            await this.persist.insertTXs(txs, manager)
-            await this.persist.insertReceipts(receipts, manager)
+            if (trunk) {
+                await this.persist.insertTXs(txs.map(x => {
+                    return manager.create(Transaction, {
+                        ...x
+                    })
+                }), manager)
+                await this.persist.insertReceipts(receipts.map(x => {
+                    return manager.create(Receipt, {
+                        ...x
+                    })
+                }), manager)
+            } else {
+                await this.persist.insertBranchTXs(txs.map(x => {
+                    return manager.create(BranchTransaction, {
+                        ...x
+                    })
+                }), manager)
+                await this.persist.insertBranchReceipts(receipts.map(x => {
+                    return manager.create(BranchReceipt, {
+                        ...x
+                    })
+                }), manager)
+            }
         }
         return 1 + txs.length + receipts.length
     }
