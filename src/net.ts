@@ -1,6 +1,5 @@
 import * as http from 'http'
 import * as querystring from 'querystring'
-import { Thor } from './thor-rest'
 
 interface Params {
     query?: Record<string, string>
@@ -69,10 +68,12 @@ export class Net {
                     }
                 })
 
-                req.on('error', e => {
-                    reject(e)
-                })
             })
+
+            req.on('error', e => {
+                reject(e)
+            })
+
             if (method === 'POST' && params!.body) {
                 req.write(JSON.stringify(params!.body))
             }
