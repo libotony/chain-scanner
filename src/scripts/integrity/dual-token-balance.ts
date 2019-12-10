@@ -6,6 +6,8 @@ import { PrototypeAddress, ZeroAddress, prototype } from '../../const'
 import { Net } from '../../net'
 import { getNetwork, checkNetworkWithDB } from '../network'
 import { getThorREST } from '../../utils'
+import { getBlockByNumber } from '../../service/block'
+import { Block } from '../../explorer-db/entity/block'
 
 const net = getNetwork()
 const persist = new Persist()
@@ -14,34 +16,38 @@ createConnection().then(async (conn) => {
     const thor = new Thor(new Net(getThorREST()), net)
     await checkNetworkWithDB(net)
 
-    const {head, accounts} = await new Promise((resolve, reject) => {
+    const { block, accounts } = await new Promise<{
+        block: Block,
+        accounts: Account[]
+    }>((resolve, reject) => {
         conn.manager.transaction('SERIALIZABLE', async manager => {
             const h = (await persist.getHead(manager))!
+            const b = (await getBlockByNumber(h))!
             const accs = await manager
                 .getRepository(Account)
                 .find()
-            resolve({head: h, accounts: accs})
+            resolve({block: b, accounts: accs})
         }).catch(reject)
     })
-    const block = await thor.getBlock(head)
+    const head =  block.id
 
     let count = 0
     console.log('start checking...')
-    for (let acc of accounts) {
+    for (const acc of accounts) {
         let chainAcc: Connex.Thor.Account
         let chainCode: Connex.Thor.Code
         let chainMaster: string | null = null
         let chainSponsor: string | null = null
         try {
-            chainAcc = await thor.getAccount(acc.address, head.toString())
-            chainCode = await thor.getCode(acc.address, head.toString())
+            chainAcc = await thor.getAccount(acc.address, head)
+            chainCode = await thor.getCode(acc.address, head)
             let ret = await thor.explain({
                 clauses: [{
                     to: PrototypeAddress,
                     value: '0x0',
                     data: prototype.master.encode(acc.address)
                 }]
-            }, head.toString())
+            }, head)
             let decoded = prototype.master.decode(ret[0].data)
             if (decoded['0'] !== ZeroAddress) {
                 chainMaster = decoded['0']
@@ -53,7 +59,7 @@ createConnection().then(async (conn) => {
                     value: '0x0',
                     data: prototype.currentSponsor.encode(acc.address)
                 }]
-            }, head.toString())
+            }, head)
             decoded = prototype.currentSponsor.decode(ret[0].data)
             const sponsor = decoded['0']
             if (sponsor !== ZeroAddress) {
@@ -63,7 +69,7 @@ createConnection().then(async (conn) => {
                         value: '0x0',
                         data: prototype.isSponsor.encode(acc.address, sponsor)
                     }]
-                }, head.toString())
+                }, head)
                 decoded = prototype.isSponsor.decode(ret[0].data)
                 if (decoded['0'] === true) {
                     chainSponsor = sponsor

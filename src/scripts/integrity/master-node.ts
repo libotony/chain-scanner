@@ -7,6 +7,7 @@ import { Block } from '../../explorer-db/entity/block'
 import { Net } from '../../net'
 import { getNetwork, checkNetworkWithDB } from '../network'
 import { getThorREST } from '../../utils'
+import { getBlockByNumber } from '../../service/block'
 
 const net = getNetwork()
 const thor = new Thor(new Net(getThorREST()), net)
@@ -27,21 +28,26 @@ const get = async (master: string, revision: string) => {
 createConnection().then(async (conn) => {
     await checkNetworkWithDB(net)
 
-    const {head, nodes} = await new Promise((resolve, reject) => {
+    const { block, nodes } = await new Promise<{
+        block: Block,
+        nodes: Authority[]
+    }>((resolve, reject) => {
         conn.manager.transaction('SERIALIZABLE', async manager => {
             const h = (await persist.getHead(manager))!
             const n = await manager
                 .getRepository(Authority)
                 .find()
-            resolve({head: h, nodes: n})
+            const b = (await getBlockByNumber(h))!
+            resolve({block: b, nodes: n})
         }).catch(reject)
     })
 
+    const head = block.id
     console.log('start checking...')
     let count = 0
     let listed = 0
     for (const node of nodes) {
-        const chain = await get(node.address, head.toString())
+        const chain = await get(node.address, head)
         if (chain.listed !== node.listed) {
             throw new Error(`Fatal: Master(${node.address}) listed status mismatch, want ${node.listed} got ${chain.listed}`)
         }
@@ -50,7 +56,7 @@ createConnection().then(async (conn) => {
         }
         const signed = await conn
             .getRepository(Block)
-            .count({ signer: node.address, isTrunk: true, number: LessThanOrEqual(head) })
+            .count({ signer: node.address, isTrunk: true, number: LessThanOrEqual(block.number) })
 
         if (node.signed !== signed) {
             throw new Error(`Fatal: Master(${node.address} signed block count mismatch, want ${node.signed} got ${signed}`)

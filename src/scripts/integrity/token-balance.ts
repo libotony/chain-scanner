@@ -7,6 +7,8 @@ import { Persist } from '../../processor/vip180/persist'
 import { Net } from '../../net'
 import { getNetwork, checkNetworkWithDB } from '../network'
 import { getThorREST } from '../../utils'
+import { getBlockByNumber } from '../../service/block'
+import { Block } from '../../explorer-db/entity/block'
 
 const net = getNetwork()
 const thor = new Thor(new Net(getThorREST()), net)
@@ -15,7 +17,10 @@ const persist = new Persist(token)
 
 createConnection().then(async (conn) => {
     await checkNetworkWithDB(net)
-    const {head, accounts} = await new Promise((resolve, reject) => {
+    const { block, accounts } = await new Promise<{
+        block: Block,
+        accounts: TokenBalance[]
+    }>((resolve, reject) => {
         conn.manager.transaction('SERIALIZABLE', async manager => {
             const h = (await persist.getHead(manager))!
             const accs = await manager
@@ -23,12 +28,13 @@ createConnection().then(async (conn) => {
                 .find({
                     where: { type: AssetType[token.symbol as keyof typeof AssetType] }
                 })
-            resolve({head: h, accounts: accs})
+            const b = (await getBlockByNumber(h))!
+            resolve({block: b, accounts: accs})
         }).catch(reject)
     })
-    const block = await thor.getBlock(head)
     let count = 0
 
+    const head = block.id
     console.log('start checking...')
     for (const acc of accounts) {
         let chainBalance: bigint
@@ -39,7 +45,7 @@ createConnection().then(async (conn) => {
                     value: '0x0',
                     data: balanceOf.encode(acc.address)
                 }]
-            }, block.id)
+            }, head)
             const decoded = balanceOf.decode(ret[0].data)
 
             chainBalance = BigInt(decoded.balance)
