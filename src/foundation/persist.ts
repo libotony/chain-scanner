@@ -56,11 +56,11 @@ export class Persist {
         }), manager)
 
         await manager
-            .getRepository(Transaction)
+            .getRepository(Receipt)
             .delete({ blockID: In([...ids]) })
 
         await manager
-            .getRepository(Receipt)
+            .getRepository(Transaction)
             .delete({ blockID: In([...ids]) })
 
         await manager
@@ -97,11 +97,11 @@ export class Persist {
         }), manager)
 
         await manager
-            .getRepository(BranchTransaction)
+            .getRepository(BranchReceipt)
             .delete({ blockID: In([...ids]) })
 
         await manager
-            .getRepository(BranchReceipt)
+            .getRepository(BranchTransaction)
             .delete({ blockID: In([...ids]) })
 
         await manager
