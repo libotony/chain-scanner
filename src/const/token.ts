@@ -28,6 +28,7 @@ const snk = { symbol: 'SNK', address: '', name: 'SneakerCoin', decimals: 18 }
 const jur = { symbol: 'JUR', address: '', name: 'Jur', decimals: 18 }
 const aqd = { symbol: 'AQD', address: '', name: 'Aqua Diamond Token', decimals: 18 }
 const yeet = { symbol: 'YEET', address: '', name: 'Yeet Coin', decimals: 18 }
+const hai = { symbol: 'HAI', address: '', name: 'HackenAI', decimals: 8 }
 
 main.set(pla.symbol, { ...pla, address: '0x89827f7bb951fd8a56f8ef13c5bfee38522f2e1f' })
 main.set(sha.symbol, { ...sha, address: '0x5db3c8a942333f6468176a870db36eef120a34dc' })
@@ -42,6 +43,7 @@ main.set(snk.symbol, { ...snk, address: '0x540768b909782c430cc321192e6c2322f7749
 main.set(jur.symbol, { ...jur, address: '0x46209d5e5a49c1d403f4ee3a0a88c3a27e29e58d' })
 main.set(aqd.symbol, { ...aqd, address: '0xf9fc8681bec2c9f35d0dd2461d035e62d643659b' })
 main.set(yeet.symbol, { ...yeet, address: '0xae4c53b120cba91a44832f875107cbc8fbee185c' })
+main.set(hai.symbol, { ...hai, address: '0xacc280010b2ee0efc770bce34774376656d8ce14' })
 
 test.set(pla.symbol, { ...pla, address: '0x645d2019ed39e58db76af602317d177b53ba8b9d' })
 test.set(sha.symbol, { ...sha, address: '0x9c6e62b3334294d70c8e410941f52d482557955b' })
