@@ -43,17 +43,18 @@ export class Persist {
             .getRepository(Receipt)
             .find({ blockID: In([...ids]) })
 
-        await this.insertBranchTXs(txs.map(x => {
-            return manager!.create(BranchTransaction, {
-                ...x
-            })
-        }), manager)
-
-        await this.insertBranchReceipts(receipts.map(x => {
-            return manager!.create(BranchReceipt, {
-                ...x
-            })
-        }), manager)
+        if (txs.length) {
+            await this.insertBranchTXs(txs.map(x => {
+                return manager!.create(BranchTransaction, {
+                    ...x
+                })
+            }), manager)
+            await this.insertBranchReceipts(receipts.map(x => {
+                return manager!.create(BranchReceipt, {
+                    ...x
+                })
+            }), manager)
+        }
 
         await manager
             .getRepository(Receipt)
@@ -84,17 +85,18 @@ export class Persist {
             .getRepository(BranchReceipt)
             .find({ blockID: In([...ids]) })
 
-        await this.insertTXs(txs.map(x => {
-            return manager!.create(Transaction, {
-                ...x
-            })
-        }), manager)
-
-        await this.insertReceipts(receipts.map(x => {
-            return manager!.create(Receipt, {
-                ...x
-            })
-        }), manager)
+        if (txs.length) {
+            await this.insertTXs(txs.map(x => {
+                return manager!.create(Transaction, {
+                    ...x
+                })
+            }), manager)
+            await this.insertReceipts(receipts.map(x => {
+                return manager!.create(Receipt, {
+                    ...x
+                })
+            }), manager)
+        }
 
         await manager
             .getRepository(BranchReceipt)

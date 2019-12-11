@@ -281,8 +281,8 @@ export class Foundation {
 
             receipts.push({
                 ...r,
-                txID: t.id,
                 id: undefined,
+                txID: t.id,
                 txIndex: index,
                 blockID: b.id,
                 paid: BigInt(r.paid),
