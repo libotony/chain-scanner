@@ -7,13 +7,16 @@ import { SnapType } from '../explorer-db/types'
 const SAMPLING_INTERVAL = 1 * 1000
 
 export abstract class Processor {
+    protected abstract get snapType(): SnapType
     protected head: number | null = null
     protected birthNumber: number | null = null
     private shutdown = false
     private ev = new EventEmitter()
 
-    public start() {
+    public async start() {
+        await this.beforeStart()
         this.loop()
+        return
     }
 
     public stop(): Promise<void> {
@@ -34,7 +37,6 @@ export abstract class Processor {
         saveSnapshot?: boolean
     ): Promise<number>
     protected abstract async latestTrunkCheck(): Promise<void>
-    protected abstract get snapType(): SnapType
 
     protected async getHead() {
         if (this.head !== null) {
@@ -59,8 +61,11 @@ export abstract class Processor {
         return !!count
     }
 
-    private async loop() {
+    private async beforeStart() {
         this.birthNumber = await this.bornAt()
+    }
+
+    private async loop() {
 
         for (; ;) {
             try {
@@ -71,7 +76,7 @@ export abstract class Processor {
                 await this.latestTrunkCheck()
 
                 let head = await this.getHead()
-                if (head === this.birthNumber - 1) {
+                if (head === this.birthNumber! - 1) {
                     await this.processGenesis()
                 }
 

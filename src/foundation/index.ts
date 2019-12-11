@@ -22,7 +22,7 @@ export class Foundation {
         this.persist = new Persist()
     }
 
-    public start() {
+    public async start() {
         this.loop()
         return
     }

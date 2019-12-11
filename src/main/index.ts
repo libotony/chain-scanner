@@ -69,9 +69,10 @@ switch (process.argv[3]) {
 let shutdown =  false
 
 createConnection().then(async () => {
-    task.start()
+    await task.start()
 }).catch((e: Error) => {
     process.stderr.write(`Start task(${process.argv[3]}) at Net(${process.argv[2]}): ` + (e as Error).stack + '\r\n')
+    process.exit(-1)
 })
 
 const signals: NodeJS.Signals[]  = ['SIGINT', 'SIGTERM', 'SIGQUIT']
