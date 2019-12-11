@@ -1,4 +1,4 @@
-import { createConnection, getManager, Transaction } from 'typeorm'
+import { createConnection, getManager, Transaction, LessThanOrEqual } from 'typeorm'
 import { Persist } from '../../processor/dual-token/persist'
 import { Thor } from '../../thor-rest'
 import { Account } from '../../explorer-db/entity/account'
@@ -83,8 +83,7 @@ createConnection().then(async (conn) => {
             .createQueryBuilder('tx')
             .where({ origin: acc.address })
             .leftJoin('tx.block', 'block')
-            .andWhere('block.isTrunk = :isTrunk', { isTrunk: true })
-            .andWhere('block.number <= :number', { number: head })
+            .andWhere('block.number <= :number', { number: block.number })
             .getCount()
 
         if (acc.txCount !== txCount) {
