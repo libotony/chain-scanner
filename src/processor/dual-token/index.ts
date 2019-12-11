@@ -1,6 +1,6 @@
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
-import { blockIDtoNum, displayID } from '../../utils'
+import { blockIDtoNum, displayID, REVERSIBLE_WINDOW } from '../../utils'
 import { EnergyAddress, TransferEvent, getPreAllocAccount, Network, prototype } from '../../const'
 import { getConnection, EntityManager } from 'typeorm'
 import { BlockProcessor, SnapAccount } from './block-processor'
@@ -124,7 +124,7 @@ export class DualToken extends Processor {
     protected async latestTrunkCheck() {
         let head = await this.getHead()
 
-        if (head < 12) {
+        if (head < REVERSIBLE_WINDOW) {
             return
         }
 

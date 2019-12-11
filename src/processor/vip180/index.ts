@@ -1,6 +1,6 @@
 import { SnapType, AssetType } from '../../explorer-db/types'
 import { AssetMovement } from '../../explorer-db/entity/movement'
-import { displayID, blockIDtoNum } from '../../utils'
+import { displayID, blockIDtoNum, REVERSIBLE_WINDOW } from '../../utils'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
 import { TransferEvent, ZeroAddress, TokenConfig, TokenBasic, prototype  } from '../../const'
@@ -169,7 +169,7 @@ export class VIP180Transfer extends Processor {
     protected async latestTrunkCheck() {
         let head = await this.getHead()
 
-        if (head < 12) {
+        if (head < REVERSIBLE_WINDOW) {
             return
         }
 

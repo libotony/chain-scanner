@@ -1,5 +1,5 @@
 import { SnapType } from '../../explorer-db/types'
-import { blockIDtoNum } from '../../utils'
+import { blockIDtoNum, REVERSIBLE_WINDOW } from '../../utils'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
 import { ZeroAddress, AuthorityAddress, authority } from '../../const'
@@ -126,7 +126,7 @@ export class MasterNodeWatcher extends Processor {
     protected async latestTrunkCheck() {
         let head = await this.getHead()
 
-        if (head < 12) {
+        if (head < REVERSIBLE_WINDOW) {
             return
         }
 

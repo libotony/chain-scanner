@@ -130,10 +130,13 @@ export class Foundation {
                         const toBranch: string[] = []
                         const toTrunk: string[] = []
 
+                        const newBranch: Array<Required<Connex.Thor.Block>> = []
+                        const newTrunk: Array<Required<Connex.Thor.Block>> = []
+
                         for (const b of branch) {
                             const tmp = await getBlockByID(b.id, manager)
                             if (!tmp) {
-                                await this.processBlock(b, manager, false)
+                                newBranch.push(b)
                             } else if (tmp.isTrunk) {
                                 toBranch.push(tmp.id)
                             }
@@ -141,7 +144,7 @@ export class Foundation {
                         for (const b of trunk) {
                             const tmp = await getBlockByID(b.id, manager)
                             if (!tmp) {
-                                await this.processBlock(b, manager)
+                                newTrunk.push(b)
                             } else if (!tmp.isTrunk) {
                                 toTrunk.push(tmp.id)
                             }
@@ -152,6 +155,13 @@ export class Foundation {
                         }
                         if (toTrunk.length) {
                             await this.persist.toTrunk(toTrunk, manager)
+                        }
+
+                        for (const b of newBranch) {
+                            await this.processBlock(b, manager, false)
+                        }
+                        for (const b of newTrunk) {
+                            await this.processBlock(b, manager, true)
                         }
 
                         await this.persist.saveHead(best.id, manager)

@@ -7,7 +7,7 @@ import { Config } from '../../explorer-db/entity/config'
 import { Block } from '../../explorer-db/entity/block'
 import { GasAdjustment } from '../../explorer-db/entity/gas-adjust'
 import { insertSnapshot, listRecentSnapshot, removeSnapshot, clearSnapShot } from '../../service/snapshot'
-import { blockIDtoNum } from '../../utils'
+import { blockIDtoNum, REVERSIBLE_WINDOW } from '../../utils'
 
 const HEAD_KEY = 'gas-adust-watcher-head'
 
@@ -125,7 +125,7 @@ export class GasAdjustmentWatcher extends Processor {
     protected async latestTrunkCheck() {
         let head = await this.getHead()
 
-        if (head < 12) {
+        if (head < REVERSIBLE_WINDOW) {
             return
         }
 
