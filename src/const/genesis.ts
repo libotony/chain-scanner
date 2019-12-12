@@ -1,6 +1,19 @@
 import {ParamsAddress, AuthorityAddress, EnergyAddress, ExecutorAddress, PrototypeAddress, ExtensionAddress} from './address'
 import { Network } from './network'
 
+const uint8ToAddress = (input: number) => ('0x' + Buffer.alloc(1).fill(input).toString('hex').padStart(40, '0'))
+
+const preCompiledContract = [
+    uint8ToAddress(1),
+    uint8ToAddress(2),
+    uint8ToAddress(3),
+    uint8ToAddress(4),
+    uint8ToAddress(5),
+    uint8ToAddress(6),
+    uint8ToAddress(7),
+    uint8ToAddress(8)
+]
+
 export const getPreAllocAccount = (net: Network) => {
     if (net === Network.MainNet) {
         return [
@@ -10,6 +23,7 @@ export const getPreAllocAccount = (net: Network) => {
             ExecutorAddress,
             PrototypeAddress,
             ExtensionAddress,
+            ...preCompiledContract,
             ...mainnet
         ]
     } else if (net === Network.TestNet) {
@@ -19,12 +33,12 @@ export const getPreAllocAccount = (net: Network) => {
             EnergyAddress,
             PrototypeAddress,
             ExtensionAddress,
+            ...preCompiledContract,
             ...testnet
         ]
     } else {
         throw new Error('unknown network: ' + net)
     }
-
 }
 
 const mainnet = [
