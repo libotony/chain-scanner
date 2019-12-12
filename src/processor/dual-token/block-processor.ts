@@ -6,7 +6,7 @@ import { displayID } from '../../utils'
 import { EntityManager } from 'typeorm'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { SnapType } from '../../explorer-db/types'
-import { ExtensionAddress, getForkConfig } from '../../const'
+import { ExtensionAddress, getForkConfig, PrototypeAddress, prototype, ZeroAddress } from '../../const'
 
 export interface SnapAccount {
     address: string
@@ -114,8 +114,20 @@ export class BlockProcessor {
                 const ret = await this.thor.getAccount(acc.address, this.block.id)
                 acc.energy = BigInt(ret.energy)
                 acc.blockTime = this.block.timestamp
-            }
 
+                if (
+                    acc.code !== null && ret.hasCode === false &&
+                    acc.energy === BigInt(0) && acc.balance === BigInt(0)
+                ) {
+                    const master = await this.getMaster(acc.address)
+                    // contract suicide
+                    if (master === null) {
+                        acc.code = null
+                        acc.master = null
+                        acc.sponsor = null
+                    }
+                }
+            }
             if (this.updateCode.has(acc.address)) {
                 const code = await this.thor.getCode(acc.address, this.block.id)
                 if (code && code.code !== '0x') {
@@ -205,6 +217,22 @@ export class BlockProcessor {
             this.acc.set(addr, newAcc)
             this.takeSnap(newAcc)
             return newAcc
+        }
+    }
+
+    private async getMaster(addr: string) {
+        const ret = await this.thor.explain({
+            clauses: [{
+                to: PrototypeAddress,
+                value: '0x0',
+                data: prototype.master.encode(addr)
+            }]
+        }, this.block.id)
+        const decoded = prototype.master.decode(ret[0].data)
+        if (decoded['0'] === ZeroAddress) {
+            return null
+        } else {
+            return decoded['0']
         }
     }
 
