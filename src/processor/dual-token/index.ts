@@ -1,6 +1,6 @@
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
-import { blockIDtoNum, displayID, REVERSIBLE_WINDOW } from '../../utils'
+import { blockIDtoNum, displayID, REVERSIBLE_WINDOW, DESTRUCT_CHECK_INTERVAL } from '../../utils'
 import { EnergyAddress, TransferEvent, getPreAllocAccount, Network, prototype } from '../../const'
 import { getConnection, EntityManager } from 'typeorm'
 import { BlockProcessor, SnapAccount } from './block-processor'
@@ -104,6 +104,11 @@ export class DualToken extends Processor {
         if (receipts.length) {
             await proc.touchEnergy(block.beneficiary)
         }
+
+        if (saveSnapshot && (block.number % DESTRUCT_CHECK_INTERVAL === 0)) {
+            await proc.destructCheck()
+        }
+
         await proc.finalize()
 
         if (proc.Movement.length) {

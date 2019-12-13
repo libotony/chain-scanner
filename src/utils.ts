@@ -1,4 +1,5 @@
 export const REVERSIBLE_WINDOW = 12
+export const DESTRUCT_CHECK_INTERVAL = 8640
 
 export const blockIDtoNum = (blockID: string) => {
     if (typeof blockID === 'string' && !/^0x[0-9a-fA-f]{64}$/i.test(blockID)) {

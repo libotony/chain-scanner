@@ -3,7 +3,7 @@ import { Account } from '../../explorer-db/entity/account'
 import { Thor } from '../../thor-rest'
 import { AssetMovement } from '../../explorer-db/entity/movement'
 import { displayID } from '../../utils'
-import { EntityManager } from 'typeorm'
+import { EntityManager, Not, IsNull } from 'typeorm'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { SnapType } from '../../explorer-db/types'
 import { ExtensionAddress, getForkConfig, PrototypeAddress, prototype, ZeroAddress } from '../../const'
@@ -111,7 +111,6 @@ export class BlockProcessor {
     }
 
     public async finalize() {
-
         for (const [_, acc] of this.acc.entries()) {
             if (this.updateEnergy.has(acc.address)) {
                 const ret = await this.thor.getAccount(acc.address, this.block.id)
@@ -181,6 +180,29 @@ export class BlockProcessor {
         }
     }
 
+    public async destructCheck() {
+        const accounts = await this.manager
+            .getRepository(Account)
+            .find({
+                balance: BigInt(0),
+                energy: BigInt(0),
+                code: Not(IsNull())
+            })
+        for (const acc of accounts) {
+            const chainAcc = await this.thor.getAccount(acc.address, this.block.id)
+            if (chainAcc.hasCode === false) {
+                const master = await this.getMaster(acc.address)
+                if (master === null) {
+                    // contract suicided
+                    const account = await this.account(acc.address)
+                    account.code = null
+                    account.master = null
+                    account.sponsor = null
+                }
+            }
+        }
+    }
+
     private takeSnap(acc: Account) {
         this.snap.set(acc.address, {
             address: acc.address,
@@ -238,5 +260,4 @@ export class BlockProcessor {
             return decoded['0']
         }
     }
-
 }
