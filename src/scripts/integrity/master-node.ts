@@ -54,15 +54,19 @@ createConnection().then(async (conn) => {
             listed++
         }
 
-        const { blocks } = await new Promise<{
+        const { blocks, authNode } = await new Promise<{
             blocks: Block[],
+            authNode: Authority
         }>((resolve, reject) => {
             conn.manager.transaction('SERIALIZABLE', async manager => {
                 const h = (await persist.getHead(manager))!
+                const authNode = (await manager
+                    .getRepository(Authority)
+                    .findOne({address: node.address}))!
                 const blocks = await manager
                     .getRepository(Block)
                     .find({ signer: node.address, isTrunk: true, number: LessThanOrEqual(h) })
-                resolve({blocks})
+                resolve({blocks, authNode})
             }).catch(reject)
         })
 
@@ -70,11 +74,11 @@ createConnection().then(async (conn) => {
             return acc + b.reward
         }, BigInt(0))
 
-        if (reward !== node.reward) {
+        if (authNode.reward !== reward) {
             throw new Error(`Fatal: Master(${node.address} block reward mismatch, want ${node.reward} got ${reward}`)
         }
 
-        if (node.signed !== blocks.length) {
+        if (authNode.signed !== blocks.length) {
             throw new Error(`Fatal: Master(${node.address} signed block count mismatch, want ${node.signed} got ${blocks.length}`)
         }
 
