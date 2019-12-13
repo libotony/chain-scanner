@@ -44,7 +44,6 @@ createConnection().then(async (conn) => {
 
     const head = block.id
     console.log('start checking...')
-    let count = 0
     let listed = 0
     for (const node of nodes) {
         const chain = await get(node.address, head)
@@ -54,18 +53,32 @@ createConnection().then(async (conn) => {
         if (chain.listed) {
             listed++
         }
-        const signed = await conn
-            .getRepository(Block)
-            .count({ signer: node.address, isTrunk: true, number: LessThanOrEqual(block.number) })
 
-        if (node.signed !== signed) {
-            throw new Error(`Fatal: Master(${node.address} signed block count mismatch, want ${node.signed} got ${signed}`)
+        const { blocks } = await new Promise<{
+            blocks: Block[],
+        }>((resolve, reject) => {
+            conn.manager.transaction('SERIALIZABLE', async manager => {
+                const h = (await persist.getHead(manager))!
+                const blocks = await manager
+                    .getRepository(Block)
+                    .find({ signer: node.address, isTrunk: true, number: LessThanOrEqual(h) })
+                resolve({blocks})
+            }).catch(reject)
+        })
+
+        const reward = blocks.reduce((acc, b) => {
+            return acc + b.reward
+        }, BigInt(0))
+
+        if (reward !== node.reward) {
+            throw new Error(`Fatal: Master(${node.address} block reward mismatch, want ${node.reward} got ${reward}`)
         }
 
-        count++
-        if (count % 10 === 0) {
-            console.log('checked ', count)
+        if (node.signed !== blocks.length) {
+            throw new Error(`Fatal: Master(${node.address} signed block count mismatch, want ${node.signed} got ${blocks.length}`)
         }
+
+        console.log('checked', node.address)
     }
 
     console.log(`Total master: ${nodes.length}, inPower: ${listed}`)
