@@ -46,6 +46,8 @@ export class DualToken extends Processor {
         const txs = await getBlockTransactions(block.id, manager)
 
         const proc = new BlockProcessor(block, this.thor, manager)
+        await proc.prepare()
+
         for (const r of receipts) {
             for (const [clauseIndex, o] of r.outputs.entries()) {
                 for (const [logIndex, t] of o.transfers.entries()) {

@@ -31,10 +31,12 @@ export class BlockProcessor {
         readonly block: Block,
         readonly thor: Thor,
         readonly manager: EntityManager
-    ) {
-        const forkConfig = getForkConfig(thor.genesisID)
-        if (block.number === forkConfig.VIP191) {
-            this.account(ExtensionAddress)
+    ) {}
+
+    public async prepare() {
+        const forkConfig = getForkConfig(this.thor.genesisID)
+        if (this.block.number === forkConfig.VIP191) {
+            await this.account(ExtensionAddress)
             this.updateCode.add(ExtensionAddress)
         }
     }
@@ -109,6 +111,7 @@ export class BlockProcessor {
     }
 
     public async finalize() {
+
         for (const [_, acc] of this.acc.entries()) {
             if (this.updateEnergy.has(acc.address)) {
                 const ret = await this.thor.getAccount(acc.address, this.block.id)
