@@ -51,4 +51,11 @@ export class InterruptedError extends Error {
     }
 }
 
+export class WaitNextTickError extends Error {
+    constructor() {
+        super()
+    }
+}
+
+WaitNextTickError.prototype.name = 'WaitNextTickError'
 InterruptedError.prototype.name = 'InterruptedError'

@@ -5,7 +5,7 @@ import { Processor } from '../processor'
 import { getBlockByNumber } from '../../service/block'
 import { Config } from '../../explorer-db/entity/config'
 import { insertSnapshot, listRecentSnapshot, removeSnapshot, clearSnapShot } from '../../service/snapshot'
-import { blockIDtoNum, REVERSIBLE_WINDOW } from '../../utils'
+import { blockIDtoNum, REVERSIBLE_WINDOW, WaitNextTickError } from '../../utils'
 import { BuybackTheft } from '../../explorer-db/entity/buyback-theft'
 import { Account } from '../../explorer-db/entity/account'
 import { AssetMovement } from '../../explorer-db/entity/movement'
@@ -147,8 +147,9 @@ export class BuybackIncidentWatcher extends Processor {
     protected async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
         const dualTokenHead = await persist.getDualTokenHead(manager)
         if (dualTokenHead === null || dualTokenHead < blockNum) {
-            process.stdout.write('waiting for dual token process\r\n')
-            return 0
+            // waiting for dual token process
+            process.stdout.write('#')
+            throw new WaitNextTickError()
         }
 
         const block = (await getBlockByNumber(blockNum, manager))!
@@ -165,18 +166,22 @@ export class BuybackIncidentWatcher extends Processor {
                     if (!recipient) {
                         if (KnowExchange.has(tr.recipient)) {
                             // Transferring to exchange
-                            console.log(`!!!! Caution: suspicious transfer to ${KnowExchange.get(tr.recipient)} TX(${tr.txID})`)
+                            console.log(`
+!!!! Caution: suspicious transfer to ${KnowExchange.get(tr.recipient)} TX(${tr.txID})
+`)
                         } else {
                             const recipientAcc = (await persist.getAccount(tr.recipient, manager))!
                             // first seen in 12 blocks will be considered newly created
                             if (recipientAcc.firstSeen < startBlockTime) {
-                                console.log(`xxxx Recipient(${tr.recipient}) born earlier than the start block, (${new Date(recipientAcc.firstSeen * 1000).toLocaleString()}), ignore first`)
+                                console.log(`
+xxxx Recipient(${tr.recipient}) born earlier than the start block, (${new Date(recipientAcc.firstSeen * 1000).toLocaleString()}), ignore first
+`)
                             } else {
                                 const count = await persist.getTheftAddressCount(manager)
                                 const acc = manager.create(BuybackTheft, { address: tr.recipient })
                                 await manager.save(BuybackTheft, acc)
                                 await persist.updateAlias(tr.recipient, aliasPrefix + count, manager)
-                                console.log(`new address(${tr.recipient}) at Block(${blockNum})`)
+                                console.log(`New address(${tr.recipient}) at Block(${blockNum})`)
                                 addresses.push(tr.recipient)
                             }
                         }

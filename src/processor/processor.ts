@@ -1,5 +1,5 @@
 import { EntityManager, getConnection } from 'typeorm'
-import { sleep, REVERSIBLE_WINDOW, InterruptedError } from '../utils'
+import { sleep, REVERSIBLE_WINDOW, InterruptedError, WaitNextTickError } from '../utils'
 import { EventEmitter } from 'events'
 import { getBest } from '../service/block'
 import { SnapType } from '../explorer-db/types'
@@ -98,13 +98,15 @@ export abstract class Processor {
                 })
                 this.head = best.number
             } catch (e) {
-                if (!(e instanceof InterruptedError)) {
-                    process.stderr.write(`processor(${this.constructor.name}) loop: ` + (e as Error).stack + '\r\n')
-                } else {
+                if (e instanceof WaitNextTickError) {
+                    continue
+                } else if (e instanceof InterruptedError) {
                     if (this.shutdown) {
                         this.ev.emit('closed')
                         break
                     }
+                } else {
+                    process.stderr.write(`processor(${this.constructor.name}) loop: ` + (e as Error).stack + '\r\n')
                 }
             }
         }
