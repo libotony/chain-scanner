@@ -64,4 +64,16 @@ export class Persist {
             })
     }
 
+    public removeAccounts(accs: string[], manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
+            .getRepository(Account)
+            .delete({
+                address: In([...accs])
+            })
+    }
+
 }

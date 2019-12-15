@@ -13,6 +13,7 @@ export interface SnapAccount {
     balance: string
     energy: string
     blockTime: number
+    firstSeen: number
     txCount: number
     code: string|null
     master: string|null
@@ -209,6 +210,7 @@ export class BlockProcessor {
             balance: acc.balance.toString(10),
             energy: acc.energy.toString(10),
             blockTime: acc.blockTime,
+            firstSeen: acc.firstSeen,
             txCount: acc.txCount,
             code: acc.code,
             master: acc.master,
@@ -233,6 +235,7 @@ export class BlockProcessor {
                 balance: BigInt(0),
                 energy: BigInt(0),
                 blockTime: this.block.timestamp,
+                firstSeen: this.block.timestamp,
                 code: null,
                 master: null,
                 sponsor: null,

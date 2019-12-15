@@ -176,21 +176,27 @@ export class DualToken extends Processor {
         const toRevert = snapshots.map(x => x.blockID)
         await getConnection().transaction(async (manager) => {
             const accounts = new Map<string, Account>()
+            const accCreated: string[] = []
 
             for (; snapshots.length;) {
                 const snap = snapshots.pop()!
                 if (snap.data) {
                     for (const snapAcc of snap.data as SnapAccount[]) {
-                        const acc = manager.create(Account, {
-                            address: snapAcc.address,
-                            balance: BigInt(snapAcc.balance),
-                            energy: BigInt(snapAcc.energy),
-                            blockTime: snapAcc.blockTime,
-                            txCount: snapAcc.txCount,
-                            code: snapAcc.code,
-                            master: snapAcc.master
-                        })
-                        accounts.set(snapAcc.address, acc)
+                        if (snapAcc.firstSeen === snap.block.timestamp) {
+                            accCreated.push(snapAcc.address)
+                        } else {
+                            const acc = manager.create(Account, {
+                                address: snapAcc.address,
+                                balance: BigInt(snapAcc.balance),
+                                energy: BigInt(snapAcc.energy),
+                                blockTime: snapAcc.blockTime,
+                                firstSeen: snapAcc.firstSeen,
+                                txCount: snapAcc.txCount,
+                                code: snapAcc.code,
+                                master: snapAcc.master
+                            })
+                            accounts.set(snapAcc.address, acc)
+                        }
                     }
                 }
             }
@@ -200,7 +206,13 @@ export class DualToken extends Processor {
                 toSave.push(acc)
                 console.log(`Account(${acc.address}) reverted to VET(${acc.balance}) Energy(${acc.balance}) BlockTime(${acc.blockTime}) at Block(${displayID(headID)})`)
             }
+            for (const acc of accCreated) {
+                console.log(`newAccount(${acc}) removed for revert at Block(${displayID(headID)})`)
+            }
 
+            if (accCreated.length) {
+                await this.persist.removeAccounts(accCreated)
+            }
             await this.persist.saveAccounts(toSave, manager)
             await this.persist.removeMovements(toRevert, manager)
             await removeSnapshot(toRevert, this.snapType, manager)
