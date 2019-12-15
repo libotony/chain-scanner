@@ -3,7 +3,7 @@ import { Config } from '../explorer-db/entity/config'
 import { Snapshot } from '../explorer-db/entity/snapshot'
 import { SnapType } from '../explorer-db/types'
 import { In, createConnection, getConnectionOptions, Not } from 'typeorm'
-import { BuybackHacker } from '../explorer-db/entity/buyback-hacker'
+import { BuybackTheft } from '../explorer-db/entity/buyback-theft'
 
 Promise.resolve().then(async () => {
     const opt = await getConnectionOptions()
@@ -12,13 +12,13 @@ Promise.resolve().then(async () => {
       logger: undefined
    }))
 
-    const hackers = await conn.getRepository(BuybackHacker).find()
+    const hackers = await conn.getRepository(BuybackTheft).find()
     if (hackers.length) {
         await conn.getRepository(Account)
             .update({address: In(hackers.map(x => x.address))}, {alias: null})
     }
-    await conn.getRepository(BuybackHacker).clear()
-    await conn.getRepository(Snapshot).delete({type: SnapType.BuyBackHacker})
+    await conn.getRepository(BuybackTheft).clear()
+    await conn.getRepository(Snapshot).delete({type: SnapType.BuybackTheft})
     await conn.getRepository(Config).delete({ key: 'buyback-incident-watcher-head'})
 }).then(() => {
     process.exit(0)

@@ -1,18 +1,27 @@
 import { SnapType, AssetType } from '../../explorer-db/types'
-import { EntityManager, getConnection, LessThan, In, Between } from 'typeorm'
+import { EntityManager, getConnection, In } from 'typeorm'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { Processor } from '../processor'
 import { getBlockByNumber } from '../../service/block'
 import { Config } from '../../explorer-db/entity/config'
 import { insertSnapshot, listRecentSnapshot, removeSnapshot, clearSnapShot } from '../../service/snapshot'
-import { blockIDtoNum, REVERSIBLE_WINDOW, sleep } from '../../utils'
-import { BuybackHacker } from '../../explorer-db/entity/buyback-hacker'
+import { blockIDtoNum, REVERSIBLE_WINDOW } from '../../utils'
+import { BuybackTheft } from '../../explorer-db/entity/buyback-theft'
 import { Account } from '../../explorer-db/entity/account'
 import { AssetMovement } from '../../explorer-db/entity/movement'
+import { KnowExchange } from '../../const'
 
 const HEAD_KEY = 'buyback-incident-watcher-head'
-const aliasPrefix = 'buyback-hacker '
-const firstHacker = '0xd802a148f38aba4759879c33e8d04deb00cfb92b'
+const aliasPrefix = 'buyback-theft '
+const buybackAddress = '0xcbb08415335623a838e27d22ac7fdf8a370af064'
+
+const theftOwned = [
+    '0xf1cab8176f6df208468fd592e37fdafca4d96bd2',
+    '0xbe3d5f8f926715e261d4ba14cff07b64d781609a',
+    '0x91303fa67bd27408fcac1ad50b20f7c2d5a1426b',
+    '0xbf781d431172bf6d6eccfb9d5d318972470e60f7',
+    '0xd802a148f38aba4759879c33e8d04deb00cfb92b',
+]
 
 const persist = {
     saveHead: (val: number, manager?: EntityManager) => {
@@ -59,30 +68,35 @@ const persist = {
                 blockID
             })
     },
-    getHackerAddress: (address: string, manager: EntityManager) => {
+    getTheftAddress: (address: string, manager: EntityManager) => {
         return manager
-            .getRepository(BuybackHacker)
-            .findOne({address})
+            .getRepository(BuybackTheft)
+            .findOne({ address })
     },
     getAccount: (address: string, manager: EntityManager) => {
         return manager
             .getRepository(Account)
-            .findOne({address})
+            .findOne({ address })
     },
     updateAlias: (address: string, alias: string, manager: EntityManager) => {
         return manager
             .getRepository(Account)
-            .update({address}, {alias})
+            .update({ address }, { alias })
     },
     resetAlias: (addresses: string[], manager: EntityManager) => {
         return manager
             .getRepository(Account)
-            .update({address: In(addresses)}, {alias: null})
+            .update({ address: In(addresses) }, { alias: null })
     },
-    removeHackers: (addresses: string[], manager: EntityManager) => {
+    removeThefts: (addresses: string[], manager: EntityManager) => {
         return manager
-            .getRepository(BuybackHacker)
-            .delete({address: In(addresses)})
+            .getRepository(BuybackTheft)
+            .delete({ address: In(addresses) })
+    },
+    getTheftAddressCount: (manager: EntityManager) => {
+        return manager
+            .getRepository(BuybackTheft)
+            .count()
     }
 }
 
@@ -106,16 +120,22 @@ export class BuybackIncidentWatcher extends Processor {
     }
 
     protected get snapType() {
-        return SnapType.BuyBackHacker
+        return SnapType.BuybackTheft
     }
 
     protected async processGenesis() {
         await getConnection().transaction(async (manager) => {
-            const acc = new BuybackHacker()
-            acc.address = firstHacker
+            let acc = manager.create(BuybackTheft, { address: buybackAddress })
+            await manager.save(BuybackTheft, acc)
+            await persist.updateAlias(buybackAddress, 'buyback(stolen)', manager)
 
-            await manager.save(BuybackHacker, acc)
-            await persist.updateAlias(firstHacker, aliasPrefix + '(first)', manager)
+            let i = 1
+            for (const addr of theftOwned) {
+                acc = manager.create(BuybackTheft, { address: addr })
+                await manager.save(BuybackTheft, acc)
+                await persist.updateAlias(addr, aliasPrefix + (i++), manager)
+            }
+
         })
     }
 
@@ -135,18 +155,32 @@ export class BuybackIncidentWatcher extends Processor {
 
         if (transfers.length) {
             for (const tr of transfers) {
-                const sender = await persist.getHackerAddress(tr.sender, manager)
-                const recipient = await persist.getHackerAddress(tr.recipient, manager)
-                if (sender && !recipient) {
-                    const acc = new BuybackHacker()
-                    acc.address = tr.recipient
+                const sender = await persist.getTheftAddress(tr.sender, manager)
+                const recipient = await persist.getTheftAddress(tr.recipient, manager)
 
-                    console.log(`new address(${acc.address}) at Block(${blockNum})`)
-
-                    await manager.save(BuybackHacker, acc)
-                    await persist.updateAlias(tr.recipient, aliasPrefix, manager)
-                    addresses.push(tr.recipient)
+                if (sender) {
+                    console.log(`new transfer: From(${tr.sender}) To(${tr.recipient}) Value(${tr.amount} ${AssetType[tr.type]})`)
+                    if (!recipient) {
+                        if (KnowExchange.has(tr.recipient)) {
+                            // Transferring to exchange
+                            console.log(`!!Caution: suspicious transfer to ${KnowExchange.get(tr.recipient)}`)
+                        } else {
+                            const recipientAcc = (await persist.getAccount(tr.recipient, manager))!
+                            // first seen in 12 blocks will be considered newly created
+                            if (recipientAcc.firstSeen < block.timestamp - 12 * 10) {
+                                console.log(`new Recipient(${tr.recipient}) which is first seen at 12 blocks away(${new Date(recipientAcc.firstSeen * 1000).toLocaleString()}), ignore first`)
+                            } else {
+                                const count = await persist.getTheftAddressCount(manager)
+                                const acc = manager.create(BuybackTheft, { address: tr.recipient })
+                                await manager.save(BuybackTheft, acc)
+                                await persist.updateAlias(tr.recipient, aliasPrefix + count, manager)
+                                console.log(`new address(${tr.recipient}) at Block(${blockNum})`)
+                                addresses.push(tr.recipient)
+                            }
+                        }
+                    }
                 }
+
             }
         }
 
@@ -163,7 +197,6 @@ export class BuybackIncidentWatcher extends Processor {
         }
 
         return addresses.length
-
     }
 
     protected async latestTrunkCheck() {
@@ -195,7 +228,7 @@ export class BuybackIncidentWatcher extends Processor {
                         }
                     }
                     if (addr.length) {
-                        await persist.removeHackers(addr, manager)
+                        await persist.removeThefts(addr, manager)
                         await persist.resetAlias(addr, manager)
                     }
 
