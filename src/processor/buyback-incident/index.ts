@@ -23,6 +23,8 @@ const theftOwned = [
     '0xd802a148f38aba4759879c33e8d04deb00cfb92b',
 ]
 
+const startBlockTime = 1576228840
+
 const persist = {
     saveHead: (val: number, manager?: EntityManager) => {
         if (!manager) {
@@ -116,7 +118,7 @@ export class BuybackIncidentWatcher extends Processor {
     }
 
     protected bornAt() {
-        return Promise.resolve(4578946)
+        return Promise.resolve(4577196)
     }
 
     protected get snapType() {
@@ -159,16 +161,16 @@ export class BuybackIncidentWatcher extends Processor {
                 const recipient = await persist.getTheftAddress(tr.recipient, manager)
 
                 if (sender) {
-                    console.log(`new transfer: From(${tr.sender}) To(${tr.recipient}) Value(${tr.amount} ${AssetType[tr.type]})`)
+                    console.log(`Account(${tr.sender}) --> Account(${tr.recipient}): (${tr.amount} ${AssetType[tr.type]})`)
                     if (!recipient) {
                         if (KnowExchange.has(tr.recipient)) {
                             // Transferring to exchange
-                            console.log(`!!Caution: suspicious transfer to ${KnowExchange.get(tr.recipient)}`)
+                            console.log(`!!!! Caution: suspicious transfer to ${KnowExchange.get(tr.recipient)} TX(${tr.txID})`)
                         } else {
                             const recipientAcc = (await persist.getAccount(tr.recipient, manager))!
                             // first seen in 12 blocks will be considered newly created
-                            if (recipientAcc.firstSeen < block.timestamp - 12 * 10) {
-                                console.log(`new Recipient(${tr.recipient}) which is first seen at 12 blocks away(${new Date(recipientAcc.firstSeen * 1000).toLocaleString()}), ignore first`)
+                            if (recipientAcc.firstSeen < startBlockTime) {
+                                console.log(`xxxx Recipient(${tr.recipient}) born earlier than the start block, (${new Date(recipientAcc.firstSeen * 1000).toLocaleString()}), ignore first`)
                             } else {
                                 const count = await persist.getTheftAddressCount(manager)
                                 const acc = manager.create(BuybackTheft, { address: tr.recipient })
