@@ -1,3 +1,4 @@
+import * as https from 'https'
 import * as http from 'http'
 import * as querystring from 'querystring'
 
@@ -7,19 +8,35 @@ interface Params {
     headers?: Record<string, string>
     validateResponseHeader?: (headers: Record<string, string>) => void
 }
+type RequestFunc = (
+    url: string,
+    options: http.RequestOptions,
+    callback?: (res: http.IncomingMessage) => void
+) => http.ClientRequest
 
 export class Net {
-    private agent: http.Agent
+    private agent: http.Agent | https.Agent
+    private request: RequestFunc
 
     constructor(
         readonly baseURL: string,
         readonly timeout = 15 * 1000
     ) {
-        this.agent = new http.Agent({
-            keepAlive: true,
-            maxSockets: 1000,
-            maxFreeSockets: 50
-        })
+        if (baseURL.startsWith('https://')) {
+            this.agent = new https.Agent({
+                keepAlive: true,
+                maxSockets: 1000,
+                maxFreeSockets: 50
+            })
+            this.request = https.request
+        } else {
+            this.agent = new http.Agent({
+                keepAlive: true,
+                maxSockets: 1000,
+                maxFreeSockets: 50
+            })
+            this.request = http.request
+        }
     }
 
     public async http<T>(
@@ -34,7 +51,7 @@ export class Net {
         const url = this.baseURL + '/' + path + (params.query ? ('?' + querystring.stringify(params.query)) : '')
 
         return new Promise((resolve, reject) => {
-            const req = http.request(url, {
+            const req = this.request(url, {
                 method,
                 headers: params!.headers || {},
                 agent: this.agent,
