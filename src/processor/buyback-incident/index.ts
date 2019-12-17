@@ -22,6 +22,7 @@ const theftOwned = [
     '0xbf781d431172bf6d6eccfb9d5d318972470e60f7',
     '0xd802a148f38aba4759879c33e8d04deb00cfb92b',
 ]
+const manualBlackList = ['0x1ac4682272dbf6f7e3387d1e93ee87ccc2cd4efb']
 
 const startBlockTime = 1576228840
 
@@ -171,8 +172,8 @@ export class BuybackIncidentWatcher extends Processor {
 `)
                         } else {
                             const recipientAcc = (await persist.getAccount(tr.recipient, manager))!
-                            // first seen in 12 blocks will be considered newly created
-                            if (recipientAcc.firstSeen < startBlockTime) {
+                            // first seen earlier than the incident and not in the manual blacklist
+                            if (recipientAcc.firstSeen < startBlockTime && manualBlackList.indexOf(tr.recipient) === -1) {
                                 console.log(`
 xxxx Recipient(${tr.recipient}) born earlier than the start block, (${new Date(recipientAcc.firstSeen * 1000).toLocaleString()}), ignore first
 `)
