@@ -67,3 +67,4 @@ KnowExchange.set('0xf9f99f982f3ea9020f0a0afd4d4679dfee1b63cf', 'vexchange.io (VT
 KnowExchange.set('0xdc690f1a5de6108239d2d91cfdaa1d19e7ef7f82', 'vexchange.io (YEET custom contract)')
 KnowExchange.set('0x534bd48d7cfb0602ea3708cfddacfeb2242c843e', 'vtho.exchange (Contract)')
 KnowExchange.set('0x012345403c589a51b02ee27bd41339f6114aac6a', 'vtho.exchange (Intermediary)')
+KnowExchange.set('0xfe3baf051e7957393d4bedd14447851946163a74', 'CoinEx (Out)')
