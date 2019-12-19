@@ -9,7 +9,6 @@ import { GasAdjustmentWatcher } from '../processor/gas-adjust'
 import { createConnection } from 'typeorm'
 import { Net } from '../net'
 import { getThorREST } from '../utils'
-import { BuybackIncidentWatcher } from '../processor/buyback-incident'
 
 const printUsage = (msg = '') => {
     process.stderr.write(`${msg ? msg + '\n\n' : ''}Usage: node index.js [Network][Task][...Args]
@@ -63,9 +62,6 @@ switch (process.argv[3]) {
         break
     case 'gas-adjust':
         task = new GasAdjustmentWatcher()
-        break
-    case 'buyback':
-        task = new BuybackIncidentWatcher()
         break
     default:
         printUsage('invalid task name')
