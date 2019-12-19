@@ -3,6 +3,7 @@ import { sleep, REVERSIBLE_WINDOW, InterruptedError, WaitNextTickError } from '.
 import { EventEmitter } from 'events'
 import { getBest } from '../service/block'
 import { SnapType } from '../explorer-db/types'
+import * as logger from '../logger'
 
 const SAMPLING_INTERVAL = 1 * 1000
 
@@ -23,7 +24,7 @@ export abstract class Processor {
         this.shutdown = true
 
         return new Promise((resolve) => {
-            console.log('shutting down......')
+            logger.log('shutting down......')
             this.ev.on('closed', resolve)
         })
     }
@@ -94,7 +95,7 @@ export abstract class Processor {
                         await this.processBlock(i, manager, true)
                     }
                     await this.saveHead(best.number, manager)
-                    console.log('-> save head:', best.number)
+                    logger.log('-> save head: ' + best.number)
                 })
                 this.head = best.number
             } catch (e) {
@@ -106,7 +107,7 @@ export abstract class Processor {
                         break
                     }
                 } else {
-                    process.stderr.write(`processor(${this.constructor.name}) loop: ` + (e as Error).stack + '\r\n')
+                    logger.error(`processor(${this.constructor.name}) loop: ` + (e as Error).stack)
                 }
             }
         }

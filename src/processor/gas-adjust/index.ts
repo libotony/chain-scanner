@@ -8,6 +8,7 @@ import { Block } from '../../explorer-db/entity/block'
 import { GasAdjustment } from '../../explorer-db/entity/gas-adjust'
 import { insertSnapshot, listRecentSnapshot, removeSnapshot, clearSnapShot } from '../../service/snapshot'
 import { blockIDtoNum, REVERSIBLE_WINDOW } from '../../utils'
+import * as logger from '../../logger'
 
 const HEAD_KEY = 'gas-adust-watcher-head'
 
@@ -146,7 +147,7 @@ export class GasAdjustmentWatcher extends Processor {
                     await persist.removeAdjustments(toRevert, manager)
                     await removeSnapshot(toRevert, this.snapType, manager)
                     await this.saveHead(headNum, manager)
-                    console.log('-> revert to head:', headNum)
+                    logger.log('-> revert to head:' + headNum)
                 })
 
                 this.head = headNum

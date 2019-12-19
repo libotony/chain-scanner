@@ -9,13 +9,13 @@ import { GasAdjustmentWatcher } from '../processor/gas-adjust'
 import { createConnection } from 'typeorm'
 import { Net } from '../net'
 import { getThorREST } from '../utils'
+import * as logger from '../logger'
 
 const printUsage = (msg = '') => {
-    process.stderr.write(`${msg ? msg + '\n\n' : ''}Usage: node index.js [Network][Task][...Args]
+    logger.error(`${msg ? msg + '\n\n' : ''}Usage: node index.js [Network][Task][...Args]
 --------
 Network:    [main|test]
-Task:       [foundation|dual-token|token|authority|gas-adjust]
-`)
+Task:       [foundation|dual-token|token|authority|gas-adjust]`)
     process.exit(-1)
 }
 
@@ -71,7 +71,7 @@ let shutdown =  false
 createConnection().then(async () => {
     await task.start()
 }).catch((e: Error) => {
-    process.stderr.write(`Start task(${process.argv[3]}) at Net(${process.argv[2]}): ` + (e as Error).stack + '\r\n')
+    logger.error(`Start task(${process.argv[3]}) at Net(${process.argv[2]}): ` + (e as Error).stack)
     process.exit(-1)
 })
 

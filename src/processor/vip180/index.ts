@@ -11,6 +11,7 @@ import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { Processor } from '../processor'
 import { abi } from '@vechain/abi'
 import { getBlockByNumber, getBlockReceipts } from '../../service/block'
+import * as logger from '../../logger'
 
 interface SnapAccount {
     address: string
@@ -115,7 +116,7 @@ export class VIP180Transfer extends Processor {
                         })
                         movements.push(movement)
 
-                        console.log(`Account(${movement.sender}) -> Account(${movement.recipient}): ${movement.amount} ${this.token.symbol}`)
+                        logger.log(`Account(${movement.sender}) -> Account(${movement.recipient}): ${movement.amount} ${this.token.symbol}`)
                         // Transfer from address(0) considered to be mint token
                         if (movement.sender !== ZeroAddress) {
                             const senderAcc = await account(movement.sender)
@@ -207,14 +208,14 @@ export class VIP180Transfer extends Processor {
                     const toSave: TokenBalance[] = []
                     for (const [_, acc] of accounts.entries()) {
                         toSave.push(acc)
-                        console.log(`Account(${acc.address})'s Token(${this.token.symbol}) reverted to ${acc.balance} at Block(${displayID(headID)})`)
+                        logger.log(`Account(${acc.address})'s Token(${this.token.symbol}) reverted to ${acc.balance} at Block(${displayID(headID)})`)
                     }
 
                     await this.persist.saveAccounts(toSave, manager)
                     await this.persist.removeMovements(toRevert, manager)
                     await removeSnapshot(toRevert, this.snapType, manager)
                     await this.saveHead(headNum, manager)
-                    console.log('-> revert to head:', headNum)
+                    logger.log('-> revert to head: ' + headNum)
                 })
 
                 this.head = headNum

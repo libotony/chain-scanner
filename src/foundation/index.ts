@@ -9,6 +9,7 @@ import { Receipt } from '../explorer-db/entity/receipt'
 import { Block } from '../explorer-db/entity/block'
 import { BranchTransaction } from '../explorer-db/entity/branch-transaction'
 import { BranchReceipt } from '../explorer-db/entity/branch-receipt'
+import * as logger from '../logger'
 
 const SAMPLING_INTERVAL = 1 * 1000
 
@@ -31,7 +32,7 @@ export class Foundation {
         this.shutdown = true
 
         return new Promise((resolve) => {
-            console.log('shutting down......')
+            logger.log('shutting down......')
             this.ev.on('closed', resolve)
         })
     }
@@ -84,7 +85,7 @@ export class Foundation {
 
                 if (current.id !== head) {
                     await this.persist.saveHead(current.id, manager)
-                    console.log('-> revert to head:', displayID(current.id))
+                    logger.log('-> revert to head: ' + displayID(current.id))
                     newHead = current.id
                 }
             })
@@ -119,7 +120,7 @@ export class Foundation {
                     await getConnection().transaction(async (manager) => {
                         await this.processBlock(best, manager)
                         await this.persist.saveHead(best.id, manager)
-                        console.log('-> save head:', displayID(best.id))
+                        logger.log('-> save head: ' + displayID(best.id))
                     })
                     this.head = best.id
                 } else {
@@ -165,13 +166,13 @@ export class Foundation {
                         }
 
                         await this.persist.saveHead(best.id, manager)
-                        console.log('-> save head:', displayID(best.id))
+                        logger.log('-> save head:' + displayID(best.id))
                     })
                     this.head = best.id
                 }
             } catch (e) {
                 if (!(e instanceof InterruptedError)) {
-                    process.stderr.write('foundation loop: ' + (e as Error).stack + '\r\n')
+                    logger.error('foundation loop: ' + (e as Error).stack )
                 } else {
                     if (this.shutdown) {
                         this.ev.emit('closed')

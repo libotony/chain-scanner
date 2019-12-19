@@ -11,6 +11,7 @@ import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } fro
 import { Processor } from '../processor'
 import { AssetType, SnapType } from '../../explorer-db/types'
 import { getBlockByNumber, getBlockReceipts, getBlockTransactions } from '../../service/block'
+import * as logger from '../../logger'
 
 export class DualToken extends Processor {
     private persist: Persist
@@ -66,6 +67,7 @@ export class DualToken extends Processor {
                     })
 
                     await proc.transferVeChain(transfer)
+                    logger.log(`Account(${transfer.sender}) -> Account(${transfer.recipient}): ${transfer.amount} VET`)
                 }
                 for (const [logIndex, e] of o.events.entries()) {
                     if (e.topics[0] === prototype.$Master.signature) {
@@ -95,6 +97,7 @@ export class DualToken extends Processor {
                         })
 
                         await proc.transferEnergy(transfer)
+                        logger.log(`Account(${transfer.sender}) -> Account(${transfer.recipient}): ${transfer.amount} VTHO`)
                     }
                 }
             }
@@ -204,10 +207,10 @@ export class DualToken extends Processor {
             const toSave: Account[] = []
             for (const [_, acc] of accounts.entries()) {
                 toSave.push(acc)
-                console.log(`Account(${acc.address}) reverted to VET(${acc.balance}) Energy(${acc.balance}) BlockTime(${acc.blockTime}) at Block(${displayID(headID)})`)
+                logger.log(`Account(${acc.address}) reverted to VET(${acc.balance}) Energy(${acc.balance}) BlockTime(${acc.blockTime}) at Block(${displayID(headID)})`)
             }
             for (const acc of accCreated) {
-                console.log(`newAccount(${acc}) removed for revert at Block(${displayID(headID)})`)
+                logger.log(`newAccount(${acc}) removed for revert at Block(${displayID(headID)})`)
             }
 
             if (accCreated.length) {
@@ -217,7 +220,7 @@ export class DualToken extends Processor {
             await this.persist.removeMovements(toRevert, manager)
             await removeSnapshot(toRevert, this.snapType, manager)
             await this.saveHead(headNum, manager)
-            console.log('-> revert to head:', headNum)
+            logger.log('-> revert to head: ' + headNum)
         })
         this.head = headNum
     }

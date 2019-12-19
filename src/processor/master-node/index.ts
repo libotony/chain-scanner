@@ -9,6 +9,7 @@ import { Authority } from '../../explorer-db/entity/authority'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { Processor } from '../processor'
 import { getBlockByNumber, getBlockReceipts } from '../../service/block'
+import * as logger from '../../logger'
 
 interface SnapAuthority {
     node?: {
@@ -154,7 +155,7 @@ export class MasterNodeWatcher extends Processor {
                             auth.reward = BigInt(snapData.node.reward)
                             auth.signed = snapData.node.signed
                             await this.persist.saveAuthority(auth, manager)
-                            console.log(`MasterNode(${snapData.node.address})'s Signed block reverted to ${snapData.node.signed} at Block(${blockIDtoNum(snap.blockID) - 1})`)
+                            logger.log(`MasterNode(${snapData.node.address})'s Signed block reverted to ${snapData.node.signed} at Block(${blockIDtoNum(snap.blockID) - 1})`)
                         }
 
                         for (const a of snapData.actions) {
@@ -168,7 +169,7 @@ export class MasterNodeWatcher extends Processor {
 
                     await removeSnapshot(toRevert, this.snapType, manager)
                     await this.saveHead(headNum, manager)
-                    console.log('-> revert to head:', headNum)
+                    logger.log('-> revert to head: ' + headNum)
                 })
 
                 this.head = headNum
