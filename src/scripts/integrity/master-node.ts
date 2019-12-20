@@ -54,32 +54,41 @@ createConnection().then(async (conn) => {
             listed++
         }
 
-        const { blocks, authNode } = await new Promise<{
-            blocks: Block[],
+        let reward = BigInt(0)
+        let signed = 0
+        const { authNode } = await new Promise<{
             authNode: Authority
         }>((resolve, reject) => {
             conn.manager.transaction('SERIALIZABLE', async manager => {
                 const h = (await persist.getHead(manager))!
                 const authNode = (await manager
                     .getRepository(Authority)
-                    .findOne({address: node.address}))!
-                const blocks = await manager
+                    .findOne({ address: node.address }))!
+
+                const stream = await manager
                     .getRepository(Block)
-                    .find({ signer: node.address, isTrunk: true, number: LessThanOrEqual(h) })
-                resolve({blocks, authNode})
+                    .createQueryBuilder()
+                    .where({ signer: node.address, isTrunk: true, number: LessThanOrEqual(h) })
+                    .stream()
+
+                stream.on('data', (b) => {
+                    signed += 1
+                    reward += BigInt('0x' + b.Block_reward.toString('hex'))
+                })
+
+                stream.on('end', () => {
+                    resolve({authNode})
+                })
+
             }).catch(reject)
         })
-
-        const reward = blocks.reduce((acc, b) => {
-            return acc + b.reward
-        }, BigInt(0))
 
         if (authNode.reward !== reward) {
             throw new Error(`Fatal: Master(${node.address} block reward mismatch, want ${node.reward} got ${reward}`)
         }
 
-        if (authNode.signed !== blocks.length) {
-            throw new Error(`Fatal: Master(${node.address} signed block count mismatch, want ${node.signed} got ${blocks.length}`)
+        if (authNode.signed !== signed) {
+            throw new Error(`Fatal: Master(${node.address} signed block count mismatch, want ${node.signed} got ${signed}`)
         }
 
         console.log('checked', node.address)
