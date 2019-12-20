@@ -7,7 +7,7 @@
     "@vechain/abi": "^1.0.1",
     "mysql2": "^1.7.0",
     "reflect-metadata": "^0.1.13",
-    "typeorm": "^0.2.20"
+    "typeorm": "^0.2.21"
   },
   "devDependencies": {
     "@types/node": "^12.6.8",
