@@ -12,6 +12,7 @@ import { Processor } from '../processor'
 import { abi } from '@vechain/abi'
 import { getBlockByNumber, getBlockReceipts } from '../../service/block'
 import * as logger from '../../logger'
+import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
 
 interface SnapAccount {
     address: string
@@ -114,6 +115,24 @@ export class VIP180Transfer extends Processor {
                                 logIndex
                             }
                         })
+                        const sender = manager.create(AggregatedMovement, {
+                            participant: movement.sender,
+                            type: movement.type,
+                            seq: {
+                                blockNumber: block.number,
+                                moveIndex: movement.moveIndex
+                            }
+                        })
+                        const recipient = manager.create(AggregatedMovement, {
+                            participant: movement.recipient,
+                            type: movement.type,
+                            seq: {
+                                blockNumber: block.number,
+                                moveIndex: movement.moveIndex
+                            }
+                        })
+                        movement.aggregated = [sender, recipient]
+
                         movements.push(movement)
 
                         logger.log(`Account(${movement.sender}) -> Account(${movement.recipient}): ${movement.amount} ${this.token.symbol}`)
@@ -136,7 +155,7 @@ export class VIP180Transfer extends Processor {
         }
 
         if (movements.length) {
-            await this.persist.insertMovements(movements, manager)
+            await this.persist.saveMovements(movements, manager)
         }
 
         if (acc.size) {

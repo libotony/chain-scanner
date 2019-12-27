@@ -35,12 +35,12 @@ export class Persist {
         }
     }
 
-    public insertMovements(moves: AssetMovement[], manager?: EntityManager) {
+    public saveMovements(moves: AssetMovement[], manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
 
-        return manager.insert(AssetMovement, moves)
+        return manager.save(AssetMovement, moves)
     }
 
     public saveAccounts(accs: Account[], manager?: EntityManager) {

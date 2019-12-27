@@ -53,12 +53,12 @@ export class Persist {
             .findOne({ address: addr, type: AssetType[this.token.symbol as keyof typeof AssetType] })
     }
 
-    public insertMovements(movements: AssetMovement[], manager?: EntityManager) {
+    public saveMovements(movements: AssetMovement[], manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
 
-        return manager.insert(AssetMovement, movements)
+        return manager.save(AssetMovement, movements)
     }
 
     public saveAccounts(accs: TokenBalance[], manager?: EntityManager) {

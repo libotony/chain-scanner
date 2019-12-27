@@ -12,6 +12,7 @@ import { Processor } from '../processor'
 import { AssetType, SnapType } from '../../explorer-db/types'
 import { getBlockByNumber, getBlockReceipts, getBlockTransactions } from '../../service/block'
 import * as logger from '../../logger'
+import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
 
 export class DualToken extends Processor {
     private persist: Persist
@@ -66,8 +67,30 @@ export class DualToken extends Processor {
                         }
                     })
 
+                    const sender = manager.create(AggregatedMovement, {
+                        participant: transfer.sender,
+                        type: transfer.type,
+                        seq: {
+                            blockNumber: block.number,
+                            moveIndex: transfer.moveIndex
+                        }
+                    })
+
+                    const recipient = manager.create(AggregatedMovement, {
+                        participant: transfer.recipient,
+                        type: transfer.type,
+                        seq: {
+                            blockNumber: block.number,
+                            moveIndex: transfer.moveIndex
+                        }
+                    })
+
+                    transfer.aggregated = [sender, recipient]
+
                     await proc.transferVeChain(transfer)
-                    logger.log(`Account(${transfer.sender}) -> Account(${transfer.recipient}): ${transfer.amount} VET`)
+                    if (saveSnapshot) {
+                        logger.log(`Account(${transfer.sender}) -> Account(${transfer.recipient}): ${transfer.amount} VET`)
+                    }
                 }
                 for (const [logIndex, e] of o.events.entries()) {
                     if (e.topics[0] === prototype.$Master.signature) {
@@ -96,8 +119,30 @@ export class DualToken extends Processor {
                             }
                         })
 
+                        const sender = manager.create(AggregatedMovement, {
+                            participant: transfer.sender,
+                            type: transfer.type,
+                            seq: {
+                                blockNumber: block.number,
+                                moveIndex: transfer.moveIndex
+                            }
+                        })
+
+                        const recipient = manager.create(AggregatedMovement, {
+                            participant: transfer.recipient,
+                            type: transfer.type,
+                            seq: {
+                                blockNumber: block.number,
+                                moveIndex: transfer.moveIndex
+                            }
+                        })
+
+                        transfer.aggregated = [sender, recipient]
+
                         await proc.transferEnergy(transfer)
-                        logger.log(`Account(${transfer.sender}) -> Account(${transfer.recipient}): ${transfer.amount} VTHO`)
+                        if (saveSnapshot) {
+                            logger.log(`Account(${transfer.sender}) -> Account(${transfer.recipient}): ${transfer.amount} VTHO`)
+                        }
                     }
                 }
             }
@@ -115,7 +160,7 @@ export class DualToken extends Processor {
         await proc.finalize()
 
         if (proc.Movement.length) {
-            await this.persist.insertMovements(proc.Movement, manager)
+            await this.persist.saveMovements(proc.Movement, manager)
         }
 
         const accs = proc.accounts()
