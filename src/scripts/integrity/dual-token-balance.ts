@@ -121,15 +121,18 @@ createConnection().then(async (conn) => {
         }
     }
     console.log('checking aggregated movements....')
-    const c1 = await getConnection()
+
+    await conn.manager.transaction('SERIALIZABLE', async manager => {
+        const c1 = await getConnection()
         .getRepository(AssetMovement)
         .count()
-    const c2 = await getConnection()
-        .getRepository(AggregatedMovement)
-        .count()
-    if (c1 * 2 !== c2) {
-        throw new Error(`Fatal: aggregated movements mismatch, origin (${c1}) got aggregated:${c2 / 2}`)
-    }
+        const c2 = await getConnection()
+            .getRepository(AggregatedMovement)
+            .count()
+        if (c1 * 2 !== c2) {
+            throw new Error(`Fatal: aggregated movements mismatch, origin (${c1}) got aggregated:${c2 / 2}`)
+        }
+    })
     console.log('all done!')
 }).then(() => {
     process.exit(0)
