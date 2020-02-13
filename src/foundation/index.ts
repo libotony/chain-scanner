@@ -219,7 +219,7 @@ export class Foundation {
 
     }
 
-    private async getHead(): Promise < string > {
+    private async getHead(): Promise<string> {
         if (this.head !== null) {
             return this.head
         } else {
@@ -250,7 +250,8 @@ export class Foundation {
                 receipts.push(r)
             }
         } catch (e) {
-            throw new Error('Failed to get block detail')
+            e.message = 'Failed to get block detail: ' + e.message
+            throw e
         }
         return {txs, receipts}
     }
