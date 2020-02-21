@@ -102,26 +102,37 @@ export class Foundation {
                     throw new InterruptedError()
                 }
                 await sleep(SAMPLING_INTERVAL)
-                await this.latestTrunkCheck()
 
                 let head = await this.getHead()
                 const best = await this.thor.getBlock('best')
 
-                if (head === best.id) {
-                    continue
+                if (!head) {
+                    if (best.number > REVERSIBLE_WINDOW) {
+                        await this.fastForward(best.number - REVERSIBLE_WINDOW)
+                        head = await this.getHead()
+                    } else {
+                        continue
+                    }
+                } else {
+                    if (head === best.id) {
+                        continue
+                    }
+                    const headNum = blockIDtoNum(head)
+                    if (headNum < best.number - REVERSIBLE_WINDOW) {
+                        await this.fastForward(best.number - REVERSIBLE_WINDOW)
+                        head = await this.getHead()
+                    } else if (headNum > best.number + REVERSIBLE_WINDOW) {
+                        continue
+                    } else {
+                        await this.latestTrunkCheck()
+                    }
                 }
-                if (head === '' || blockIDtoNum(head) < best.number - REVERSIBLE_WINDOW) {
-                    await this.fastForward(best.number - REVERSIBLE_WINDOW)
-                }
-
-                head = await this.getHead()
 
                 if (best.parentID === head) {
                     const timeLogger = logger.taskTime(new Date())
                     await getConnection().transaction(async (manager) => {
                         await this.processBlock(best, manager)
                         await this.persist.saveHead(best.id, manager)
-                        const end = new Date()
                         logger.log(`-> save head: ${displayID(best.id)} ${timeLogger(new Date())}`)
                     })
                     this.head = best.id
