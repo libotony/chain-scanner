@@ -90,12 +90,13 @@ export abstract class Processor {
                     await this.fastForward(best.number - REVERSIBLE_WINDOW)
                     head = await this.getHead()
                 }
+                const timeLogger = logger.taskTime(new Date())
                 await getConnection().transaction(async (manager) => {
                     for (let i = head + 1; i <= best.number; i++) {
                         await this.processBlock(i, manager, true)
                     }
                     await this.saveHead(best.number, manager)
-                    logger.log('-> save head: ' + best.number)
+                    logger.log(`-> save head: ${best.number} ${timeLogger(new Date())}`)
                 })
                 this.head = best.number
             } catch (e) {

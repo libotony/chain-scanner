@@ -11,7 +11,7 @@ import { BranchTransaction } from '../explorer-db/entity/branch-transaction'
 import { BranchReceipt } from '../explorer-db/entity/branch-receipt'
 import * as logger from '../logger'
 
-const SAMPLING_INTERVAL = 1 * 1000
+const SAMPLING_INTERVAL = 500
 
 export class Foundation {
     private head: string | null = null
@@ -117,10 +117,12 @@ export class Foundation {
                 head = await this.getHead()
 
                 if (best.parentID === head) {
+                    const timeLogger = logger.taskTime(new Date())
                     await getConnection().transaction(async (manager) => {
                         await this.processBlock(best, manager)
                         await this.persist.saveHead(best.id, manager)
-                        logger.log('-> save head: ' + displayID(best.id))
+                        const end = new Date()
+                        logger.log(`-> save head: ${displayID(best.id)} ${timeLogger(new Date())}`)
                     })
                     this.head = best.id
                 } else {

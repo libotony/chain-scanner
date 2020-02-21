@@ -11,3 +11,9 @@ export const error = (message: string) => {
     }
     process.stderr.write(message)
 }
+
+export const taskTime = (from: Date) => {
+    return (to: Date) => {
+        return `From: [${from.getSeconds()}.${from.getMilliseconds}] To:[${to.getSeconds()}.${to.getMilliseconds}]`
+    }
+}
