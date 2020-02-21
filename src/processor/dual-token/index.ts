@@ -9,7 +9,7 @@ import { Account } from '../../explorer-db/entity/account'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { Processor } from '../processor'
-import { AssetType, SnapType } from '../../explorer-db/types'
+import { AssetType, SnapType, MoveDirection } from '../../explorer-db/types'
 import { getBlockByNumber, getBlockReceipts, getBlockTransactions } from '../../service/block'
 import * as logger from '../../logger'
 import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
@@ -69,6 +69,7 @@ export class DualToken extends Processor {
 
                     const sender = manager.create(AggregatedMovement, {
                         participant: transfer.sender,
+                        direction: MoveDirection.Out,
                         type: transfer.type,
                         seq: {
                             blockNumber: block.number,
@@ -78,6 +79,7 @@ export class DualToken extends Processor {
 
                     const recipient = manager.create(AggregatedMovement, {
                         participant: transfer.recipient,
+                        direction: MoveDirection.In,
                         type: transfer.type,
                         seq: {
                             blockNumber: block.number,

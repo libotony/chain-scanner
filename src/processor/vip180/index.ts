@@ -1,4 +1,4 @@
-import { SnapType, AssetType } from '../../explorer-db/types'
+import { SnapType, AssetType, MoveDirection } from '../../explorer-db/types'
 import { AssetMovement } from '../../explorer-db/entity/movement'
 import { displayID, blockIDtoNum, REVERSIBLE_WINDOW } from '../../utils'
 import { Thor } from '../../thor-rest'
@@ -117,6 +117,7 @@ export class VIP180Transfer extends Processor {
                         })
                         const sender = manager.create(AggregatedMovement, {
                             participant: movement.sender,
+                            direction: MoveDirection.In,
                             type: movement.type,
                             seq: {
                                 blockNumber: block.number,
@@ -125,6 +126,7 @@ export class VIP180Transfer extends Processor {
                         })
                         const recipient = manager.create(AggregatedMovement, {
                             participant: movement.recipient,
+                            direction: MoveDirection.Out,
                             type: movement.type,
                             seq: {
                                 blockNumber: block.number,
