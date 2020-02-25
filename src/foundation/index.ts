@@ -118,13 +118,13 @@ export class Foundation {
                         continue
                     }
                     const headNum = blockIDtoNum(head)
+                    if (headNum > best.number + REVERSIBLE_WINDOW) {
+                        continue
+                    }
+                    await this.latestTrunkCheck()
                     if (headNum < best.number - REVERSIBLE_WINDOW) {
                         await this.fastForward(best.number - REVERSIBLE_WINDOW)
                         head = await this.getHead()
-                    } else if (headNum > best.number + REVERSIBLE_WINDOW) {
-                        continue
-                    } else {
-                        await this.latestTrunkCheck()
                     }
                 }
 
@@ -133,7 +133,7 @@ export class Foundation {
                     await getConnection().transaction(async (manager) => {
                         await this.processBlock(best, manager)
                         await this.persist.saveHead(best.id, manager)
-                        logger.log(`-> save head: ${displayID(best.id)} ${timeLogger(new Date())}`)
+                        logger.log(`-> save head: ${displayID(best.id)}(${best.timestamp % 60}) ${timeLogger(new Date())}`)
                     })
                     this.head = best.id
                 } else {
@@ -338,6 +338,7 @@ export class Foundation {
     }
 
     private async fastForward(target: number) {
+        console.log('fast forward to', target)
         const head = await this.getHead()
         const headNum = head ? blockIDtoNum(head) : -1
 

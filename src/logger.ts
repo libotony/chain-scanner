@@ -14,6 +14,6 @@ export const error = (message: string) => {
 
 export const taskTime = (from: Date) => {
     return (to: Date) => {
-        return `From: [${from.getSeconds()}.${from.getMilliseconds}] To:[${to.getSeconds()}.${to.getMilliseconds}]`
+        return `From: [${from.getSeconds()}.${from.getMilliseconds().toString().padStart(3, '0')}] To:[${to.getSeconds()}.${to.getMilliseconds().toString().padStart(3, '0')}]`
     }
 }

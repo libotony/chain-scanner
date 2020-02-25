@@ -96,7 +96,7 @@ export abstract class Processor {
                         await this.processBlock(i, manager, true)
                     }
                     await this.saveHead(best.number, manager)
-                    logger.log(`-> save head: ${best.number} ${timeLogger(new Date())}`)
+                    logger.log(`-> save head: ${best.number}(${best.timestamp % 60}) ${timeLogger(new Date())}`)
                 })
                 this.head = best.number
             } catch (e) {

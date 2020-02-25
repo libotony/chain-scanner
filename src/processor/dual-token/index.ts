@@ -124,6 +124,7 @@ export class DualToken extends Processor {
                         const sender = manager.create(AggregatedMovement, {
                             participant: transfer.sender,
                             type: transfer.type,
+                            direction: MoveDirection.Out,
                             seq: {
                                 blockNumber: block.number,
                                 moveIndex: transfer.moveIndex
@@ -133,6 +134,7 @@ export class DualToken extends Processor {
                         const recipient = manager.create(AggregatedMovement, {
                             participant: transfer.recipient,
                             type: transfer.type,
+                            direction: MoveDirection.In,
                             seq: {
                                 blockNumber: block.number,
                                 moveIndex: transfer.moveIndex
