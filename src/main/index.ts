@@ -10,6 +10,7 @@ import { createConnection } from 'typeorm'
 import { Net } from '../net'
 import { getThorREST } from '../utils'
 import * as logger from '../logger'
+import { ExpandTX } from '../processor/expand-tx'
 
 const printUsage = (msg = '') => {
     logger.error(`${msg ? msg + '\n\n' : ''}Usage: node index.js [Network][Task][...Args]
@@ -42,6 +43,9 @@ let task: Foundation | Processor
 switch (process.argv[3]) {
     case 'foundation':
         task = new Foundation(thor)
+        break
+    case 'expand-tx':
+        task = new ExpandTX(thor)
         break
     case 'dual-token':
         task = new DualToken(thor)

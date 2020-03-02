@@ -22,6 +22,7 @@ export class createTables1582256211388 implements MigrationInterface {
         await queryRunner.query('CREATE TABLE `receipt` (`txID` binary(32) NOT NULL, `blockID` binary(32) NOT NULL, `txIndex` int NOT NULL, `gasUsed` int UNSIGNED NOT NULL, `gasPayer` binary(20) NOT NULL, `paid` binary(24) NOT NULL, `reward` binary(24) NOT NULL, `reverted` tinyint NOT NULL, `outputs` longtext NOT NULL, UNIQUE INDEX `REL_530a66147f04c7f78938f717db` (`txID`), PRIMARY KEY (`txID`)) ENGINE=InnoDB ROW_FORMAT=COMPRESSED', undefined)
         await queryRunner.query('CREATE TABLE `snapshot` (`id` int NOT NULL AUTO_INCREMENT, `type` int NOT NULL, `blockID` binary(32) NOT NULL, `data` longtext NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB ROW_FORMAT=COMPRESSED', undefined)
         await queryRunner.query('CREATE TABLE `token_balance` (`address` binary(20) NOT NULL, `balance` binary(24) NOT NULL, `type` int NOT NULL, PRIMARY KEY (`address`, `type`)) ENGINE=InnoDB ROW_FORMAT=COMPRESSED', undefined)
+        await queryRunner.query('CREATE TABLE `aggregated_transaction` (`id` int NOT NULL AUTO_INCREMENT, `participant` binary(20) NULL, `direction` int NOT NULL, `seq` binary(10) NOT NULL, `blockID` binary(32) NOT NULL, `txID` binary(32) NOT NULL, INDEX `IDX_d334f7fbbaa0834e3c1ecfbbbf` (`participant`, `direction`, `seq`), INDEX `IDX_86f0e1b6664122a0c980721640` (`participant`, `seq`), PRIMARY KEY (`id`)) ENGINE=InnoDB ROW_FORMAT=COMPRESSED', undefined)
         await queryRunner.query('ALTER TABLE `asset_movement` ADD CONSTRAINT `FK_fb95e389c7ba15f88adddaaf831` FOREIGN KEY (`blockID`) REFERENCES `block`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION', undefined)
         await queryRunner.query('ALTER TABLE `aggregated_movement` ADD CONSTRAINT `FK_65a2147619fb9fdb07f010e0e24` FOREIGN KEY (`movementID`) REFERENCES `asset_movement`(`id`) ON DELETE CASCADE ON UPDATE NO ACTION', undefined)
         await queryRunner.query('ALTER TABLE `branch_receipt` ADD CONSTRAINT `FK_6c13157efb67f9a9eb81a155f0c` FOREIGN KEY (`blockID`) REFERENCES `block`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION', undefined)
@@ -30,6 +31,7 @@ export class createTables1582256211388 implements MigrationInterface {
         await queryRunner.query('ALTER TABLE `receipt` ADD CONSTRAINT `FK_530a66147f04c7f78938f717dbc` FOREIGN KEY (`txID`) REFERENCES `transaction`(`txID`) ON DELETE NO ACTION ON UPDATE NO ACTION', undefined)
         await queryRunner.query('ALTER TABLE `receipt` ADD CONSTRAINT `FK_fc6da5c08e48760e5c4deedfab6` FOREIGN KEY (`blockID`) REFERENCES `block`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION', undefined)
         await queryRunner.query('ALTER TABLE `snapshot` ADD CONSTRAINT `FK_ef935caafc0d9e699ef3645d8bf` FOREIGN KEY (`blockID`) REFERENCES `block`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION', undefined)
+        await queryRunner.query('ALTER TABLE `aggregated_transaction` ADD CONSTRAINT `FK_804e4c330f258d38fb3fc274b1b` FOREIGN KEY (`blockID`) REFERENCES `block`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION', undefined)
     }
 
     public async down(queryRunner: QueryRunner): Promise<any> {

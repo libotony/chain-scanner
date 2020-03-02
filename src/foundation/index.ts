@@ -338,7 +338,6 @@ export class Foundation {
     }
 
     private async fastForward(target: number) {
-        console.log('fast forward to', target)
         const head = await this.getHead()
         const headNum = head ? blockIDtoNum(head) : -1
 
