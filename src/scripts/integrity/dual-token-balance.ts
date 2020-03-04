@@ -80,17 +80,6 @@ createConnection().then(async (conn) => {
         } catch {
             continue
         }
-        const txCount = await conn
-            .getRepository(Transaction)
-            .createQueryBuilder('tx')
-            .where({ origin: acc.address })
-            .leftJoin('tx.block', 'block')
-            .andWhere('block.number <= :number', { number: block.number })
-            .getCount()
-
-        if (acc.txCount !== txCount) {
-            throw new Error(`Fatal: txCount mismatch of Account(${acc.address})  sum:${txCount} got:${acc.txCount}`)
-        }
 
         if (acc.balance !== BigInt(chainAcc.balance)) {
             throw new Error(`Fatal: balance mismatch of Account(${acc.address}) chain:${chainAcc.balance} db:${acc.balance}`)

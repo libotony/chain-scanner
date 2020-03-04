@@ -14,7 +14,6 @@ export interface SnapAccount {
     energy: string
     blockTime: number
     firstSeen: number
-    txCount: number
     code: string|null
     master: string|null
     sponsor: string|null
@@ -95,12 +94,6 @@ export class BlockProcessor {
 
         this.updateEnergy.add(move.sender)
         this.updateEnergy.add(move.recipient)
-    }
-
-    public async increaseTxCount(addr: string) {
-        const acc = await this.account(addr)
-
-        acc.txCount = acc.txCount + 1
     }
 
     public accounts() {
@@ -211,7 +204,6 @@ export class BlockProcessor {
             energy: acc.energy.toString(10),
             blockTime: acc.blockTime,
             firstSeen: acc.firstSeen,
-            txCount: acc.txCount,
             code: acc.code,
             master: acc.master,
             sponsor: acc.sponsor
@@ -238,8 +230,7 @@ export class BlockProcessor {
                 firstSeen: this.block.timestamp,
                 code: null,
                 master: null,
-                sponsor: null,
-                txCount: 0
+                sponsor: null
             })
 
             this.acc.set(addr, newAcc)

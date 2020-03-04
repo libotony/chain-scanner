@@ -45,7 +45,6 @@ export class DualToken extends Processor {
     protected async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
         const block = (await getBlockByNumber(blockNum, manager))!
         const receipts = await getBlockReceipts(block.id, manager)
-        const txs = await getBlockTransactions(block.id, manager)
 
         const proc = new BlockProcessor(block, this.thor, manager)
         await proc.prepare()
@@ -147,7 +146,6 @@ export class DualToken extends Processor {
                 }
             }
             await proc.touchEnergy(r.gasPayer)
-            await proc.increaseTxCount(txs[r.txIndex].origin)
         }
         if (receipts.length) {
             await proc.touchEnergy(block.beneficiary)
@@ -239,7 +237,6 @@ export class DualToken extends Processor {
                                 energy: BigInt(snapAcc.energy),
                                 blockTime: snapAcc.blockTime,
                                 firstSeen: snapAcc.firstSeen,
-                                txCount: snapAcc.txCount,
                                 code: snapAcc.code,
                                 master: snapAcc.master
                             })
