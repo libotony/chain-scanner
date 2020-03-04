@@ -1,11 +1,7 @@
 
 import { EntityManager, getConnection, In } from 'typeorm'
 import { Config } from '../../explorer-db/entity/config'
-import { AssetMovement } from '../../explorer-db/entity/movement'
-import { AssetType } from '../../explorer-db/types'
-import { TokenBalance } from '../../explorer-db/entity/token-balance'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
-import { TokenBasic } from '../../const'
 import { AggregatedTransaction } from '../../explorer-db/entity/aggregated-tx'
 
 export type RecentSnapshot = Snapshot & { isTrunk: boolean }

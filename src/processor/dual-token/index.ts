@@ -9,7 +9,7 @@ import { Account } from '../../explorer-db/entity/account'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { Processor } from '../processor'
-import { AssetType, SnapType, MoveDirection } from '../../explorer-db/types'
+import { AssetType, SnapType, MoveType } from '../../explorer-db/types'
 import { getBlockByNumber, getBlockReceipts, getBlockTransactions } from '../../service/block'
 import * as logger from '../../logger'
 import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
@@ -50,6 +50,44 @@ export class DualToken extends Processor {
         const proc = new BlockProcessor(block, this.thor, manager)
         await proc.prepare()
 
+        const attachAggregated = (transfer: AssetMovement) => {
+            if (transfer.sender === transfer.recipient) {
+                const move = manager.create(AggregatedMovement, {
+                    participant: transfer.sender,
+                    type: MoveType.Self,
+                    asset: transfer.asset,
+                    seq: {
+                        blockNumber: block.number,
+                        moveIndex: transfer.moveIndex
+                    }
+                })
+
+                transfer.aggregated = [move]
+            } else {
+                const sender = manager.create(AggregatedMovement, {
+                    participant: transfer.sender,
+                    type: MoveType.Out,
+                    asset: transfer.asset,
+                    seq: {
+                        blockNumber: block.number,
+                        moveIndex: transfer.moveIndex
+                    }
+                })
+
+                const recipient = manager.create(AggregatedMovement, {
+                    participant: transfer.recipient,
+                    type: MoveType.In,
+                    asset: transfer.asset,
+                    seq: {
+                        blockNumber: block.number,
+                        moveIndex: transfer.moveIndex
+                    }
+                })
+
+                transfer.aggregated = [sender, recipient]
+            }
+        }
+
         for (const r of receipts) {
             for (const [clauseIndex, o] of r.outputs.entries()) {
                 for (const [logIndex, t] of o.transfers.entries()) {
@@ -59,35 +97,14 @@ export class DualToken extends Processor {
                         amount: BigInt(t.amount),
                         txID: r.txID,
                         blockID: block.id,
-                        type: AssetType.VET,
+                        asset: AssetType.VET,
                         moveIndex: {
                             txIndex: r.txIndex,
                             clauseIndex,
                             logIndex
                         }
                     })
-
-                    const sender = manager.create(AggregatedMovement, {
-                        participant: transfer.sender,
-                        direction: MoveDirection.Out,
-                        type: transfer.type,
-                        seq: {
-                            blockNumber: block.number,
-                            moveIndex: transfer.moveIndex
-                        }
-                    })
-
-                    const recipient = manager.create(AggregatedMovement, {
-                        participant: transfer.recipient,
-                        direction: MoveDirection.In,
-                        type: transfer.type,
-                        seq: {
-                            blockNumber: block.number,
-                            moveIndex: transfer.moveIndex
-                        }
-                    })
-
-                    transfer.aggregated = [sender, recipient]
+                    attachAggregated(transfer)
 
                     await proc.transferVeChain(transfer)
                     if (saveSnapshot) {
@@ -113,35 +130,14 @@ export class DualToken extends Processor {
                             amount: BigInt(decoded._value),
                             txID: r.txID,
                             blockID: block.id,
-                            type: AssetType.VTHO,
+                            asset: AssetType.VTHO,
                             moveIndex: {
                                 txIndex: r.txIndex,
                                 clauseIndex,
                                 logIndex
                             }
                         })
-
-                        const sender = manager.create(AggregatedMovement, {
-                            participant: transfer.sender,
-                            type: transfer.type,
-                            direction: MoveDirection.Out,
-                            seq: {
-                                blockNumber: block.number,
-                                moveIndex: transfer.moveIndex
-                            }
-                        })
-
-                        const recipient = manager.create(AggregatedMovement, {
-                            participant: transfer.recipient,
-                            type: transfer.type,
-                            direction: MoveDirection.In,
-                            seq: {
-                                blockNumber: block.number,
-                                moveIndex: transfer.moveIndex
-                            }
-                        })
-
-                        transfer.aggregated = [sender, recipient]
+                        attachAggregated(transfer)
 
                         await proc.transferEnergy(transfer)
                         if (saveSnapshot) {

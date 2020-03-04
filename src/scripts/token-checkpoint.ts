@@ -4,12 +4,17 @@ import { Snapshot } from '../explorer-db/entity/snapshot'
 import { SnapType, AssetType } from '../explorer-db/types'
 import { getVIP180Token, Network } from '../const'
 import { TokenBalance } from '../explorer-db/entity/token-balance'
-import { createConnection } from 'typeorm'
+import { createConnection, getConnectionOptions } from 'typeorm'
 
 const token = getVIP180Token(Network.MainNet, process.argv[2] || 'OCE')
 
-createConnection().then(async (conn) => {
-    await conn.getRepository(AssetMovement).delete({type: AssetType[token.symbol as keyof typeof AssetType]})
+Promise.resolve().then(async () => {
+    const opt = await getConnectionOptions()
+    const conn = await createConnection(Object.assign({}, opt, {
+      logging: true,
+      logger: undefined
+   }))
+    await conn.getRepository(AssetMovement).delete({asset: AssetType[token.symbol as keyof typeof AssetType]})
     await conn.getRepository(TokenBalance).delete({type: AssetType[token.symbol as keyof typeof AssetType]})
     await conn.getRepository(Snapshot).delete({
         type: SnapType.VIP180Token + AssetType[token.symbol as keyof typeof AssetType]
@@ -18,5 +23,4 @@ createConnection().then(async (conn) => {
 }).then(() => {
     process.exit()
 }).catch(e => {
-    console.log(e)
-})
+    console.log(e)})

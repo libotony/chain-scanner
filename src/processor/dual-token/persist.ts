@@ -60,7 +60,7 @@ export class Persist {
             .getRepository(AssetMovement)
             .delete({
                 blockID: In([...ids]),
-                type: In( [AssetType.VET, AssetType.VTHO])
+                asset: In( [AssetType.VET, AssetType.VTHO])
             })
     }
 

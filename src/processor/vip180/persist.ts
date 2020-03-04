@@ -78,7 +78,7 @@ export class Persist {
             .getRepository(AssetMovement)
             .delete({
                 blockID: In([...ids]),
-                type: AssetType[this.token.symbol as keyof typeof AssetType]
+                asset: AssetType[this.token.symbol as keyof typeof AssetType]
             })
     }
 

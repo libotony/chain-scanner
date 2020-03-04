@@ -1,4 +1,4 @@
-import { SnapType, AssetType, MoveDirection } from '../../explorer-db/types'
+import { SnapType, AssetType, MoveType } from '../../explorer-db/types'
 import { AssetMovement } from '../../explorer-db/entity/movement'
 import { displayID, blockIDtoNum, REVERSIBLE_WINDOW } from '../../utils'
 import { Thor } from '../../thor-rest'
@@ -89,7 +89,44 @@ export class VIP180Transfer extends Processor {
                 snap.set(addr, {...newAcc, balance: newAcc.balance.toString(10)})
                 return newAcc
             }
+        }
 
+        const attachAggregated = (transfer: AssetMovement) => {
+            if (transfer.sender === transfer.recipient) {
+                const move = manager.create(AggregatedMovement, {
+                    participant: transfer.sender,
+                    type: MoveType.Self,
+                    asset: transfer.asset,
+                    seq: {
+                        blockNumber: block.number,
+                        moveIndex: transfer.moveIndex
+                    }
+                })
+
+                transfer.aggregated = [move]
+            } else {
+                const sender = manager.create(AggregatedMovement, {
+                    participant: transfer.sender,
+                    type: MoveType.Out,
+                    asset: transfer.asset,
+                    seq: {
+                        blockNumber: block.number,
+                        moveIndex: transfer.moveIndex
+                    }
+                })
+
+                const recipient = manager.create(AggregatedMovement, {
+                    participant: transfer.recipient,
+                    type: MoveType.In,
+                    asset: transfer.asset,
+                    seq: {
+                        blockNumber: block.number,
+                        moveIndex: transfer.moveIndex
+                    }
+                })
+
+                transfer.aggregated = [sender, recipient]
+            }
         }
 
         for (const r of receipts) {
@@ -108,33 +145,14 @@ export class VIP180Transfer extends Processor {
                             amount: BigInt(decoded._value),
                             txID: r.txID,
                             blockID: block.id,
-                            type: AssetType[this.token.symbol as keyof typeof AssetType],
+                            asset: AssetType[this.token.symbol as keyof typeof AssetType],
                             moveIndex: {
                                 txIndex: r.txIndex,
                                 clauseIndex,
                                 logIndex
                             }
                         })
-                        const sender = manager.create(AggregatedMovement, {
-                            participant: movement.sender,
-                            direction: MoveDirection.In,
-                            type: movement.type,
-                            seq: {
-                                blockNumber: block.number,
-                                moveIndex: movement.moveIndex
-                            }
-                        })
-                        const recipient = manager.create(AggregatedMovement, {
-                            participant: movement.recipient,
-                            direction: MoveDirection.Out,
-                            type: movement.type,
-                            seq: {
-                                blockNumber: block.number,
-                                moveIndex: movement.moveIndex
-                            }
-                        })
-                        movement.aggregated = [sender, recipient]
-
+                        attachAggregated(movement)
                         movements.push(movement)
 
                         logger.log(`Account(${movement.sender}) -> Account(${movement.recipient}): ${movement.amount} ${this.token.symbol}`)

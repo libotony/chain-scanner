@@ -1,4 +1,4 @@
-import { SnapType, MoveDirection } from '../../explorer-db/types'
+import { SnapType, MoveType } from '../../explorer-db/types'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
 import { insertSnapshot, listRecentSnapshot, clearSnapShot } from '../../service/snapshot'
@@ -46,11 +46,29 @@ export class ExpandTX extends Processor {
 
         const aggregated: AggregatedTransaction[] = []
         for (const [txIndex, tx] of txs.entries()) {
-            const rec = new Set<string|null>()
+            const rec = new Set<string | null>()
+
+            for (const c of tx.clauses) {
+                if (!rec.has(c.to)) {
+                    if (c.to !== tx.origin) {
+                        aggregated.push(manager.create(AggregatedTransaction, {
+                            participant: c.to,
+                            type: MoveType.In,
+                            txID: tx.txID,
+                            blockID: block.id,
+                            seq: {
+                                blockNumber: block.number,
+                                txIndex
+                            }
+                        }))
+                    }
+                    rec.add(c.to)
+                }
+            }
 
             aggregated.push(manager.create(AggregatedTransaction, {
                 participant: tx.origin,
-                direction: MoveDirection.Out,
+                type: rec.has(tx.origin) ? MoveType.Self : MoveType.Out,
                 txID: tx.txID,
                 blockID: block.id,
                 seq: {
@@ -59,21 +77,6 @@ export class ExpandTX extends Processor {
                 }
             }))
 
-            for (const c of tx.clauses) {
-                if (!rec.has(c.to)) {
-                    aggregated.push(manager.create(AggregatedTransaction, {
-                        participant: c.to,
-                        direction: MoveDirection.In,
-                        txID: tx.txID,
-                        blockID: block.id,
-                        seq: {
-                            blockNumber: block.number,
-                            txIndex
-                        }
-                    }))
-                    rec.add(c.to)
-                }
-            }
         }
         await this.persist.saveTXs(aggregated, manager)
         if (saveSnapshot) {
