@@ -4,7 +4,6 @@ import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { Processor } from '../processor'
 import { getBlockByNumber, getBlockByID } from '../../service/block'
 import { Config } from '../../explorer-db/entity/config'
-import { Block } from '../../explorer-db/entity/block'
 import { GasAdjustment } from '../../explorer-db/entity/gas-adjust'
 import { insertSnapshot, listRecentSnapshot, removeSnapshot, clearSnapShot } from '../../service/snapshot'
 import { blockIDtoNum, REVERSIBLE_WINDOW } from '../../utils'
@@ -37,18 +36,6 @@ const persist = {
         } else {
             return null
         }
-    },
-    getLastBlockBySignerAndBlockNumber: (num: number, signer: string, manager?: EntityManager) => {
-        if (!manager) {
-            manager = getConnection().manager
-        }
-
-        return manager
-            .getRepository(Block)
-            .findOne({
-                where: { number: LessThan(num), signer, isTrunk: true },
-                order: { number: 'DESC' }
-            })
     },
     insertAdjustment: (adj: GasAdjustment, manager?: EntityManager) => {
         if (!manager) {
@@ -99,25 +86,21 @@ export class GasAdjustmentWatcher extends Processor {
         const parentBlock = (await getBlockByID(block.parentID, manager))!
 
         if (block.gasLimit !== parentBlock.gasLimit) {
-            const prevBlock = await persist.getLastBlockBySignerAndBlockNumber(block.number, block.signer, manager)
-            if (prevBlock) {
-                const adjustment = manager.create(GasAdjustment, {
-                    blockID: block.id,
-                    prevBlock: prevBlock.id,
-                    gasDiff: block.gasLimit - prevBlock.gasLimit
-                })
-                await persist.insertAdjustment(adjustment, manager)
+            const adjustment = manager.create(GasAdjustment, {
+                blockID: block.id,
+                gasChanged: block.gasLimit - parentBlock.gasLimit
+            })
+            await persist.insertAdjustment(adjustment, manager)
 
-                if (saveSnapshot) {
-                    const snap = manager.create(Snapshot, {
-                        blockID: block.id,
-                        type: this.snapType,
-                        data: null
-                    })
-                    await insertSnapshot(snap, manager)
-                }
-                return 1
+            if (saveSnapshot) {
+                const snap = manager.create(Snapshot, {
+                    blockID: block.id,
+                    type: this.snapType,
+                    data: null
+                })
+                await insertSnapshot(snap, manager)
             }
+            return 1
         }
 
         return 0
