@@ -1,5 +1,5 @@
 // tslint:disable:max-line-length
-import { abi } from '@vechain/abi'
+import { abi } from 'thor-devkit'
 
 const $MasterABI: abi.Event.Definition = { anonymous: false, inputs: [{ indexed: false, name: 'newMaster', type: 'address' }], name: '$Master', type: 'event' }
 const TransferABI: abi.Event.Definition = { anonymous: false, inputs: [{ indexed: true, name: '_from', type: 'address' }, { indexed: true, name: '_to', type: 'address' }, { indexed: false, name: '_value', type: 'uint256' }], name: 'Transfer', type: 'event' }
@@ -13,6 +13,7 @@ const candidateABI: abi.Event.Definition = {anonymous: false, inputs: [{indexed:
 const $SponsorABI: abi.Event.Definition = { anonymous: false, inputs: [{ indexed: true, name: 'sponsor', type: 'address' }, { indexed: false, name: 'action', type: 'bytes32' }], name: '$Sponsor', type: 'event' }
 const currentSponsorABI: abi.Function.Definition = { constant: true, inputs: [{ name: '_self', type: 'address' }], name: 'currentSponsor', outputs: [{ name: '', type: 'address' }], payable: false, stateMutability: 'view', type: 'function' }
 const isSponsorABI: abi.Function.Definition = {constant: true, inputs: [{name: '_self', type: 'address'}, {name: '_sponsor', type: 'address'}], name: 'isSponsor', outputs: [{name: '', type: 'bool'}], payable: false, stateMutability: 'view', type: 'function'}
+const paramsGetABI: abi.Function.Definition = {constant: true, inputs: [{name: '_key', type: 'bytes32'}], name: 'get', outputs: [{name: '', type: 'uint256'}], payable: false, stateMutability: 'view', type: 'function'}
 
 export const TransferEvent = new abi.Event(TransferABI)
 export const balanceOf = new abi.Function(BalanceOfABI)
@@ -33,4 +34,10 @@ export const prototype = {
     isSponsor: new abi.Function(isSponsorABI),
     unsponsored: '0x' + Buffer.from('unsponsored').toString('hex').padEnd(64, '0'),
     selected: '0x' + Buffer.from('selected').toString('hex').padEnd(64, '0')
+}
+export const params = {
+    get: new abi.Function(paramsGetABI),
+    keys: {
+        proposerEndorsement: '0x' + Buffer.from('proposer-endorsement').toString('hex').padStart(64, '0')
+    }
 }

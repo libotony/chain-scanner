@@ -4,9 +4,9 @@
   "description": "chain subscriber",
   "main": "dist/index.js",
   "dependencies": {
-    "@vechain/abi": "^1.0.1",
     "mysql2": "^1.7.0",
     "reflect-metadata": "^0.1.13",
+    "thor-devkit": "^1.2.3",
     "typeorm": "^0.2.21"
   },
   "devDependencies": {
