@@ -17,8 +17,8 @@ export class Thor {
     // default genesis ID to mainnet
     constructor(readonly net: Net, readonly genesisID = Network.MainNet) { }
 
-    public getBlock(revision: string | number) {
-        return this.httpGet<Required<Connex.Thor.Block>>(`blocks/${revision}`)
+    public getBlock(revision: string | number, expanded= false) {
+        return this.httpGet<Required<Connex.Thor.Block>>(`blocks/${revision}`, {expanded})
     }
     public getTransaction(id: string, head?: string) {
         return this.httpGet<Connex.Thor.Transaction>(`transactions/${id}`, head ? { head } : {})
@@ -52,7 +52,7 @@ export class Thor {
         })
     }
 
-    protected httpGet<T>(path: string, query?: Record<string, string>): Promise<T> {
+    protected httpGet<T>(path: string, query?: Record<string, any>): Promise<T> {
         return this.net.http('GET', path, {
             query,
             validateResponseHeader: this.headerValidator
