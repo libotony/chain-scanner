@@ -43,7 +43,7 @@ createConnection().then(async () => {
             throw new Error(`Block(${displayID(current.id)})'s in branch`)
         }
         try {
-            const chainB = await thor.getBlock(block.id)
+            const chainB = await thor.getBlock(block.id, 'regular')
             for (const [index, tx] of chainB.transactions.entries()) {
                 if (txs[index] !== tx) {
                     throw new Error(`Block(${displayID(current.id)})'s TX(#${index}) mismatch`)

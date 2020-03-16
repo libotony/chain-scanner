@@ -57,7 +57,7 @@ export class Foundation {
                 const toTrunk: string[] = []
 
                 for (const b of blocks) {
-                    const chainB = await this.thor.getBlock(b.id)
+                    const chainB = await this.thor.getBlock<'regular'>(b.id, 'regular')
                     if (chainB.isTrunk !== b.isTrunk) {
                         b.isTrunk = chainB.isTrunk
                         if (chainB.isTrunk) {
@@ -104,7 +104,7 @@ export class Foundation {
                 await sleep(SAMPLING_INTERVAL)
 
                 let head = await this.getHead()
-                const best = await this.thor.getBlock('best')
+                const best = await this.thor.getBlock('best', 'regular')
 
                 if (!head) {
                     if (best.number > REVERSIBLE_WINDOW) {
@@ -137,7 +137,7 @@ export class Foundation {
                     })
                     this.head = best.id
                 } else {
-                    const headBlock = await this.thor.getBlock(head)
+                    const headBlock = await this.thor.getBlock(head, 'regular')
                     const { trunk, branch } = await this.buildFork(best, headBlock)
 
                     await getConnection().transaction(async (manager) => {
@@ -206,13 +206,13 @@ export class Foundation {
         for (; ;) {
             if (t.number > b.number) {
                 trunk.push(t)
-                t = await this.thor.getBlock(t.parentID)
+                t = await this.thor.getBlock(t.parentID, 'regular')
                 continue
             }
 
             if (t.number < b.number) {
                 branch.push(b)
-                b = await this.thor.getBlock(b.parentID)
+                b = await this.thor.getBlock(b.parentID, 'regular')
                 continue
             }
 
@@ -226,8 +226,8 @@ export class Foundation {
             trunk.push(t)
             branch.push(b)
 
-            t = await this.thor.getBlock(t.parentID)
-            b = await this.thor.getBlock(b.parentID)
+            t = await this.thor.getBlock(t.parentID, 'regular')
+            b = await this.thor.getBlock(b.parentID, 'regular')
         }
 
     }
@@ -248,63 +248,50 @@ export class Foundation {
         }
     }
 
-    private async getBlockDetail(b: Required<Connex.Thor.Block>) {
-        const head = b.id
-        const txs: Connex.Thor.Transaction[] = []
-        const receipts: Connex.Thor.Receipt[] = []
-
-        try {
-            for (const txID of b.transactions) {
-                const [t, r] = await Promise.all([
-                    this.thor.getTransaction(txID, head),
-                    this.thor.getReceipt(txID, head)
-                ])
-                txs.push(t)
-                receipts.push(r)
-            }
-        } catch (e) {
-            e.message = 'Failed to get block detail: ' + e.message
-            throw e
-        }
-        return {txs, receipts}
-    }
-
     private async processBlock(b: Required<Connex.Thor.Block>, manager: EntityManager, trunk = true): Promise<number> {
         let reward = BigInt(0)
         let score = 0
 
         if (b.number > 0) {
-            const prevBlock = await this.thor.getBlock(b.parentID)
+            const prevBlock = await this.thor.getBlock(b.parentID, 'regular')
             score = b.totalScore - prevBlock.totalScore
         }
 
         const txs: any[] = []
         const receipts: any[] = []
 
-        const detail = await this.getBlockDetail(b)
-        for (const [index, _] of b.transactions.entries()) {
-            const t = detail.txs[index]
-            const r = detail.receipts[index]
+        const detail = await this.thor.getBlock(b.id, 'expanded')
+        for (const [index, tx] of detail.transactions.entries()) {
 
             txs.push({
-                ...t,
-                id: undefined,
-                txID: t.id,
-                txIndex: index,
-                blockID: b.id
-            })
-
-            receipts.push({
-                ...r,
-                id: undefined,
-                txID: t.id,
-                txIndex: index,
+                txID: tx.id,
                 blockID: b.id,
-                paid: BigInt(r.paid),
-                reward: BigInt(r.reward)
+                txIndex: index,
+                chainTag: tx.chainTag,
+                blockRef: tx.blockRef,
+                expiration: tx.expiration,
+                gasPriceCoef: tx.gasPriceCoef,
+                gas: tx.gas,
+                nonce: tx.nonce,
+                dependsOn: tx.dependsOn,
+                origin: tx.origin,
+                delegator: tx.delegator,
+                clauses: tx.clauses,
+                size: tx.size
+            })
+            receipts.push({
+                txID: tx.id,
+                blockID: b.id,
+                txIndex: index,
+                gasUsed: tx.gasUsed,
+                gasPayer: tx.gasPayer,
+                paid: BigInt(tx.paid),
+                reward: BigInt(tx.reward),
+                reverted: tx.reverted,
+                outputs: tx.outputs
             })
 
-            reward += BigInt(r.reward)
+            reward += BigInt(tx.reward)
         }
         const block = manager.create(Block, { ...b, isTrunk: trunk, score, reward, txCount: b.transactions.length })
 
@@ -352,7 +339,7 @@ export class Foundation {
                     if (this.shutdown) {
                         throw new InterruptedError()
                     }
-                    b = await this.thor.getBlock(i++)
+                    b = await this.thor.getBlock(i++, 'regular')
                     count += await this.processBlock(b, manager)
 
                     if (count >= 3000) {
