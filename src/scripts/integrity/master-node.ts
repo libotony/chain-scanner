@@ -1,7 +1,7 @@
 import { LessThanOrEqual, createConnection } from 'typeorm'
 import { Thor } from '../../thor-rest'
 import { Persist } from '../../processor/master-node/persist'
-import { AuthorityAddress, authority } from '../../const'
+import { AuthorityAddress, authority, ParamsAddress, params } from '../../const'
 import { Authority } from '../../explorer-db/entity/authority'
 import { Block } from '../../explorer-db/entity/block'
 import { Net } from '../../net'
@@ -22,7 +22,19 @@ const get = async (master: string, revision: string) => {
         }]
     }, revision)
     const getRet = authority.get.decode(ret[0].data)
-    return { master, listed: getRet.listed, endorsor: getRet.endorsor, identity: getRet.identity }
+    return { master, listed: getRet.listed, endorsor: getRet.endorsor, identity: getRet.identity, active: getRet.active }
+}
+
+const endorsement = async  (revision: string) => {
+    const ret = await thor.explain({
+        clauses: [{
+            to: ParamsAddress,
+            value: '0x0',
+            data: params.get.encode(params.keys.proposerEndorsement)
+        }]
+    }, revision)
+    const e = BigInt(params.get.decode(ret[0].data)['0'])
+    return e
 }
 
 createConnection().then(async (conn) => {
@@ -44,14 +56,26 @@ createConnection().then(async (conn) => {
 
     const head = block.id
     console.log('start checking...')
+    const amount = await endorsement(head)
+    const isEndorsed = async (endorsor: string) => {
+        const acc = await thor.getAccount(endorsor, head)
+        return BigInt(acc.balance) >= amount
+    }
     let listed = 0
     for (const node of nodes) {
         const chain = await get(node.address, head)
+
         if (chain.listed !== node.listed) {
             throw new Error(`Fatal: Master(${node.address}) listed status mismatch, want ${node.listed} got ${chain.listed}`)
         }
         if (chain.listed) {
             listed++
+            if (chain.active !== node.active) {
+                throw new Error(`Fatal: Master(${node.address}) active status mismatch, want ${node.active} got ${chain.active}`)
+            }        const endorsed = await isEndorsed(node.endorsor)
+            if (endorsed !== node.endorsed) {
+                throw new Error(`Fatal: Master(${node.address}) endorsed status mismatch, want ${node.endorsed} got ${endorsed}`)
+            }
         }
 
         let reward = BigInt(0)

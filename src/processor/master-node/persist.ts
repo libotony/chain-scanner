@@ -1,6 +1,8 @@
 import { getConnection, EntityManager } from 'typeorm'
 import { Config } from '../../explorer-db/entity/config'
 import { Authority } from '../../explorer-db/entity/authority'
+import { AuthorityEvent } from '../../explorer-db/entity/authority-event'
+import { MAX_BLOCK_PROPOSERS } from '../../utils'
 
 const HEAD_KEY = 'authority-head'
 
@@ -41,16 +43,6 @@ export class Persist {
         return manager.insert(Authority, auth)
     }
 
-    public revokeAuthority(address: string, manager?: EntityManager) {
-        if (!manager) {
-            manager = getConnection().manager
-        }
-
-        return manager
-            .getRepository(Authority)
-            .update({address}, {listed: false})
-    }
-
     public removeAuthority(address: string, manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
@@ -59,16 +51,6 @@ export class Persist {
         return manager
             .getRepository(Authority)
             .delete({address})
-    }
-
-    public enableAuthority(address: string, manager?: EntityManager) {
-        if (!manager) {
-            manager = getConnection().manager
-        }
-
-        return manager
-            .getRepository(Authority)
-            .update({address}, {listed: true})
     }
 
     public getAuthority(address: string, manager?: EntityManager) {
@@ -89,5 +71,63 @@ export class Persist {
         return manager
             .getRepository(Authority)
             .save(auth)
+    }
+
+    public listAuthorityCandidates(manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
+            .getRepository(Authority)
+            .find({
+                where: {
+                    listed: true,
+                    endorsed: true,
+                },
+                take: MAX_BLOCK_PROPOSERS
+            })
+    }
+
+    public listAuthorities(manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
+            .getRepository(Authority)
+            .find({
+                where: {
+                    listed: true,
+                }
+            })
+    }
+
+    public insertAuthorityEvents(events: AuthorityEvent[], manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager.insert(AuthorityEvent, events)
+    }
+
+    public listEventsByBlockID(id: string, manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
+            .getRepository(AuthorityEvent)
+            .find({blockID: id})
+    }
+
+    public removeEventsByBlockID(id: string, manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
+            .getRepository(AuthorityEvent)
+            .delete({blockID: id})
     }
 }
