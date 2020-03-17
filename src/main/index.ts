@@ -5,7 +5,6 @@ import { Thor } from '../thor-rest'
 import { DualToken } from '../processor/dual-token'
 import { VIP180Transfer } from '../processor/vip180'
 import { MasterNodeWatcher } from '../processor/master-node'
-import { GasAdjustmentWatcher } from '../processor/gas-adjust'
 import { createConnection } from 'typeorm'
 import { Net } from '../net'
 import { getThorREST } from '../utils'
@@ -63,9 +62,6 @@ switch (process.argv[3]) {
         break
     case 'authority':
         task = new MasterNodeWatcher(thor)
-        break
-    case 'gas-adjust':
-        task = new GasAdjustmentWatcher()
         break
     default:
         printUsage('invalid task name')

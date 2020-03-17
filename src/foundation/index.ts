@@ -251,10 +251,12 @@ export class Foundation {
     private async processBlock(b: Required<Connex.Thor.Block>, manager: EntityManager, trunk = true): Promise<number> {
         let reward = BigInt(0)
         let score = 0
+        let gasChanged = 0
 
         if (b.number > 0) {
             const prevBlock = await this.thor.getBlock(b.parentID, 'regular')
             score = b.totalScore - prevBlock.totalScore
+            gasChanged = b.gasLimit - prevBlock.gasLimit
         }
 
         const txs: any[] = []
@@ -293,7 +295,14 @@ export class Foundation {
 
             reward += BigInt(tx.reward)
         }
-        const block = manager.create(Block, { ...b, isTrunk: trunk, score, reward, txCount: b.transactions.length })
+        const block = manager.create(Block, {
+            ...b,
+            isTrunk: trunk,
+            score,
+            reward,
+            gasChanged,
+            txCount: b.transactions.length
+        })
 
         await this.persist.insertBlock(block, manager)
         if (txs.length) {
