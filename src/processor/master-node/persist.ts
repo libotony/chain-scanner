@@ -89,7 +89,7 @@ export class Persist {
             })
     }
 
-    public listAuthorities(manager?: EntityManager) {
+    public listAuthorityUnendorsed(manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
@@ -99,6 +99,7 @@ export class Persist {
             .find({
                 where: {
                     listed: true,
+                    endorsed: false,
                 }
             })
     }

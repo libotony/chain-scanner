@@ -78,13 +78,19 @@ export class MasterNodeWatcher extends Processor {
         const parent = (await getBlockByID(block.parentID, manager))!
         const receipts = await getBlockReceipts(block.id, manager)
         const candidates = await this.persist.listAuthorityCandidates(manager)
-        const all = await this.persist.listAuthorities(manager)
-        const endorsors = new Map<string, string>()
+        const unendorsed = await this.persist.listAuthorityUnendorsed(manager)
+        const endorsor = {
+            endorsed: new Map<string, string>(),
+            unendorsed: new Map<string, string>()
+        }
         const events: AuthorityEvent[] =  []
         const checkEndorsement: string[] = []
 
-        for (const c of all) {
-            endorsors.set(c.endorsor, c.address)
+        for (const c of candidates) {
+            endorsor.endorsed.set(c.endorsor, c.address)
+        }
+        for (const u of unendorsed) {
+            endorsor.unendorsed.set(u.endorsor, u.address)
         }
 
         // 1. update block signer
@@ -190,10 +196,10 @@ export class MasterNodeWatcher extends Processor {
                     }
                 }
                 for (const [___, t] of o.transfers.entries()) {
-                    if (endorsors.has(t.sender)) {
+                    if (endorsor.endorsed.has(t.sender)) {
                         checkEndorsement.push(t.sender)
                     }
-                    if (endorsors.has(t.recipient)) {
+                    if (endorsor.unendorsed.has(t.recipient)) {
                         checkEndorsement.push(t.recipient)
                     }
                 }
@@ -203,7 +209,12 @@ export class MasterNodeWatcher extends Processor {
 
         // 4. check endorsement
         for (const e of checkEndorsement) {
-            const addr = (endorsors.get(e))!
+            const addr = (() => {
+                if (endorsor.endorsed.has(e)) {
+                    return (endorsor.endorsed.get(e))!
+                }
+                return (endorsor.unendorsed.get(e))!
+            })()
             const n = (await this.persist.getAuthority(addr, manager))!
             const isEndorsed = await this.isEndorsed(e, block.id)
             if (isEndorsed !== n.endorsed) {
