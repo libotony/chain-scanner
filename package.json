@@ -4,12 +4,14 @@
   "description": "chain subscriber",
   "main": "dist/index.js",
   "dependencies": {
+    "lru-cache": "^5.1.1",
     "mysql2": "^1.7.0",
     "reflect-metadata": "^0.1.13",
     "thor-devkit": "^1.2.3",
     "typeorm": "^0.2.21"
   },
   "devDependencies": {
+    "@types/lru-cache": "^5.1.0",
     "@types/node": "^12.6.8",
     "@vechain/connex": "^1.4.0",
     "@vechain/connex.driver": "^1.1.0",

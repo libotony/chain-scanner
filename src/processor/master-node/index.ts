@@ -204,7 +204,6 @@ export class MasterNodeWatcher extends Processor {
                     }
                 }
             }
-
         }
 
         // 4. check endorsement
