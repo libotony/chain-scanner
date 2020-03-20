@@ -1,4 +1,4 @@
-import { getConnection, EntityManager } from 'typeorm'
+import { getConnection, EntityManager, In } from 'typeorm'
 import { Config } from '../../explorer-db/entity/config'
 import { Authority } from '../../explorer-db/entity/authority'
 import { AuthorityEvent } from '../../explorer-db/entity/authority-event'
@@ -43,14 +43,98 @@ export class Persist {
         return manager.insert(Authority, auth)
     }
 
-    public removeAuthority(address: string, manager?: EntityManager) {
+    public remove(addrs: string[], manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
 
         return manager
             .getRepository(Authority)
-            .delete({address})
+            .delete({address: In(addrs)})
+    }
+
+    public list(addrs: string[], manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
+            .getRepository(Authority)
+            .update({
+                address: In(addrs)
+            }, {
+                listed: true
+            })
+    }
+
+    public deactivate(addrs: string[], manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
+            .getRepository(Authority)
+            .update({
+                address: In(addrs)
+            }, {
+                active: false
+            })
+    }
+
+    public activate(addrs: string[], manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
+            .getRepository(Authority)
+            .update({
+                address: In(addrs)
+            }, {
+                active: true
+            })
+    }
+
+    public revoke(addrs: string[], manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
+            .getRepository(Authority)
+            .update({
+                address: In(addrs)
+            }, {
+                listed: false
+            })
+    }
+
+    public endorse(addrs: string[], manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
+            .getRepository(Authority)
+            .update({
+                address: In(addrs)
+            }, {
+                endorsed: true
+            })
+    }
+
+    public unendorse(addrs: string[], manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
+            .getRepository(Authority)
+            .update({
+                address: In(addrs)
+            }, {
+                endorsed: false
+            })
     }
 
     public getAuthority(address: string, manager?: EntityManager) {

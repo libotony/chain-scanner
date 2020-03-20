@@ -14,24 +14,43 @@ import * as logger from '../../logger'
 import { AuthorityEvent } from '../../explorer-db/entity/authority-event'
 import { cry } from 'thor-devkit'
 
-const cached: { revision: string; value: bigint; } = {
-    revision: '',
-    value: BigInt(0)
+class Metric {
+    private duration = BigInt(0)
+    constructor(readonly name: string) { }
+    public start() {
+        const s = process.hrtime.bigint()
+        return () => {
+            this.duration += (process.hrtime.bigint() - s)
+        }
+    }
+    public stats() {
+        console.log(`Task[${this.name}] duration: ${this.duration / BigInt(1e6)}ms`)
+        this.duration = BigInt(0)
+    }
 }
+const dprpMetric = new Metric('DPRP')
+const onoff = new Metric('ON/OFF')
+const receipt = new Metric('Receipt')
+const endorsement = new Metric('Endorsement')
+const saveEvent =  new Metric('Save Event')
 
 interface SnapAuthority {
     address: string,
     reward: string,
     signed: number,
+    active: boolean,
 }
 
 const dprp = (blockNum: number, time: number): bigint => {
+    const end = dprpMetric.start()
     const buff = Buffer.alloc(12)
     buff.writeUInt32BE(blockNum, 0)
     buff.writeBigUInt64BE(BigInt(time), 4)
 
     const hash = cry.blake2b256(buff)
-    return hash.readBigUInt64BE()
+    const b = hash.readBigUInt64BE()
+    end()
+    return b
 }
 
 const getSigner = (blockNum: number, time: number, actives: string[]) => {
@@ -98,11 +117,13 @@ export class MasterNodeWatcher extends Processor {
         const snapData: SnapAuthority = {
             address: signer.address,
             reward: signer.reward.toString(10),
-            signed: signer.signed
+            signed: signer.signed,
+            active: signer.active,
         }
         signer.reward = signer.reward + block.reward
         signer.signed += 1
 
+        const oEnd = onoff.start()
         // 2. activate and deactivate
         const actives = candidates
             .filter(x => {
@@ -121,25 +142,23 @@ export class MasterNodeWatcher extends Processor {
                 event: AuthEvent.Activate
             }))
         }
-        await this.persist.saveAuthority(signer, manager)
 
         let ts = block.timestamp - BLOCK_INTERVAL
         for (let i = 0; i < MAX_BLOCK_PROPOSERS && ts > parent.timestamp; i++) {
             const addr = getSigner(block.number - 1, ts, actives)
             if (addr !== block.signer) {
-                const n = (await this.persist.getAuthority(addr, manager))!
-                n.active = false
                 events.push(manager.create(AuthorityEvent, {
                     blockID: block.id,
                     address: addr,
                     event: AuthEvent.Deactivate
                 }))
-                await this.persist.saveAuthority(n, manager)
                 logger.log(`MasterNode(${addr}) [Deactivate] at Block(${displayID(block.id)})`)
             }
             ts = ts - BLOCK_INTERVAL
         }
+        oEnd()
 
+        const rEnd = receipt.start()
         // 3. handle block: added and revoked nodes & get endorsor VET movement
         for (const r of receipts) {
             for (const [_, o] of r.outputs.entries()) {
@@ -149,6 +168,21 @@ export class MasterNodeWatcher extends Processor {
                         if (decoded.action === authority.added) {
                             const [node] = await this.get(decoded.nodeMaster, block.id)
                             const isEndorsed = await this.isEndorsed(node.endorsor, block.id)
+                            if (isEndorsed) {
+                                events.push(manager.create(AuthorityEvent, {
+                                    blockID: block.id,
+                                    address: node.master,
+                                    event: AuthEvent.Endorsed
+                                }))
+                                logger.log(`MasterNode(${node.master}) [Endorsed] at Block(${displayID(block.id)})`)
+                            } else {
+                                events.push(manager.create(AuthorityEvent, {
+                                    blockID: block.id,
+                                    address: node.master,
+                                    event: AuthEvent.Unendorsed
+                                }))
+                                logger.log(`MasterNode(${node.master}) [UnEndorsed] at Block(${displayID(block.id)})`)
+                            }
                             const auth = manager.create(Authority, {
                                 address: node.master,
                                 endorsor: node.endorsor,
@@ -166,21 +200,6 @@ export class MasterNodeWatcher extends Processor {
                                 event: AuthEvent.Added
                             }))
                             logger.log(`MasterNode(${node.master}) [Added] at Block(${displayID(block.id)})`)
-                            if (isEndorsed) {
-                                events.push(manager.create(AuthorityEvent, {
-                                    blockID: block.id,
-                                    address: node.master,
-                                    event: AuthEvent.Endorsed
-                                }))
-                                logger.log(`MasterNode(${node.master}) [Endorsed] at Block(${displayID(block.id)})`)
-                            } else {
-                                events.push(manager.create(AuthorityEvent, {
-                                    blockID: block.id,
-                                    address: node.master,
-                                    event: AuthEvent.Unendorsed
-                                }))
-                                logger.log(`MasterNode(${node.master}) [UnEndorsed] at Block(${displayID(block.id)})`)
-                            }
                         } else {
                             const addr = decoded.nodeMaster
                             events.push(manager.create(AuthorityEvent, {
@@ -188,9 +207,6 @@ export class MasterNodeWatcher extends Processor {
                                 address: addr,
                                 event: AuthEvent.Revoked
                             }))
-                            const n = (await this.persist.getAuthority(addr, manager))!
-                            n.listed = false
-                            await this.persist.saveAuthority(n, manager)
                             logger.log(`MasterNode(${addr}) [Revoked] at Block(${displayID(block.id)})`)
                         }
                     }
@@ -205,7 +221,9 @@ export class MasterNodeWatcher extends Processor {
                 }
             }
         }
+        rEnd()
 
+        const endorseEnd = endorsement.start()
         // 4. check endorsement
         for (const e of checkEndorsement) {
             const addr = (() => {
@@ -214,10 +232,9 @@ export class MasterNodeWatcher extends Processor {
                 }
                 return (endorsor.unendorsed.get(e))!
             })()
-            const n = (await this.persist.getAuthority(addr, manager))!
+            const endorsed = endorsor.endorsed.has(e)
             const isEndorsed = await this.isEndorsed(e, block.id)
-            if (isEndorsed !== n.endorsed) {
-                n.endorsed = isEndorsed
+            if (isEndorsed !== endorsed) {
                 if (isEndorsed) {
                     events.push(manager.create(AuthorityEvent, {
                         blockID: block.id,
@@ -233,13 +250,55 @@ export class MasterNodeWatcher extends Processor {
                     }))
                     logger.log(`MasterNode(${addr}) [Unendorsed] at Block(${displayID(block.id)})`)
                 }
-                await this.persist.saveAuthority(n, manager)
             }
         }
+        endorseEnd()
 
+        const sEnd = saveEvent.start()
+
+        await this.persist.saveAuthority(signer, manager)
         if (events.length) {
             await this.persist.insertAuthorityEvents(events, manager)
+
+            // deactivate, revoke, endorsed, unendorsed
+            const d = new Set<string>()
+            const r = new Set<string>()
+            const e = new Set<string>()
+            const u = new Set<string>()
+            for (const ev of events) {
+                switch (ev.event) {
+                    case AuthEvent.Deactivate:
+                        d.add(ev.address)
+                        break
+                    case AuthEvent.Revoked:
+                        r.add(ev.address)
+                        break
+                    case AuthEvent.Endorsed:
+                        e.add(ev.address)
+                        break
+                    case AuthEvent.Unendorsed:
+                        u.add(ev.address)
+                        break
+                    case AuthEvent.Added:
+                        e.delete(ev.address)
+                        u.delete(ev.address)
+                        break
+                }
+            }
+            if (d.size) {
+                this.persist.deactivate(Array.from(d), manager)
+            }
+            if (r.size) {
+                this.persist.revoke(Array.from(r), manager)
+            }
+            if (e.size) {
+                this.persist.endorse(Array.from(e), manager)
+            }
+            if (u.size) {
+                this.persist.unendorse(Array.from(u), manager)
+            }
         }
+        sEnd()
 
         if (saveSnapshot) {
             const snapshot = new Snapshot()
@@ -249,6 +308,13 @@ export class MasterNodeWatcher extends Processor {
             await insertSnapshot(snapshot, manager)
         }
 
+        if (block.number % 10000 === 0) {
+            dprpMetric.stats()
+            onoff.stats()
+            receipt.stats()
+            endorsement.stats()
+            saveEvent.stats()
+        }
         return 1 + events.length * 2
     }
 
@@ -281,36 +347,37 @@ export class MasterNodeWatcher extends Processor {
                         const signer = (await this.persist.getAuthority(snapData.address, manager))!
                         signer.reward = BigInt(snapData.reward)
                         signer.signed = snapData.signed
+                        signer.active = snapData.active
                         await this.persist.saveAuthority(signer, manager)
                         logger.log(`MasterNode(${snapData.address})'s Signed block reverted to ${snapData.signed} of Block(${displayID(snap.blockID)})`)
 
                         const events = await this.persist.listEventsByBlockID(snap.blockID, manager)
                         for (const e of events) {
                             if (e.event === AuthEvent.Added) {
-                                await this.persist.removeAuthority(e.address, manager)
+                                await this.persist.remove([e.address], manager)
                             } else {
-                                const n = (await this.persist.getAuthority(e.address, manager))!
                                 switch (e.event) {
                                     case AuthEvent.Revoked:
-                                        n.listed = true
+                                        await this.persist.list([e.address], manager)
                                         break
                                     case AuthEvent.Activate:
-                                        n.active = false
+                                        if (e.address !== signer.address) {
+                                            await this.persist.deactivate([e.address], manager)
+                                        }
                                         break
                                     case AuthEvent.Deactivate:
-                                        n.active = true
+                                        await this.persist.activate([e.address], manager)
                                         break
                                     case AuthEvent.Endorsed:
-                                        n.endorsed = false
+                                        await this.persist.unendorse([e.address], manager)
                                         break
                                     case AuthEvent.Unendorsed:
-                                        n.endorsed = true
+                                        await this.persist.endorse([e.address], manager)
                                         break
                                 }
-                                await this.persist.saveAuthority(n, manager)
                             }
                         }
-                        await this.persist.removeEventsByBlockID(snap.blockID)
+                        await this.persist.removeEventsByBlockID(snap.blockID, manager)
                     }
 
                     await removeSnapshot(toRevert, this.snapType, manager)
@@ -407,26 +474,8 @@ export class MasterNodeWatcher extends Processor {
         return [{master, listed: getRet.listed, endorsor: getRet.endorsor, identity: getRet.identity}, next]
     }
 
-    private async endorsement(revision: string) {
-        if (cached.revision === revision) {
-            return cached.value
-        } else {
-            const ret = await this.thor.explain({
-                clauses: [{
-                    to: ParamsAddress,
-                    value: '0x0',
-                    data: params.get.encode(params.keys.proposerEndorsement)
-                }]
-            }, revision)
-            const e = BigInt(params.get.decode(ret[0].data)['0'])
-            cached.revision = revision
-            cached.value = e
-            return e
-        }
-    }
-
     private async isEndorsed(endorsor: string, revision: string) {
-        const endorsement = await this.endorsement(revision)
+        const endorsement = BigInt(2500000) * BigInt(1e18)
         const acc = await this.thor.getAccount(endorsor, revision)
         return BigInt(acc.balance) >= endorsement
     }
