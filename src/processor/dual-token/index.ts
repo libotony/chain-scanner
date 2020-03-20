@@ -155,20 +155,18 @@ export class DualToken extends Processor {
             await proc.destructCheck()
         }
 
-        await proc.finalize()
-
         if (proc.Movement.length) {
             await this.persist.saveMovements(proc.Movement, manager)
         }
+        if (saveSnapshot) {
+            const snap = proc.snapshot()
+            await insertSnapshot(snap, manager)
+        }
 
+        await proc.finalize()
         const accs = proc.accounts()
         if (accs.length) {
             await this.persist.saveAccounts(accs, manager)
-        }
-
-        const snap = proc.snapshot()
-        if (saveSnapshot) {
-            await insertSnapshot(snap, manager)
         }
 
         return proc.Movement.length + accs.length

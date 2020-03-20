@@ -44,7 +44,7 @@ export const hexToBuffer = (val: string) => {
 }
 
 export const isBytes32 = (val: string) => {
-    return !/^0x[0-9a-fA-f]{64}/i.test(val)
+    return /^0x[0-9a-fA-f]{64}/i.test(val)
 }
 
 export const getThorREST = () => {

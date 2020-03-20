@@ -82,8 +82,8 @@ export class BlockProcessor {
 
         this.Movement.push(move)
 
-        this.updateEnergy.add(move.sender)
-        this.updateEnergy.add(move.recipient)
+        await this.touchEnergy(move.sender)
+        await this.touchEnergy(move.recipient)
     }
 
     public async transferEnergy(move: AssetMovement) {
@@ -92,8 +92,8 @@ export class BlockProcessor {
 
         this.Movement.push(move)
 
-        this.updateEnergy.add(move.sender)
-        this.updateEnergy.add(move.recipient)
+        await this.touchEnergy(move.sender)
+        await this.touchEnergy(move.recipient)
     }
 
     public accounts() {
@@ -153,6 +153,10 @@ export class BlockProcessor {
 
     public async touchEnergy(addr: string) {
         await this.account(addr)
+        if (this.updateEnergy.has(addr)) {
+            return
+        }
+        this.thor.getAccount(addr, this.block.id).catch()
         this.updateEnergy.add(addr)
         return
     }

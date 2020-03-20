@@ -3,7 +3,7 @@ import '@vechain/connex.driver'
 import { Network } from './const'
 import { Net } from './net'
 import * as LRU from 'lru-cache'
-import { blockIDtoNum } from './utils'
+import { blockIDtoNum, isBytes32 } from './utils'
 
 export namespace Thor {
     export type ExpandedBlock =
@@ -48,7 +48,7 @@ export class Thor {
             }
 
             const blockNum = typeof revision === 'number' ? revision : blockIDtoNum(revision)
-            const key =  (expanded ? 'e-' : 'r-') + blockNum
+            const key =  (expanded ? 'b-e' : 'b-r') + blockNum
             if (this.cache.has(key)) {
                 return this.cache.get(key) as Thor.Block<T>
             }
@@ -77,8 +77,22 @@ export class Thor {
     public getReceipt(id: string, head ?: string) {
         return this.httpGet<Thor.Receipt>(`transactions/${id}/receipt`, head ? { head } : {})
     }
-    public getAccount(addr: string, revision ?: string) {
-        return this.httpGet<Thor.Account>(`accounts/${addr}`, revision ? { revision } : {})
+    public async getAccount(addr: string, revision?: string) {
+        const get = () => {
+            return this.httpGet<Thor.Account>(`accounts/${addr}`, revision ? { revision } : {})
+        }
+        if (revision && isBytes32(revision)) {
+            const key = 'a' + revision + addr
+            if (this.cache.has(key)) {
+                return this.cache.get(key) as Thor.Account
+            }
+
+            const acc = await get()
+            this.cache.set(key, acc)
+            return acc
+        }
+
+        return get()
     }
     public getCode(addr: string, revision ?: string) {
         return this.httpGet<Thor.Code>(`accounts/${addr}/code`, revision ? { revision } : {})
