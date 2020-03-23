@@ -44,13 +44,7 @@ export abstract class Processor {
             return this.head
         } else {
             const head = await this.loadHead()
-
-            if (head === null) {
-                return this.birthNumber! - 1
-            } else {
-                return head
-            }
-
+            return head!
         }
     }
 
@@ -64,10 +58,17 @@ export abstract class Processor {
 
     private async beforeStart() {
         this.birthNumber = await this.bornAt()
+
+        // process genesis
+        const h = await this.loadHead()
+        if (!!h) {
+            await this.processGenesis()
+            this.head = this.birthNumber! - 1
+            await this.saveHead(this.head)
+        }
     }
 
     private async loop() {
-
         for (; ;) {
             try {
                 if (this.shutdown) {
@@ -77,10 +78,6 @@ export abstract class Processor {
                 await this.latestTrunkCheck()
 
                 let head = await this.getHead()
-                if (head === this.birthNumber! - 1) {
-                    await this.processGenesis()
-                }
-
                 const best = await getBest()
 
                 if (best.number <= head) {
