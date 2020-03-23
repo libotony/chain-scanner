@@ -40,35 +40,56 @@ export class Thor {
     public async getBlock<T extends 'expanded' | 'regular'>(
         revision: string | number,
         type: T
-    ): Promise<Thor.Block<T>> {
+    ): Promise<Thor.Block<T>|null> {
         const expanded = type === 'expanded'
-        const cacheOrLoad = async (func: () => Promise<Thor.Block<T>>) => {
+        const cacheOrLoad = async (func: () => Promise<Thor.Block<T>|null>) => {
             if (revision === 'best') {
                 return func()
             }
 
-            const blockNum = typeof revision === 'number' ? revision : blockIDtoNum(revision)
-            const key =  (expanded ? 'b-e' : 'b-r') + blockNum
-            if (this.cache.has(key)) {
-                return this.cache.get(key) as Thor.Block<T>
+            const { key, IDKey } = ((): {key: string; IDKey: string} => {
+                if (typeof revision === 'string' && isBytes32(revision)) {
+                    return {
+                        key: (expanded ? 'b-e' : 'b-r') + blockIDtoNum(revision).toString(),
+                        IDKey: (expanded ? 'b-e' : 'b-r') + revision
+                    }
+                } else if (typeof revision === 'number') {
+                    return {
+                        key: (expanded ? 'b-e' : 'b-r') + revision.toString(),
+                        IDKey: ''
+                    }
+                } else {
+                    throw new Error('invalid block revision')
+                }
+            })()
+
+            if (this.cache.has(key!)) {
+                return this.cache.get(key!) as Thor.Block<T>
+            } else if (!!IDKey && this.cache.has(IDKey)) {
+                return this.cache.get(key!) as Thor.Block<T>
             }
 
             const b = await func()
             // cache blocks 10 minutes earlier than now
-            if ((new Date().getTime() / 1000) - b.timestamp > 10 * 60) {
-                this.cache.set(key, b)
-                if (expanded) {
-                    this.cache.set('r-' + blockNum, {
-                        ...b,
-                        transactions: (b as Thor.ExpandedBlock).transactions.map(x => x.id)
-                    })
+            if (b) {
+                if ((new Date().getTime() / 1000) - b.timestamp > 10 * 60) {
+                    this.cache.set('b-r' + b.number, b)
+                    this.cache.set('b-r' + b.id, b)
+                    if (expanded) {
+                        const obj = {
+                            ...b,
+                            transactions: (b as Thor.ExpandedBlock).transactions.map(x => x.id)
+                        }
+                        this.cache.set('b-e' + b.number, obj)
+                        this.cache.set('b-e' + b.id, obj)
+                    }
                 }
             }
             return b
         }
 
         return cacheOrLoad(() => {
-            return this.httpGet<Thor.Block<T>>(`blocks/${revision}`, { expanded })
+            return this.httpGet<Thor.Block<T>|null>(`blocks/${revision}`, { expanded })
         })
     }
     public getTransaction(id: string, head ?: string) {
@@ -77,7 +98,7 @@ export class Thor {
     public getReceipt(id: string, head ?: string) {
         return this.httpGet<Thor.Receipt>(`transactions/${id}/receipt`, head ? { head } : {})
     }
-    public async getAccount(addr: string, revision?: string) {
+    public async getAccount(addr: string, revision ?: string) {
         const get = () => {
             return this.httpGet<Thor.Account>(`accounts/${addr}`, revision ? { revision } : {})
         }

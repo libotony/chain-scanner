@@ -34,7 +34,7 @@ createConnection().then(async (conn) => {
         chainNodes.set(n.address, {signed: 0, reward: BigInt(0)})
     }
 
-    let curr = await thor.getBlock(block.id, 'regular')
+    let curr = (await thor.getBlock(block.id, 'regular'))!
     for (let i = block.number; i >= 1; i--) {
         const currNode = chainNodes.get(curr.signer)!
         currNode.signed += 1
@@ -43,7 +43,7 @@ createConnection().then(async (conn) => {
             currNode.reward += BigInt(r.reward)
         }
 
-        curr = await thor.getBlock(curr.parentID, 'regular')
+        curr = (await thor.getBlock(curr.parentID, 'regular'))!
         if (i % 5000 === 0) {
             console.log('processed', i)
         }

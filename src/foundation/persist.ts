@@ -29,88 +29,90 @@ export class Persist {
             .findOne({ key: HEAD_KEY })
     }
 
-    public async toBranch(ids: string[], manager?: EntityManager) {
+    public async moveTxs(toBranch: string[], toTrunk: string[], manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
 
-        // from trunk
-        const txs = await manager
-            .getRepository(Transaction)
-            .find({ blockID: In([...ids]) })
+        // from trunk to branch
+        let bTXs: Transaction[] = []
+        let bReceipts: Receipt[] = []
 
-        const receipts = await manager
-            .getRepository(Receipt)
-            .find({ blockID: In([...ids]) })
+        // from branch to trunk
+        let tTxs: BranchTransaction[] = []
+        let tReceipts: BranchReceipt[] = []
 
-        if (txs.length) {
-            await this.insertBranchTXs(txs.map(x => {
+        if (toBranch.length) {
+            bTXs = await manager
+                .getRepository(Transaction)
+                .find({ blockID: In([...toBranch]) })
+
+            bReceipts = await manager
+                .getRepository(Receipt)
+                .find({ blockID: In([...toBranch]) })
+        }
+        if (toTrunk.length) {
+            tTxs = await manager
+                .getRepository(BranchTransaction)
+                .find({ blockID: In([...toTrunk]) })
+
+            tReceipts = await manager
+                .getRepository(BranchReceipt)
+                .find({ blockID: In([...toTrunk]) })
+        }
+
+        if (toBranch.length) {
+            await manager
+                .getRepository(Receipt)
+                .delete({ blockID: In([...toBranch]) })
+
+            await manager
+                .getRepository(Transaction)
+                .delete({ blockID: In([...toBranch]) })
+            await manager
+                .getRepository(Block)
+                .update({ id: In([...toBranch]) }, { isTrunk: false })
+        }
+
+        if (toTrunk.length) {
+            await manager
+                .getRepository(BranchReceipt)
+                .delete({ blockID: In([...toTrunk]) })
+
+            await manager
+                .getRepository(BranchTransaction)
+                .delete({ blockID: In([...toTrunk]) })
+
+            await manager
+                .getRepository(Block)
+                .update({ id: In([...toTrunk]) }, { isTrunk: true })
+        }
+
+        if (bTXs.length) {
+            await this.insertBranchTXs(bTXs.map(x => {
                 return manager!.create(BranchTransaction, {
                     ...x
                 })
             }), manager)
-            await this.insertBranchReceipts(receipts.map(x => {
+            await this.insertBranchReceipts(bReceipts.map(x => {
                 return manager!.create(BranchReceipt, {
                     ...x
                 })
             }), manager)
         }
 
-        await manager
-            .getRepository(Receipt)
-            .delete({ blockID: In([...ids]) })
-
-        await manager
-            .getRepository(Transaction)
-            .delete({ blockID: In([...ids]) })
-
-        await manager
-            .getRepository(Block)
-            .update({ id: In([...ids]) }, { isTrunk: false })
-
-        return
-    }
-
-    public async toTrunk(ids: string[], manager?: EntityManager) {
-        if (!manager) {
-            manager = getConnection().manager
-        }
-
-        // from branch
-        const txs = await manager
-            .getRepository(BranchTransaction)
-            .find({ blockID: In([...ids]) })
-
-        const receipts = await manager
-            .getRepository(BranchReceipt)
-            .find({ blockID: In([...ids]) })
-
-        if (txs.length) {
-            await this.insertTXs(txs.map(x => {
+        if (tTxs.length) {
+            await this.insertTXs(tTxs.map(x => {
                 return manager!.create(Transaction, {
                     ...x
                 })
             }), manager)
-            await this.insertReceipts(receipts.map(x => {
+            await this.insertReceipts(tReceipts.map(x => {
                 return manager!.create(Receipt, {
                     ...x
                 })
             }), manager)
         }
-
-        await manager
-            .getRepository(BranchReceipt)
-            .delete({ blockID: In([...ids]) })
-
-        await manager
-            .getRepository(BranchTransaction)
-            .delete({ blockID: In([...ids]) })
-
-        await manager
-            .getRepository(Block)
-            .update({ id: In([...ids]) }, { isTrunk: true })
-
-        return
     }
 
     public listRecentBlock(head: number, manager?: EntityManager) {

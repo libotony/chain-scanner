@@ -67,11 +67,8 @@ export class Foundation {
                         }
                     }
                 }
-                if (toBranch.length) {
-                    await this.persist.toBranch(toBranch, manager)
-                }
-                if (toTrunk.length) {
-                    await this.persist.toTrunk(toTrunk, manager)
+                if (toBranch.length || toTrunk.length) {
+                    await this.persist.moveTxs(toBranch, toTrunk, manager)
                 }
 
                 const trunks = blocks.filter(x => x.isTrunk === true)
@@ -164,11 +161,8 @@ export class Foundation {
                             }
                         }
 
-                        if (toBranch.length) {
-                            await this.persist.toBranch(toBranch, manager)
-                        }
-                        if (toTrunk.length) {
-                            await this.persist.toTrunk(toTrunk, manager)
+                        if (toBranch.length || toTrunk.length) {
+                            await this.persist.moveTxs(toBranch, toTrunk, manager)
                         }
 
                         for (const b of newBranch) {
