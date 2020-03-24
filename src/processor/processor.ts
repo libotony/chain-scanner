@@ -1,9 +1,11 @@
 import { EntityManager, getConnection } from 'typeorm'
 import { sleep, REVERSIBLE_WINDOW, InterruptedError, WaitNextTickError } from '../utils'
 import { EventEmitter } from 'events'
-import { getBest } from '../service/block'
+import { getBest, getExpandedBlockByNumber } from '../service/block'
 import { SnapType } from '../explorer-db/types'
 import * as logger from '../logger'
+import { Block } from '../explorer-db/entity/block'
+import { TransactionMeta } from '../explorer-db/entity/tx-meta'
 
 const SAMPLING_INTERVAL = 1 * 1000
 
@@ -33,7 +35,8 @@ export abstract class Processor {
     protected abstract saveHead(head: number,  manager?: EntityManager): Promise<void>
     protected abstract bornAt(): Promise<number>
     protected abstract processBlock(
-        blockNum: number,
+        block: Block,
+        txs: TransactionMeta[],
         manager: EntityManager,
         saveSnapshot?: boolean
     ): Promise<number>
@@ -90,7 +93,8 @@ export abstract class Processor {
                 const timeLogger = logger.taskTime(new Date())
                 await getConnection().transaction(async (manager) => {
                     for (let i = head + 1; i <= best.number; i++) {
-                        await this.processBlock(i, manager, true)
+                        const {block, txs} = await getExpandedBlockByNumber(i, manager)
+                        await this.processBlock(block!, txs, manager, true)
                     }
                     await this.saveHead(best.number, manager)
                     logger.log(`-> save head: ${best.number}(${best.timestamp % 60}) ${timeLogger(new Date())}`)
@@ -117,14 +121,14 @@ export abstract class Processor {
         let startNum = head + 1
         console.time('time')
         let count = 0
-        for (let i = head + 1 ; i <= target;) {
+        for (const i = head + 1 ; i <= target;) {
             await getConnection().transaction(async (manager) => {
                 for (; i <= target;) {
                     if (this.shutdown) {
                         throw new InterruptedError()
                     }
-
-                    count += await this.processBlock(i++, manager)
+                    const {block, txs} = await getExpandedBlockByNumber(i, manager)
+                    count += await this.processBlock(block!, txs, manager)
                     if (this.enoughToWrite(count)) {
                         await this.saveHead(i - 1, manager)
                         count = 0
