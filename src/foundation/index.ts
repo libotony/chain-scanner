@@ -7,6 +7,7 @@ import { TransactionMeta } from '../explorer-db/entity/tx-meta'
 import { Transaction } from '../explorer-db/entity/transaction'
 import { Block } from '../explorer-db/entity/block'
 import * as logger from '../logger'
+import { BranchTransactionMeta } from '../explorer-db/entity/branch-tx-meta'
 
 const SAMPLING_INTERVAL = 500
 
@@ -216,7 +217,7 @@ export class Foundation {
         const trunk: Thor.ExpandedBlock[] = []
 
         for (; ;) {
-            if (trunk.length >= REVERSIBLE_WINDOW || branch.length >= REVERSIBLE_WINDOW) {
+            if (trunk.length > REVERSIBLE_WINDOW || branch.length > REVERSIBLE_WINDOW) {
                 throw new Error(`traced back more than ${REVERSIBLE_WINDOW} blocks`)
             }
             if (t.number > b.number) {
@@ -325,6 +326,15 @@ export class Foundation {
                     })
                     await this.persist.insertBlock(block, manager)
                 }
+                if (txs.length) {
+                    if (isTrunk) {
+                        await this.persist.insertTransactionMeta(txs, manager)
+                    } else {
+                        await this.persist.insertBranchTransactionMeta(
+                            txs.map(x => manager.create(BranchTransactionMeta, { ...x })),
+                        manager)
+                    }
+                }
                 return 1 + txs.length * 2
             }
         }
@@ -375,7 +385,7 @@ export class Foundation {
             for (let i = 1; i <= 10; i++) {
                 await this.thor.getBlock(num + i, 'expanded')
             }
-        })()
+        })().catch()
         return b
     }
 

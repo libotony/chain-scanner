@@ -5,7 +5,7 @@ import { displayID, REVERSIBLE_WINDOW, blockIDtoNum, getThorREST } from '../../u
 import { Thor } from '../../thor-rest'
 import { Net } from '../../net'
 import { getNetwork, checkNetworkWithDB } from '../network'
-import { getBlockByID, getExpandedBlockByID } from '../../service/block'
+import { getExpandedBlockByID } from '../../service/block'
 
 const net = getNetwork()
 const STOP_NUMBER = 0
@@ -13,18 +13,18 @@ const persist = new Persist()
 const thor = new Thor(new Net(getThorREST()), net)
 
 const getBlockFromREST = async (id: string) => {
-    const b = await thor.getBlock(id, 'regular')
-    const num = blockIDtoNum(id);
+    const b = await thor.getBlock(id, 'regular');
     (async () => {
-        for (let i = 1; i <= 10; i++) {
-            await thor.getBlock(num + i, 'regular')
+        let pos = b
+        for (let i = 0; i <= 10; i++) {
+            pos = await thor.getBlock(pos!.parentID, 'regular')
         }
-    })()
+    })().catch()
     return b
 }
 
 createConnection().then(async () => {
-    await checkNetworkWithDB(net)
+    // await checkNetworkWithDB(net)
 
     const head = (await persist.getHead())!
     const headNum = blockIDtoNum(head.value)
@@ -33,37 +33,36 @@ createConnection().then(async () => {
     if (count) {
         throw new Error('larger number block exist than head')
     }
-    let current = await getBlockByID(head.value)
-    if (!current) {
-        throw new Error('cannot find block in the db ' + head.value)
-    }
 
+    let current = head.value
     for (; ;) {
-        const { block, txs } = await getExpandedBlockByID(current.parentID)
-        if (!block) {
-            throw new Error(`continuity Block(${displayID(current.id)})'s parentID(${current.parentID}) missing`)
+       const { block, txs } = await getExpandedBlockByID(current)
+       if (!block) {
+            throw new Error(`Continuity failed: Block(${displayID(current)}) missing`)
         }
-        if ((block.timestamp < (new Date().getTime() / 1000 - REVERSIBLE_WINDOW * 10)) && !block.isTrunk) {
-            throw new Error(`Block(${displayID(current.id)})'s in branch`)
+       if ((block.timestamp < (new Date().getTime() / 1000 - REVERSIBLE_WINDOW * 10)) && !block.isTrunk) {
+            throw new Error(`Block(${displayID(current)}) in branch`)
         }
-        try {
-            const chainB = (await getBlockFromREST(block.id))!
-            for (const [index, tx] of chainB.transactions.entries()) {
-                if (txs[index].txID !== tx) {
-                    throw new Error(`Block(${displayID(current.id)})'s TX(#${index}) mismatch`)
-                }
-            }
+       let chainB: Thor.Block<'regular'>
+       try {
+            chainB = (await getBlockFromREST(block.id))!
         } catch {
             continue
         }
-        if (block.number === STOP_NUMBER) {
+       for (const [index, tx] of chainB.transactions.entries()) {
+            if (txs[index].txID !== tx) {
+                console.log(txs)
+                throw new Error(`Block(${displayID(current)})'s TX(#${index}) mismatch`)
+            }
+        }
+       if (block.number === STOP_NUMBER) {
             console.log('Finished integrity check')
             break
         }
-        if (block.number % 1000 === 0) {
+       if (block.number % 1000 === 0) {
             console.log(`Processed to Block(${displayID(block.id)})`)
         }
-        current = block as Block
+       current = block.parentID
     }
 
     process.exit(0)
