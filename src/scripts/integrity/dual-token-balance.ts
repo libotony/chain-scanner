@@ -1,4 +1,4 @@
-import { createConnection, getManager, Transaction, LessThanOrEqual, getConnection } from 'typeorm'
+import { createConnection, getManager, Transaction, LessThanOrEqual, getConnection, In } from 'typeorm'
 import { Persist } from '../../processor/dual-token/persist'
 import { Thor } from '../../thor-rest'
 import { Account } from '../../explorer-db/entity/account'
@@ -10,6 +10,7 @@ import { getBlockByNumber } from '../../service/block'
 import { Block } from '../../explorer-db/entity/block'
 import { AssetMovement } from '../../explorer-db/entity/movement'
 import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
+import { MoveType } from '../../explorer-db/types'
 
 const net = getNetwork()
 const persist = new Persist()
@@ -117,9 +118,11 @@ createConnection().then(async (conn) => {
         .count()
         const c2 = await getConnection()
             .getRepository(AggregatedMovement)
-            .count()
-        if (c1 * 2 !== c2) {
-            throw new Error(`Fatal: aggregated movements mismatch, origin (${c1}) got aggregated:${c2 / 2}`)
+            .count({
+                type: In([MoveType.In, MoveType.Self])
+            })
+        if (c1 !== c2) {
+            throw new Error(`Fatal: aggregated movements mismatch, origin (${c1}) got aggregated:${c2}`)
         }
     })
     console.log('all done!')

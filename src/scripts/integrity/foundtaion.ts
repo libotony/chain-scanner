@@ -5,27 +5,12 @@ import { displayID, REVERSIBLE_WINDOW, blockIDtoNum, getThorREST } from '../../u
 import { Thor } from '../../thor-rest'
 import { Net } from '../../net'
 import { getNetwork, checkNetworkWithDB } from '../network'
-import { Transaction } from '../../explorer-db/entity/transaction'
+import { getBlockByID, getExpandedBlockByID } from '../../service/block'
 
 const net = getNetwork()
 const STOP_NUMBER = 0
 const persist = new Persist()
 const thor = new Thor(new Net(getThorREST()), net)
-
-const getBlock = async (id: string) => {
-    const block = await getConnection().getRepository(Block).findOne({ id })
-    const ret = await getConnection()
-        .getRepository(Transaction)
-        .find({
-            select: ['txID'],
-            where: { blockID: id },
-            order: { seq: 'ASC' },
-            relations: ['receipt']
-        })
-    const txs = ret.map(x => x.txID)
-    const receipts = ret.map(x => x.receipt.txID)
-    return {block, txs, receipts}
-}
 
 const getBlockFromREST = async (id: string) => {
     const b = await thor.getBlock(id, 'regular')
@@ -48,11 +33,13 @@ createConnection().then(async () => {
     if (count) {
         throw new Error('larger number block exist than head')
     }
-    const data = await getBlock(head.value)
-    let current = data.block!
+    let current = await getBlockByID(head.value)
+    if (!current) {
+        throw new Error('cannot find block in the db ' + head.value)
+    }
 
     for (; ;) {
-        const { block, txs, receipts } = await getBlock(current.parentID)
+        const { block, txs } = await getExpandedBlockByID(current.parentID)
         if (!block) {
             throw new Error(`continuity Block(${displayID(current.id)})'s parentID(${current.parentID}) missing`)
         }
@@ -62,11 +49,8 @@ createConnection().then(async () => {
         try {
             const chainB = (await getBlockFromREST(block.id))!
             for (const [index, tx] of chainB.transactions.entries()) {
-                if (txs[index] !== tx) {
+                if (txs[index].txID !== tx) {
                     throw new Error(`Block(${displayID(current.id)})'s TX(#${index}) mismatch`)
-                }
-                if (receipts[index] !== tx) {
-                    throw new Error(`Block(${displayID(current.id)})'s RECEIPT(#${index}) mismatch`)
                 }
             }
         } catch {
@@ -79,7 +63,7 @@ createConnection().then(async () => {
         if (block.number % 1000 === 0) {
             console.log(`Processed to Block(${displayID(block.id)})`)
         }
-        current = block
+        current = block as Block
     }
 
     process.exit(0)
