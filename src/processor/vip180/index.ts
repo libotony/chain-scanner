@@ -10,9 +10,10 @@ import { TokenBalance } from '../../explorer-db/entity/token-balance'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { Processor } from '../processor'
 import { abi } from 'thor-devkit'
-import { getBlockByNumber, getBlockReceipts } from '../../service/block'
 import * as logger from '../../logger'
 import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
+import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
+import { Block } from '../../explorer-db/entity/block'
 
 interface SnapAccount {
     address: string
@@ -61,10 +62,7 @@ export class VIP180Transfer extends Processor {
     /**
      * @return inserted column number
      */
-    protected async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
-        const block = (await getBlockByNumber(blockNum, manager))!
-        const receipts = await getBlockReceipts(block.id, manager)
-
+    protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, saveSnapshot = false) {
         const movements: AssetMovement[] = []
         const acc = new Map<string, TokenBalance>()
         const snap = new Map<string, SnapAccount>()
@@ -129,8 +127,8 @@ export class VIP180Transfer extends Processor {
             }
         }
 
-        for (const r of receipts) {
-            for (const [clauseIndex, o] of r.outputs.entries()) {
+        for (const meta of txs) {
+            for (const [clauseIndex, o] of meta.transaction.outputs.entries()) {
                 for (const [logIndex, e] of o.events.entries()) {
                     if (e.address === this.token.address && e.topics[0] === TransferEvent.signature) {
                         let decoded: abi.Decoded
@@ -143,11 +141,11 @@ export class VIP180Transfer extends Processor {
                             sender: decoded._from,
                             recipient: decoded._to,
                             amount: BigInt(decoded._value),
-                            txID: r.txID,
+                            txID: meta.txID,
                             blockID: block.id,
                             asset: AssetType[this.token.symbol as keyof typeof AssetType],
                             moveIndex: {
-                                txIndex: r.txIndex,
+                                txIndex: meta.seq.txIndex,
                                 clauseIndex,
                                 logIndex
                             }

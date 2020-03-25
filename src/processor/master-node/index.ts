@@ -8,11 +8,13 @@ import { EntityManager, getConnection } from 'typeorm'
 import { Authority } from '../../explorer-db/entity/authority'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { Processor } from '../processor'
-import { getBlockByNumber, getBlockReceipts, getBlockByID } from '../../service/block'
+import { getBlockByID } from '../../service/block'
 import { Buffer } from 'buffer'
 import * as logger from '../../logger'
 import { AuthorityEvent } from '../../explorer-db/entity/authority-event'
 import { cry } from 'thor-devkit'
+import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
+import { Block } from '../../explorer-db/entity/block'
 
 class Metric {
     private duration = BigInt(0)
@@ -92,10 +94,8 @@ export class MasterNodeWatcher extends Processor {
     /**
      * @return inserted column number
      */
-    protected async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
-        const block = (await getBlockByNumber(blockNum, manager))!
+    protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, saveSnapshot = false) {
         const parent = (await getBlockByID(block.parentID, manager))!
-        const receipts = await getBlockReceipts(block.id, manager)
         const candidates = await this.persist.listAuthorityCandidates(manager)
         const unendorsed = await this.persist.listAuthorityUnendorsed(manager)
         const endorsor = {
@@ -160,8 +160,8 @@ export class MasterNodeWatcher extends Processor {
 
         const rEnd = receipt.start()
         // 3. handle block: added and revoked nodes & get endorsor VET movement
-        for (const r of receipts) {
-            for (const [_, o] of r.outputs.entries()) {
+        for (const  meta of txs) {
+            for (const [_, o] of meta.transaction.outputs.entries()) {
                 for (const [__, e] of o.events.entries()) {
                     if (e.address === AuthorityAddress && e.topics[0] === authority.Candidate.signature) {
                         const decoded = authority.Candidate.decode(e.data, e.topics)

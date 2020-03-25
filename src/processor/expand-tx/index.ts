@@ -3,12 +3,13 @@ import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
 import { insertSnapshot, listRecentSnapshot, clearSnapShot } from '../../service/snapshot'
 import { EntityManager, getConnection } from 'typeorm'
-import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { Processor } from '../processor'
-import { getBlockByNumber, getBlockTransactions } from '../../service/block'
 import * as logger from '../../logger'
-import { AggregatedTransaction } from '../../explorer-db/entity/aggregated-tx'
 import { REVERSIBLE_WINDOW, blockIDtoNum } from '../../utils'
+import { Block } from '../../explorer-db/entity/block'
+import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
+import { AggregatedTransaction } from '../../explorer-db/entity/aggregated-tx'
+import { Snapshot } from '../../explorer-db/entity/snapshot'
 
 export class ExpandTX extends Processor {
     private persist: Persist
@@ -40,26 +41,20 @@ export class ExpandTX extends Processor {
     /**
      * @return inserted column number
      */
-    protected async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
-        const block = (await getBlockByNumber(blockNum, manager))!
-        const txs = await getBlockTransactions(block.id, manager)
-
+    protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, saveSnapshot = false) {
         const aggregated: AggregatedTransaction[] = []
-        for (const [txIndex, tx] of txs.entries()) {
+        for (const [_, meta] of txs.entries()) {
             const rec = new Set<string | null>()
 
-            for (const c of tx.clauses) {
+            for (const c of meta.transaction.clauses) {
                 if (!rec.has(c.to)) {
-                    if (c.to !== tx.origin) {
+                    if (c.to !== meta.transaction.origin) {
                         aggregated.push(manager.create(AggregatedTransaction, {
                             participant: c.to,
                             type: MoveType.In,
-                            txID: tx.txID,
+                            txID: meta.txID,
                             blockID: block.id,
-                            seq: {
-                                blockNumber: block.number,
-                                txIndex
-                            }
+                            seq: { ...meta.seq }
                         }))
                     }
                     rec.add(c.to)
@@ -67,14 +62,11 @@ export class ExpandTX extends Processor {
             }
 
             aggregated.push(manager.create(AggregatedTransaction, {
-                participant: tx.origin,
-                type: rec.has(tx.origin) ? MoveType.Self : MoveType.Out,
-                txID: tx.txID,
+                participant: meta.transaction.origin,
+                type: rec.has(meta.transaction.origin) ? MoveType.Self : MoveType.Out,
+                txID: meta.txID,
                 blockID: block.id,
-                seq: {
-                    blockNumber: block.number,
-                    txIndex
-                }
+                seq: {...meta.seq}
             }))
 
         }

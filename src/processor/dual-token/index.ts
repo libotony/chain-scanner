@@ -10,9 +10,11 @@ import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { Processor } from '../processor'
 import { AssetType, SnapType, MoveType } from '../../explorer-db/types'
-import { getBlockByNumber, getBlockReceipts, getBlockTransactions } from '../../service/block'
 import * as logger from '../../logger'
 import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
+import { Block } from '../../explorer-db/entity/block'
+import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
+import { getBlockByNumber } from '../../service/block'
 
 export class DualToken extends Processor {
     private persist: Persist
@@ -42,10 +44,7 @@ export class DualToken extends Processor {
     /**
      * @return inserted column number
      */
-    protected async processBlock(blockNum: number, manager: EntityManager, saveSnapshot = false) {
-        const block = (await getBlockByNumber(blockNum, manager))!
-        const receipts = await getBlockReceipts(block.id, manager)
-
+    protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, saveSnapshot = false) {
         const proc = new BlockProcessor(block, this.thor, manager)
         await proc.prepare()
 
@@ -87,18 +86,18 @@ export class DualToken extends Processor {
             }
         }
 
-        for (const r of receipts) {
-            for (const [clauseIndex, o] of r.outputs.entries()) {
+        for (const meta of txs) {
+            for (const [clauseIndex, o] of meta.transaction.outputs.entries()) {
                 for (const [logIndex, t] of o.transfers.entries()) {
 
                     const transfer = manager.create(AssetMovement, {
                         ...t,
                         amount: BigInt(t.amount),
-                        txID: r.txID,
+                        txID: meta.txID,
                         blockID: block.id,
                         asset: AssetType.VET,
                         moveIndex: {
-                            txIndex: r.txIndex,
+                            txIndex: meta.seq.txIndex,
                             clauseIndex,
                             logIndex
                         }
@@ -127,11 +126,11 @@ export class DualToken extends Processor {
                             sender: decoded._from,
                             recipient: decoded._to,
                             amount: BigInt(decoded._value),
-                            txID: r.txID,
+                            txID: meta.txID,
                             blockID: block.id,
                             asset: AssetType.VTHO,
                             moveIndex: {
-                                txIndex: r.txIndex,
+                                txIndex: meta.seq.txIndex,
                                 clauseIndex,
                                 logIndex
                             }
@@ -145,9 +144,9 @@ export class DualToken extends Processor {
                     }
                 }
             }
-            await proc.touchEnergy(r.gasPayer)
+            await proc.touchEnergy(meta.transaction.gasPayer)
         }
-        if (receipts.length) {
+        if (txs.length) {
             await proc.touchEnergy(block.beneficiary)
         }
 

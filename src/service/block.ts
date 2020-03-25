@@ -1,7 +1,6 @@
 import { getConnection, EntityManager, } from 'typeorm'
 import { Block } from '../explorer-db/entity/block'
-import { Transaction } from '../explorer-db/entity/transaction'
-import { Receipt } from '../explorer-db/entity/receipt'
+import { TransactionMeta } from '../explorer-db/entity/tx-meta'
 
 export const getBest = (manager?: EntityManager) => {
     if (!manager) {
@@ -36,28 +35,50 @@ export const getBlockByNumber = (num: number, manager?: EntityManager) => {
         .findOne({number: num, isTrunk: true})
 }
 
-export const getBlockTransactions = async (blockID: string, manager?: EntityManager) => {
+export const getExpandedBlockByNumber = async (num: number, manager?: EntityManager) => {
     if (!manager) {
         manager = getConnection().manager
     }
 
-    return manager
-        .getRepository(Transaction)
+    const block = await manager
+        .getRepository(Block)
+        .findOne({ number: num, isTrunk: true })
+
+    if (!block) {
+        return {block, txs: [] } as {block: Block|undefined, txs: TransactionMeta[]}
+    }
+
+    const txs = await manager
+        .getRepository(TransactionMeta)
         .find({
-            where: { blockID },
-            order: {txIndex: 'ASC'}
+            where: { blockID: block.id },
+            order: { seq: 'ASC' },
+            relations: [ 'transaction' ]
         })
+
+    return {block, txs}
 }
 
-export const getBlockReceipts = async (blockID: string, manager?: EntityManager) => {
+export const getExpandedBlockByID = async (id: string, manager?: EntityManager) => {
     if (!manager) {
         manager = getConnection().manager
     }
 
-    return manager
-        .getRepository(Receipt)
+    const block = await manager
+        .getRepository(Block)
+        .findOne({ id })
+
+    if (!block) {
+        return {block , txs: []} as {block: Block|undefined, txs: TransactionMeta[]}
+    }
+
+    const txs = await manager
+        .getRepository(TransactionMeta)
         .find({
-            where: { blockID },
-            order: {txIndex: 'ASC'}
+            where: { blockID: block.id },
+            order: { seq: 'ASC' },
+            relations: [ 'transaction' ]
         })
+
+    return {block, txs}
 }
