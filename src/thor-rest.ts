@@ -66,22 +66,26 @@ export class Thor {
             if (this.cache.has(key!)) {
                 return this.cache.get(key!) as Thor.Block<T>
             } else if (!!IDKey && this.cache.has(IDKey)) {
-                return this.cache.get(key!) as Thor.Block<T>
+                return this.cache.get(IDKey!) as Thor.Block<T>
             }
 
             const b = await func()
             // cache blocks 10 minutes earlier than now
             if (b) {
                 if ((new Date().getTime() / 1000) - b.timestamp > 10 * 60) {
-                    this.cache.set('b-r' + b.number, b)
-                    this.cache.set('b-r' + b.id, b)
                     if (expanded) {
-                        const obj = {
+                        const regular = {
                             ...b,
                             transactions: (b as Thor.ExpandedBlock).transactions.map(x => x.id)
                         }
-                        this.cache.set('b-e' + b.number, obj)
-                        this.cache.set('b-e' + b.id, obj)
+                        this.cache.set('b-r' + b.number, regular)
+                        this.cache.set('b-r' + b.id, regular)
+
+                        this.cache.set('b-e' + b.number, b)
+                        this.cache.set('b-e' + b.id, b)
+                    } else {
+                        this.cache.set('b-r' + b.number, b)
+                        this.cache.set('b-r' + b.id, b)
                     }
                 }
             }
