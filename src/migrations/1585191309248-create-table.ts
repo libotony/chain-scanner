@@ -1,8 +1,8 @@
 // tslint:disable:max-line-length
 import { MigrationInterface, QueryRunner } from 'typeorm'
 
-export class createTable1585067271655 implements MigrationInterface {
-    public name = 'createTable1585067271655'
+export class createTable1585191309248 implements MigrationInterface {
+    public name = 'createTable1585191309248'
 
     public async up(queryRunner: QueryRunner): Promise<any> {
         const dbVal = await queryRunner.query('show global variables like "innodb_file_format"')
@@ -18,7 +18,7 @@ export class createTable1585067271655 implements MigrationInterface {
         await queryRunner.query('CREATE TABLE `aggregated_transaction` (`id` int NOT NULL AUTO_INCREMENT, `participant` binary(20) NULL, `type` int NOT NULL, `seq` binary(10) NOT NULL, `blockID` binary(32) NOT NULL, `txID` binary(32) NOT NULL, INDEX `IDX_e75cc56a690061209b8c62f72b` (`participant`, `type`, `seq`), INDEX `IDX_86f0e1b6664122a0c980721640` (`participant`, `seq`), PRIMARY KEY (`id`)) ENGINE=InnoDB ROW_FORMAT=COMPRESSED', undefined)
         await queryRunner.query('CREATE TABLE `authority_event` (`id` int NOT NULL AUTO_INCREMENT, `address` binary(20) NOT NULL, `blockID` binary(32) NOT NULL, `event` int NOT NULL, INDEX `IDX_af10bbc6a81864072a911fd25b` (`address`), PRIMARY KEY (`id`)) ENGINE=InnoDB ROW_FORMAT=COMPRESSED', undefined)
         await queryRunner.query('CREATE TABLE `authority` (`id` int NOT NULL AUTO_INCREMENT, `address` binary(20) NOT NULL, `endorsor` binary(20) NOT NULL, `identity` binary(32) NOT NULL, `listed` tinyint NOT NULL, `active` tinyint NOT NULL, `endorsed` tinyint NOT NULL, `reward` binary(24) NOT NULL, `signed` int NOT NULL, UNIQUE INDEX `IDX_51f4fb91bcecf2b9a2d00a50a7` (`address`), PRIMARY KEY (`id`, `identity`)) ENGINE=InnoDB ROW_FORMAT=COMPRESSED', undefined)
-        await queryRunner.query('CREATE TABLE `branch_transaction_meta` (`id` int NOT NULL AUTO_INCREMENT, `txID` binary(32) NOT NULL, `blockID` binary(32) NOT NULL, `seq` binary(10) NOT NULL, UNIQUE INDEX `TXUnique` (`blockID`, `txID`), PRIMARY KEY (`id`)) ENGINE=InnoDB ROW_FORMAT=COMPRESSED', undefined)
+        await queryRunner.query('CREATE TABLE `branch_transaction` (`id` int NOT NULL AUTO_INCREMENT, `txID` binary(32) NOT NULL, `blockID` binary(32) NOT NULL, `seq` binary(10) NOT NULL, `chainTag` binary(1) NOT NULL, `blockRef` binary(8) NOT NULL, `expiration` int UNSIGNED NOT NULL, `gasPriceCoef` int UNSIGNED NOT NULL, `gas` int UNSIGNED NOT NULL, `nonce` binary(8) NOT NULL, `dependsOn` binary(32) NULL, `origin` binary(20) NOT NULL, `delegator` binary(20) NULL, `clauses` longtext NOT NULL, `clauseCount` int NOT NULL, `size` int NOT NULL, `gasUsed` int UNSIGNED NOT NULL, `gasPayer` binary(20) NOT NULL, `paid` binary(24) NOT NULL, `reward` binary(24) NOT NULL, `reverted` tinyint NOT NULL, `outputs` longtext NOT NULL, UNIQUE INDEX `TXUnique` (`blockID`, `txID`), PRIMARY KEY (`id`, `txID`)) ENGINE=InnoDB ROW_FORMAT=COMPRESSED', undefined)
         await queryRunner.query('CREATE TABLE `config` (`key` varchar(255) NOT NULL, `value` varchar(255) NOT NULL, PRIMARY KEY (`key`)) ENGINE=InnoDB ROW_FORMAT=COMPRESSED', undefined)
         await queryRunner.query('CREATE TABLE `snapshot` (`id` int NOT NULL AUTO_INCREMENT, `type` int NOT NULL, `blockID` binary(32) NOT NULL, `data` longtext NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB ROW_FORMAT=COMPRESSED', undefined)
         await queryRunner.query('CREATE TABLE `token_balance` (`address` binary(20) NOT NULL, `balance` binary(24) NOT NULL, `type` int NOT NULL, PRIMARY KEY (`address`, `type`)) ENGINE=InnoDB ROW_FORMAT=COMPRESSED', undefined)
@@ -28,13 +28,13 @@ export class createTable1585067271655 implements MigrationInterface {
         await queryRunner.query('ALTER TABLE `transaction_meta` ADD CONSTRAINT `FK_c5398e4012a8d5b629f295ba87b` FOREIGN KEY (`blockID`) REFERENCES `block`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION', undefined)
         await queryRunner.query('ALTER TABLE `aggregated_transaction` ADD CONSTRAINT `FK_804e4c330f258d38fb3fc274b1b` FOREIGN KEY (`blockID`) REFERENCES `block`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION', undefined)
         await queryRunner.query('ALTER TABLE `authority_event` ADD CONSTRAINT `FK_d761c6f2dcce49ecd6ca0b6eff4` FOREIGN KEY (`blockID`) REFERENCES `block`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION', undefined)
-        await queryRunner.query('ALTER TABLE `branch_transaction_meta` ADD CONSTRAINT `FK_e489c27538f581439a7b79420ca` FOREIGN KEY (`blockID`) REFERENCES `block`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION', undefined)
+        await queryRunner.query('ALTER TABLE `branch_transaction` ADD CONSTRAINT `FK_f8a3bfa01affa808fbdbba8a42e` FOREIGN KEY (`blockID`) REFERENCES `block`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION', undefined)
         await queryRunner.query('ALTER TABLE `snapshot` ADD CONSTRAINT `FK_ef935caafc0d9e699ef3645d8bf` FOREIGN KEY (`blockID`) REFERENCES `block`(`id`) ON DELETE NO ACTION ON UPDATE NO ACTION', undefined)
     }
 
     public async down(queryRunner: QueryRunner): Promise<any> {
         await queryRunner.query('ALTER TABLE `snapshot` DROP FOREIGN KEY `FK_ef935caafc0d9e699ef3645d8bf`', undefined)
-        await queryRunner.query('ALTER TABLE `branch_transaction_meta` DROP FOREIGN KEY `FK_e489c27538f581439a7b79420ca`', undefined)
+        await queryRunner.query('ALTER TABLE `branch_transaction` DROP FOREIGN KEY `FK_f8a3bfa01affa808fbdbba8a42e`', undefined)
         await queryRunner.query('ALTER TABLE `authority_event` DROP FOREIGN KEY `FK_d761c6f2dcce49ecd6ca0b6eff4`', undefined)
         await queryRunner.query('ALTER TABLE `aggregated_transaction` DROP FOREIGN KEY `FK_804e4c330f258d38fb3fc274b1b`', undefined)
         await queryRunner.query('ALTER TABLE `transaction_meta` DROP FOREIGN KEY `FK_c5398e4012a8d5b629f295ba87b`', undefined)
@@ -44,8 +44,8 @@ export class createTable1585067271655 implements MigrationInterface {
         await queryRunner.query('DROP TABLE `token_balance`', undefined)
         await queryRunner.query('DROP TABLE `snapshot`', undefined)
         await queryRunner.query('DROP TABLE `config`', undefined)
-        await queryRunner.query('DROP INDEX `TXUnique` ON `branch_transaction_meta`', undefined)
-        await queryRunner.query('DROP TABLE `branch_transaction_meta`', undefined)
+        await queryRunner.query('DROP INDEX `TXUnique` ON `branch_transaction`', undefined)
+        await queryRunner.query('DROP TABLE `branch_transaction`', undefined)
         await queryRunner.query('DROP INDEX `IDX_51f4fb91bcecf2b9a2d00a50a7` ON `authority`', undefined)
         await queryRunner.query('DROP TABLE `authority`', undefined)
         await queryRunner.query('DROP INDEX `IDX_af10bbc6a81864072a911fd25b` ON `authority_event`', undefined)
