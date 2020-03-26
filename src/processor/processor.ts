@@ -64,7 +64,7 @@ export abstract class Processor {
 
         // process genesis
         const h = await this.loadHead()
-        if (!!h) {
+        if (!h) {
             await this.processGenesis()
             this.head = this.birthNumber! - 1
             await this.saveHead(this.head)
@@ -121,13 +121,13 @@ export abstract class Processor {
         let startNum = head + 1
         console.time('time')
         let count = 0
-        for (const i = head + 1 ; i <= target;) {
+        for (let i = head + 1 ; i <= target;) {
             await getConnection().transaction(async (manager) => {
                 for (; i <= target;) {
                     if (this.shutdown) {
                         throw new InterruptedError()
                     }
-                    const {block, txs} = await getExpandedBlockByNumber(i, manager)
+                    const {block, txs} = await getExpandedBlockByNumber(i++, manager)
                     count += await this.processBlock(block!, txs, manager)
                     if (this.enoughToWrite(count)) {
                         await this.saveHead(i - 1, manager)
