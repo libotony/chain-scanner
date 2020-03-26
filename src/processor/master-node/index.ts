@@ -84,7 +84,7 @@ export class MasterNodeWatcher extends Processor {
     }
 
     protected bornAt() {
-        return Promise.resolve(0)
+        return Promise.resolve(1)
     }
 
     protected enoughToWrite(count: number) {
