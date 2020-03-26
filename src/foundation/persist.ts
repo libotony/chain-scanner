@@ -1,10 +1,11 @@
-import { EntityManager, getConnection, MoreThan } from 'typeorm'
+import { EntityManager, getConnection, MoreThan, EntitySchema } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { REVERSIBLE_WINDOW } from '../utils'
 import { Block } from '../explorer-db/entity/block'
 import { Config } from '../explorer-db/entity/config'
 import { TransactionMeta } from '../explorer-db/entity/tx-meta'
-import { BranchTransactionMeta } from '../explorer-db/entity/branch-tx-meta'
+import { Transaction } from '../explorer-db/entity/transaction'
+import { BranchTransaction } from '../explorer-db/entity/branch-transaction'
 
 const HEAD_KEY = 'foundation-head'
 
@@ -54,17 +55,27 @@ export class Persist {
             .update({id}, partialEntity)
     }
 
-    public removeBranchTXMeta(blockID: string, manager?: EntityManager) {
+    public removeBlock(id: string, manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return  manager
+            .getRepository(Block)
+            .delete({id})
+    }
+
+    public removeBranchTransaction(blockID: string, manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
 
         return manager
-            .getRepository(BranchTransactionMeta)
+            .getRepository(BranchTransaction)
             .delete({blockID})
     }
 
-    public removeTransaction(blockID: string, manager?: EntityManager) {
+    public removeTransactionMeta(blockID: string, manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
@@ -74,7 +85,7 @@ export class Persist {
             .delete({blockID})
     }
 
-    public insertBlock(block: Block, manager?: EntityManager) {
+    public insertBlock(block: QueryDeepPartialEntity<Block>, manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
@@ -82,19 +93,30 @@ export class Persist {
         return manager.insert(Block, block)
     }
 
-    public insertTransactionMeta(txs: TransactionMeta[], manager?: EntityManager) {
+    public insertTransactionMeta(metas: Array<QueryDeepPartialEntity<TransactionMeta>>, manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
 
-        return manager.insert(TransactionMeta, txs)
+        return manager.insert(TransactionMeta, metas)
     }
 
-    public insertBranchTransactionMeta(txs: BranchTransactionMeta[], manager?: EntityManager) {
+    public insertTransaction(txs: Array<QueryDeepPartialEntity<Transaction>>, manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
 
-        return manager.insert(BranchTransactionMeta, txs)
+        return manager.insert(Transaction, txs)
+    }
+
+    public insertBranchTransaction(
+        txs: Array<QueryDeepPartialEntity<BranchTransaction>>,
+        manager?: EntityManager
+    ) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager.insert(BranchTransaction, txs)
     }
 }

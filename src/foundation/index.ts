@@ -3,11 +3,9 @@ import { Persist } from './persist'
 import { getConnection, EntityManager } from 'typeorm'
 import { blockIDtoNum, displayID, REVERSIBLE_WINDOW, sleep, InterruptedError } from '../utils'
 import { EventEmitter } from 'events'
-import { TransactionMeta } from '../explorer-db/entity/tx-meta'
-import { Transaction } from '../explorer-db/entity/transaction'
-import { Block } from '../explorer-db/entity/block'
 import * as logger from '../logger'
-import { BranchTransactionMeta } from '../explorer-db/entity/branch-tx-meta'
+import { BranchTransaction } from '../explorer-db/entity/branch-transaction'
+import { TransactionMeta } from '../explorer-db/entity/tx-meta'
 
 const SAMPLING_INTERVAL = 500
 
@@ -41,8 +39,8 @@ export class Foundation {
         } else {
             const config = await this.persist.getHead()
 
-            // const startPoint = ''
-            const startPoint =  '0x004c4b3f5d7fb5c12315b582e4d62d781c2fcf4d228b3c583637f4450fe79589'
+            const startPoint = ''
+            // const startPoint =  '0x004c4b3f5d7fb5c12315b582e4d62d781c2fcf4d228b3c583637f4450fe79589'
             if (!config) {
                 return startPoint
             } else {
@@ -73,57 +71,26 @@ export class Foundation {
 
         if (blocks.length) {
             let h = blocks[0].parentID
+            logger.log('-> revert to: ' + displayID(h))
             await getConnection().transaction(async (manager) => {
-                const trunk: number[] = []
+                for (const b of blocks) {
+                    if (b.isTrunk) {
+                        await this.persist.removeTransactionMeta(b.id, manager)
+                    } else {
+                        await this.persist.removeBranchTransaction(b.id, manager)
+                    }
+                }
                 for (const b of blocks) {
                     const onChain = await this.thor.getBlock(b.id, 'expanded')
                     if (!onChain) {
                         // rare case of blockID not found
-                        await this.persist.updateBlock(b.id, { isTrunk: false }, manager)
-                        if (b.isTrunk) {
-                            await this.persist.removeTransaction(b.id, manager)
-                        } else {
-                            await this.persist.removeBranchTXMeta(b.id, manager)
-                        }
-                        logger.log('mark missing block to branch: ' + displayID(b.id))
+                        await this.persist.removeBlock(b.id, manager)
                         continue
-                    }
-                    if (b.isTrunk !== onChain.isTrunk) {
-                        if (onChain.isTrunk) {
-                            h = b.id
-                            trunk.push(b.number)
-                            // from branch to trunk
-                            await this.persist.removeBranchTXMeta(b.id, manager)
-                            await this.block(onChain)
-                                .update()
-                                .process(manager)
-                            logger.log('block to trunk: ' + displayID(b.id))
-                        } else {
-                            // from trunk to branch
-                            await this.persist.removeTransaction(b.id, manager)
-                            await this.block(onChain)
-                                .update()
-                                .branch()
-                                .process(manager)
-                            logger.log('block to branch: ' + displayID(b.id))
-                        }
-                    } else if (b.isTrunk) {
+                    } else if (onChain.isTrunk) {
+                        await this.block(onChain).update().process(manager)
                         h = b.id
-                        trunk.push(b.number)
-                    }
-                }
-                // maintain trunk block number continuity
-                if (trunk.length > 1) {
-                    let curr = trunk[0]
-                    for (let i = 1; i < trunk.length;) {
-                        if (trunk[i] > curr + 1) {
-                            const b = (await this.thor.getBlock(curr + 1, 'expanded'))!
-                            await this.block(b).process(manager)
-                            logger.log('imported missing block: ' + displayID(b.id))
-                            curr++
-                            continue
-                        }
-                        curr = trunk[i++]
+                    } else {
+                        await this.block(onChain).update().branch().process(manager)
                     }
                 }
                 if (h !== headID) {
@@ -256,14 +223,12 @@ export class Foundation {
             branch() {
                 isTrunk = false
                 return this
-
             },
             update() {
                 justUpdate = true
                 return this
             },
             process: async (manager: EntityManager): Promise<number> => {
-
                 let reward = BigInt(0)
                 let score = 0
                 let gasChanged = 0
@@ -274,10 +239,11 @@ export class Foundation {
                     gasChanged = b.gasLimit - prevBlock.gasLimit
                 }
 
-                const txs: TransactionMeta[] = []
+                const txs: Array<Omit<Omit<BranchTransaction, 'block'>, 'id'>> = []
+                const metas: Array<Omit<Omit<TransactionMeta, 'block'>, 'transaction'>> = []
 
                 for (const [index, tx] of b.transactions.entries()) {
-                    const meta = manager.create(TransactionMeta, {
+                    metas.push({
                         txID: tx.id,
                         blockID: b.id,
                         seq: {
@@ -285,54 +251,52 @@ export class Foundation {
                             txIndex: index
                         }
                     })
-                    if (isTrunk) {
-                        const t = manager.create(Transaction, {
-                            txID: tx.id,
-                            chainTag: tx.chainTag,
-                            blockRef: tx.blockRef,
-                            expiration: tx.expiration,
-                            gasPriceCoef: tx.gasPriceCoef,
-                            gas: tx.gas,
-                            nonce: tx.nonce,
-                            dependsOn: tx.dependsOn,
-                            origin: tx.origin,
-                            delegator: tx.delegator,
-                            clauses: tx.clauses,
-                            clauseCount: tx.clauses.length,
-                            size: tx.size,
-                            gasUsed: tx.gasUsed,
-                            gasPayer: tx.gasPayer,
-                            paid: BigInt(tx.paid),
-                            reward: BigInt(tx.reward),
-                            reverted: tx.reverted,
-                            outputs: tx.outputs
-                        })
-                        meta.transaction = t
-                    }
-                    txs.push(meta)
-
+                    txs.push({
+                        txID: tx.id,
+                        blockID: b.id,
+                        seq: {
+                            blockNumber: b.number,
+                            txIndex: index
+                        },
+                        chainTag: tx.chainTag,
+                        blockRef: tx.blockRef,
+                        expiration: tx.expiration,
+                        gasPriceCoef: tx.gasPriceCoef,
+                        gas: tx.gas,
+                        nonce: tx.nonce,
+                        dependsOn: tx.dependsOn,
+                        origin: tx.origin,
+                        delegator: tx.delegator as string|null,
+                        clauses: tx.clauses,
+                        clauseCount: tx.clauses.length,
+                        size: tx.size,
+                        gasUsed: tx.gasUsed,
+                        gasPayer: tx.gasPayer,
+                        paid: BigInt(tx.paid),
+                        reward: BigInt(tx.reward),
+                        reverted: tx.reverted,
+                        outputs: tx.outputs
+                    })
                     reward += BigInt(tx.reward)
                 }
                 if (justUpdate) {
                     await this.persist.updateBlock(b.id, {isTrunk}, manager)
                 } else {
-                    const block = manager.create(Block, {
+                    await this.persist.insertBlock({
                         ...b,
                         isTrunk,
                         score,
                         reward,
                         gasChanged,
                         txCount: b.transactions.length
-                    })
-                    await this.persist.insertBlock(block, manager)
+                    }, manager)
                 }
                 if (txs.length) {
                     if (isTrunk) {
-                        await this.persist.insertTransactionMeta(txs, manager)
+                        await this.persist.insertTransactionMeta(metas, manager)
+                        await this.persist.insertTransaction(txs, manager)
                     } else {
-                        await this.persist.insertBranchTransactionMeta(
-                            txs.map(x => manager.create(BranchTransactionMeta, { ...x })),
-                        manager)
+                        await this.persist.insertBranchTransaction(txs, manager)
                     }
                 }
                 return 1 + txs.length * 2
