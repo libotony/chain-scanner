@@ -131,7 +131,7 @@ export class MasterNodeWatcher extends Processor {
             })
             .map(x => x.address)
         if (getSigner(block.number - 1, block.timestamp, actives) !== block.signer) {
-            throw new Error('block signer mismatch')
+            throw new Error('block signer mismatch of block ' + block.id)
         }
         if (!signer.active) {
             logger.log(`MasterNode(${signer.address}) [Activate] at Block(${displayID(block.id)})`)
@@ -475,7 +475,7 @@ export class MasterNodeWatcher extends Processor {
     }
 
     private async isEndorsed(endorsor: string, revision: string) {
-        const endorsement = BigInt(2500000) * BigInt(1e18)
+        const endorsement = BigInt(25000000) * BigInt(1e18)
         const acc = await this.thor.getAccount(endorsor, revision)
         return BigInt(acc.balance) >= endorsement
     }
