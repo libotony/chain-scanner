@@ -129,6 +129,14 @@ export abstract class Processor {
                     }
                     const {block, txs} = await getExpandedBlockByNumber(i++, manager)
                     count += await this.processBlock(block!, txs, manager)
+
+                    if (i === target + 1) {
+                        await this.saveHead(i - 1, manager)
+                        process.stdout.write(`imported blocks(${i - startNum}) at block(${i - 1}) `)
+                        console.timeEnd('time')
+                        break
+                    }
+
                     if (this.enoughToWrite(count)) {
                         await this.saveHead(i - 1, manager)
                         count = 0
@@ -138,13 +146,6 @@ export abstract class Processor {
                             console.time('time')
                             startNum = i
                         }
-                        break
-                    }
-
-                    if (i === target + 1) {
-                        await this.saveHead(i - 1, manager)
-                        process.stdout.write(`imported blocks(${i - startNum}) at block(${i - 1}) `)
-                        console.timeEnd('time')
                         break
                     }
                 }
