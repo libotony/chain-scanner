@@ -16,26 +16,6 @@ import { cry } from 'thor-devkit'
 import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
 import { Block } from '../../explorer-db/entity/block'
 
-class Metric {
-    private duration = BigInt(0)
-    constructor(readonly name: string) { }
-    public start() {
-        const s = process.hrtime.bigint()
-        return () => {
-            this.duration += (process.hrtime.bigint() - s)
-        }
-    }
-    public stats() {
-        console.log(`Task[${this.name}] duration: ${this.duration / BigInt(1e6)}ms`)
-        this.duration = BigInt(0)
-    }
-}
-const dprpMetric = new Metric('DPRP')
-const onoff = new Metric('ON/OFF')
-const receipt = new Metric('Receipt')
-const endorsement = new Metric('Endorsement')
-const saveEvent =  new Metric('Save Event')
-
 interface SnapAuthority {
     address: string,
     reward: string,
@@ -44,15 +24,12 @@ interface SnapAuthority {
 }
 
 const dprp = (blockNum: number, time: number): bigint => {
-    const end = dprpMetric.start()
     const buff = Buffer.alloc(12)
     buff.writeUInt32BE(blockNum, 0)
     buff.writeBigUInt64BE(BigInt(time), 4)
 
     const hash = cry.blake2b256(buff)
-    const b = hash.readBigUInt64BE()
-    end()
-    return b
+    return hash.readBigUInt64BE()
 }
 
 const getSigner = (blockNum: number, time: number, actives: string[]) => {
@@ -123,7 +100,6 @@ export class MasterNodeWatcher extends Processor {
         signer.reward = signer.reward + block.reward
         signer.signed += 1
 
-        const oEnd = onoff.start()
         // 2. activate and deactivate
         const actives = candidates
             .filter(x => {
@@ -156,9 +132,7 @@ export class MasterNodeWatcher extends Processor {
             }
             ts = ts - BLOCK_INTERVAL
         }
-        oEnd()
 
-        const rEnd = receipt.start()
         // 3. handle block: added and revoked nodes & get endorsor VET movement
         for (const  meta of txs) {
             for (const [_, o] of meta.transaction.outputs.entries()) {
@@ -221,9 +195,7 @@ export class MasterNodeWatcher extends Processor {
                 }
             }
         }
-        rEnd()
 
-        const endorseEnd = endorsement.start()
         // 4. check endorsement
         for (const e of checkEndorsement) {
             const addr = (() => {
@@ -252,9 +224,6 @@ export class MasterNodeWatcher extends Processor {
                 }
             }
         }
-        endorseEnd()
-
-        const sEnd = saveEvent.start()
 
         await this.persist.saveAuthority(signer, manager)
         if (events.length) {
@@ -298,7 +267,6 @@ export class MasterNodeWatcher extends Processor {
                 this.persist.unendorse(Array.from(u), manager)
             }
         }
-        sEnd()
 
         if (saveSnapshot) {
             const snapshot = new Snapshot()
@@ -308,13 +276,6 @@ export class MasterNodeWatcher extends Processor {
             await insertSnapshot(snapshot, manager)
         }
 
-        if (block.number % 10000 === 0) {
-            dprpMetric.stats()
-            onoff.stats()
-            receipt.stats()
-            endorsement.stats()
-            saveEvent.stats()
-        }
         return 1 + events.length * 2
     }
 

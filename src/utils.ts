@@ -51,6 +51,21 @@ export const getThorREST = () => {
     return process.env.THOR_REST || 'http://localhost:8669'
 }
 
+class Metric {
+    private duration = BigInt(0)
+    constructor(readonly name: string) { }
+    public start() {
+        const s = process.hrtime.bigint()
+        return () => {
+            this.duration += (process.hrtime.bigint() - s)
+        }
+    }
+    public stats() {
+        console.log(`Task[${this.name}] duration: ${this.duration / BigInt(1e6)}ms`)
+        this.duration = BigInt(0)
+    }
+}
+
 export class InterruptedError extends Error {
     constructor() {
         super('interrupted')
