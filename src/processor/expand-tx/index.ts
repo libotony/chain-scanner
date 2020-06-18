@@ -1,7 +1,7 @@
 import { SnapType, MoveType } from '../../explorer-db/types'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
-import { insertSnapshot, listRecentSnapshot, clearSnapShot } from '../../service/snapshot'
+import { insertSnapshot, listRecentSnapshot, clearSnapShot, removeSnapshot } from '../../service/snapshot'
 import { EntityManager, getConnection } from 'typeorm'
 import { Processor } from '../processor'
 import * as logger from '../../logger'
@@ -106,6 +106,7 @@ export class ExpandTX extends Processor {
                 await getConnection().transaction(async (manager) => {
                     await this.persist.removeTXs(toRevert, manager)
                     await this.saveHead(headNum, manager)
+                    await removeSnapshot(toRevert, this.snapType, manager)
                     logger.log('-> revert to head: ' + headNum)
                 })
                 this.head = headNum
