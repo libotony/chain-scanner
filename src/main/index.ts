@@ -15,7 +15,7 @@ const printUsage = (msg = '') => {
     logger.error(`${msg ? msg + '\n\n' : ''}Usage: node index.js [Network][Task][...Args]
 --------
 Network:    [main|test]
-Task:       [foundation|dual-token|token|authority|gas-adjust]`)
+Task:       [foundation|expand-tx|dual-token|token|authority]`)
     process.exit(-1)
 }
 
