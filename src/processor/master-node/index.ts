@@ -15,6 +15,7 @@ import { AuthorityEvent } from '../../explorer-db/entity/authority-event'
 import { cry } from 'thor-devkit'
 import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
 import { Block } from '../../explorer-db/entity/block'
+import * as LRU from 'lru-cache'
 
 interface SnapAuthority {
     address: string,
@@ -43,13 +44,14 @@ export class MasterNodeWatcher extends Processor {
         return SnapType.Authority
     }
     private persist: Persist
+    private paramsCache = new LRU<string, BigInt>(1024)
 
     constructor(
         readonly thor: Thor,
     ) {
         super()
         this.persist = new Persist()
-     }
+    }
 
     protected loadHead(manager?: EntityManager) {
         return this.persist.getHead(manager)
@@ -79,7 +81,7 @@ export class MasterNodeWatcher extends Processor {
             endorsed: new Map<string, string>(),
             unendorsed: new Map<string, string>()
         }
-        const events: AuthorityEvent[] =  []
+        const events: AuthorityEvent[] = []
         const checkEndorsement: string[] = []
 
         for (const c of candidates) {
@@ -134,9 +136,13 @@ export class MasterNodeWatcher extends Processor {
         }
 
         // 3. handle block: added and revoked nodes & get endorsor VET movement
-        for (const  meta of txs) {
+        let hasParamEvent = false
+        for (const meta of txs) {
             for (const [_, o] of meta.transaction.outputs.entries()) {
                 for (const [__, e] of o.events.entries()) {
+                    if (e.address === ParamsAddress) {
+                        hasParamEvent = true
+                    }
                     if (e.address === AuthorityAddress && e.topics[0] === authority.Candidate.signature) {
                         const decoded = authority.Candidate.decode(e.data, e.topics)
                         if (decoded.action === authority.added) {
@@ -196,6 +202,9 @@ export class MasterNodeWatcher extends Processor {
             }
         }
 
+        if (!hasParamEvent) {
+            this.reuseEndorsement(block)
+        }
         // 4. check endorsement
         for (const e of checkEndorsement) {
             const addr = (() => {
@@ -432,12 +441,35 @@ export class MasterNodeWatcher extends Processor {
         }, revision)
         const getRet = authority.get.decode(ret[0].data)
         const next = authority.next.decode(ret[1].data)['0']
-        return [{master, listed: getRet.listed, endorsor: getRet.endorsor, identity: getRet.identity}, next]
+        return [{ master, listed: getRet.listed, endorsor: getRet.endorsor, identity: getRet.identity }, next]
     }
 
     private async isEndorsed(endorsor: string, revision: string) {
-        const endorsement = BigInt(25000000) * BigInt(1e18)
+        let endorsement: BigInt
+        const entry = this.paramsCache.get(revision)
+        if (!entry) {
+            const ret = await this.thor.explain({
+                clauses: [{
+                    to: ParamsAddress,
+                    value: '0x0',
+                    data: params.get.encode(params.keys.proposerEndorsement)
+                }]
+            }, revision)
+            const val = params.get.decode(ret[0].data)['0']
+            endorsement = val
+            this.paramsCache.set(revision, val)
+        } else {
+            endorsement = entry
+        }
+
         const acc = await this.thor.getAccount(endorsor, revision)
         return BigInt(acc.balance) >= endorsement
+    }
+
+    private reuseEndorsement(block: Block) {
+        const prev = this.paramsCache.get(block.parentID)
+        if (!!prev) {
+            this.paramsCache.set(block.id, prev)
+        }
     }
 }
