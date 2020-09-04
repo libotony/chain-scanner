@@ -46,7 +46,7 @@ main.set(yeet.symbol, { ...yeet, address: '0xae4c53b120cba91a44832f875107cbc8fbe
 main.set(hai.symbol, { ...hai, address: '0xacc280010b2ee0efc770bce34774376656d8ce14' })
 
 test.set(pla.symbol, { ...pla, address: '0x645d2019ed39e58db76af602317d177b53ba8b9d' })
-test.set(sha.symbol, { ...sha, address: '0x9c6e62b3334294d70c8e410941f52d482557955b' })
+test.set(sha.symbol, { ...sha, address: '0xa1bcfa20a82eca70a5af5420b11bc53a279024ec' })
 test.set(ehrt.symbol, { ...ehrt, address: '0xdeff1d52f3fbf551b3337b9a02f719cd21da956b',
     burnOnZero: true,
     genesis: { '0xb5d8da87b6a92cc37477048b4bcd7b8070c843a7': '10000000000000000000000000000' }})
