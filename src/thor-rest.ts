@@ -19,6 +19,18 @@ export namespace Thor {
     export type Storage = Connex.Thor.Storage
     export type Event = Connex.Thor.Event
     export type VMOutput = Connex.Thor.VMOutput
+    export interface CallTracerOutput {
+        type: string,
+        from: string,
+        to: string,
+        value: string,
+        gas?: string,
+        gasUsed?: string,
+        output?: string
+        error?: string,
+        calls?: CallTracerOutput[]
+    }
+
 }
 
 export class Thor {
@@ -132,6 +144,13 @@ export class Thor {
 
     public explain(arg: Connex.Driver.ExplainArg, revision: string) {
         return this.httpPost<Thor.VMOutput[]>('accounts/*', arg, { revision })
+    }
+
+    public traceClause(blockID: string, txIndex: number, clauseIndex = 0) {
+        return this.httpPost<Thor.CallTracerOutput>('debug/tracers', {
+            name: 'call',
+            target: `${blockID}/${txIndex}/${clauseIndex}`
+        })
     }
 
     public httpPost<T>(path: string, body: object, query ?: Record<string, string>): Promise < T > {
