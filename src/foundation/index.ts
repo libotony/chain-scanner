@@ -6,8 +6,11 @@ import { EventEmitter } from 'events'
 import * as logger from '../logger'
 import { BranchTransaction } from '../explorer-db/entity/branch-transaction'
 import { TransactionMeta } from '../explorer-db/entity/tx-meta'
+import { VMError } from '../explorer-db/types'
+import {cry, abi} from 'thor-devkit'
 
 const SAMPLING_INTERVAL = 500
+const revertReasonSelector = '0x' + cry.keccak256('Error(string)').toString('hex').slice(0, 8)
 
 export class Foundation {
     private head: string | null = null
@@ -251,6 +254,33 @@ export class Foundation {
                             txIndex: index
                         }
                     })
+
+                    let vmError: VMError|null = null
+                    if (tx.reverted) {
+                        for (const [clauseIndex, _] of tx.clauses.entries()) {
+                            const tracer = await this.thor.traceClause(b.id, index, clauseIndex)
+                            if (tracer.error) {
+                                vmError = {
+                                    error: tracer.error,
+                                    clauseIndex,
+                                    reason: null
+                                }
+                                if (vmError.error === 'execution reverted' &&
+                                    tracer.output && tracer.output.indexOf(revertReasonSelector) === 0) {
+                                    try {
+                                        const decoded = abi.decodeParameter('string', '0x' + tracer.output.slice(10))
+                                        if (decoded) {
+                                            vmError.reason = decoded
+                                        }
+                                    } catch {
+                                        // Ignore the coder error
+                                    }
+                                }
+                                break
+                            }
+                        }
+                    }
+
                     txs.push({
                         txID: tx.id,
                         blockID: b.id,
@@ -275,7 +305,8 @@ export class Foundation {
                         paid: BigInt(tx.paid),
                         reward: BigInt(tx.reward),
                         reverted: tx.reverted,
-                        outputs: tx.outputs
+                        outputs: tx.outputs,
+                        vmError
                     })
                     reward += BigInt(tx.reward)
                 }
