@@ -88,7 +88,7 @@ export class DualToken extends Processor {
 
         for (const meta of txs) {
             for (const [clauseIndex, o] of meta.transaction.outputs.entries()) {
-                for (const [logIndex, t] of o.transfers.entries()) {
+                for (const [_, t] of o.transfers.entries()) {
 
                     const transfer = manager.create(AssetMovement, {
                         ...t,
@@ -99,7 +99,7 @@ export class DualToken extends Processor {
                         moveIndex: {
                             txIndex: meta.seq.txIndex,
                             clauseIndex,
-                            logIndex
+                            logIndex: t.overallIndex
                         }
                     })
                     attachAggregated(transfer)
@@ -109,7 +109,7 @@ export class DualToken extends Processor {
                         logger.log(`Account(${transfer.sender}) -> Account(${transfer.recipient}): ${transfer.amount} VET`)
                     }
                 }
-                for (const [logIndex, e] of o.events.entries()) {
+                for (const [_, e] of o.events.entries()) {
                     if (e.topics[0] === prototype.$Master.signature) {
                         const decoded = prototype.$Master.decode(e.data, e.topics)
                         await proc.master(e.address, decoded.newMaster)
@@ -132,7 +132,7 @@ export class DualToken extends Processor {
                             moveIndex: {
                                 txIndex: meta.seq.txIndex,
                                 clauseIndex,
-                                logIndex
+                                logIndex: e.overallIndex
                             }
                         })
                         attachAggregated(transfer)

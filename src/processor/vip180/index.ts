@@ -129,7 +129,7 @@ export class VIP180Transfer extends Processor {
 
         for (const meta of txs) {
             for (const [clauseIndex, o] of meta.transaction.outputs.entries()) {
-                for (const [logIndex, e] of o.events.entries()) {
+                for (const [_, e] of o.events.entries()) {
                     if (e.address === this.token.address && e.topics[0] === TransferEvent.signature) {
                         let decoded: abi.Decoded
                         try {
@@ -147,7 +147,7 @@ export class VIP180Transfer extends Processor {
                             moveIndex: {
                                 txIndex: meta.seq.txIndex,
                                 clauseIndex,
-                                logIndex
+                                logIndex: e.overallIndex
                             }
                         })
                         attachAggregated(movement)

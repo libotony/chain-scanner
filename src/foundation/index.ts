@@ -6,8 +6,9 @@ import { EventEmitter } from 'events'
 import * as logger from '../logger'
 import { BranchTransaction } from '../explorer-db/entity/branch-transaction'
 import { TransactionMeta } from '../explorer-db/entity/tx-meta'
-import { VMError } from '../explorer-db/types'
+import { Output, VMError } from '../explorer-db/types'
 import {cry, abi} from 'thor-devkit'
+import { newIterator, LogItem } from './log-traverser'
 
 const SAMPLING_INTERVAL = 500
 const revertReasonSelector = '0x' + cry.keccak256('Error(string)').toString('hex').slice(0, 8)
@@ -255,7 +256,8 @@ export class Foundation {
                         }
                     })
 
-                    let vmError: VMError|null = null
+                    const outputs: Output[] = []
+                    let vmError: VMError | null = null
                     if (tx.reverted) {
                         for (const [clauseIndex, _] of tx.clauses.entries()) {
                             const tracer = await this.thor.traceClause(b.id, index, clauseIndex)
@@ -278,6 +280,63 @@ export class Foundation {
                                 }
                                 break
                             }
+                        }
+                    } else {
+                        for (const [clauseIndex, o] of tx.outputs.entries()) {
+                            const output: Output = {
+                                contractAddress: o.contractAddress,
+                                events: [],
+                                transfers: []
+                            }
+                            if (o.events.length && o.transfers.length) {
+                                const tracer = await this.thor.traceClause(b.id, index, clauseIndex)
+                                try {
+                                    let logIndex = 0
+                                    for (const item of newIterator(tracer, o.events, o.transfers)) {
+                                        if (item.type === 'event') {
+                                            output.events.push({
+                                                ...(item as LogItem<'event'>).data,
+                                                overallIndex: logIndex++
+                                            })
+                                        } else {
+                                            output.transfers.push({
+                                                ...(item as LogItem<'transfer'>).data,
+                                                overallIndex: logIndex++
+                                            })
+                                        }
+                                    }
+                                } catch (e) {
+                                    logger.error(`failed to re-organize logs(${tx.id}),err: ${e.toString()}`)
+                                    let logIndex = 0
+                                    for (const t of o.transfers) {
+                                        output.transfers.push({
+                                            ...t,
+                                            overallIndex: logIndex++
+                                        })
+                                    }
+                                    for (const e of o.events) {
+                                        output.events.push({
+                                            ...e,
+                                            overallIndex: logIndex++
+                                        })
+                                    }
+                                }
+                            } else if (o.events.length) {
+                                for (let i = 0; i < o.events.length; i++) {
+                                    output.events.push({
+                                        ...o.events[i],
+                                        overallIndex: i
+                                    })
+                                }
+                            } else {
+                                for (let i = 0; i < o.transfers.length; i++) {
+                                    output.transfers.push({
+                                        ...o.transfers[i],
+                                        overallIndex: i
+                                    })
+                                }
+                            }
+                            outputs.push(output)
                         }
                     }
 
@@ -305,7 +364,7 @@ export class Foundation {
                         paid: BigInt(tx.paid),
                         reward: BigInt(tx.reward),
                         reverted: tx.reverted,
-                        outputs: tx.outputs,
+                        outputs,
                         vmError
                     })
                     reward += BigInt(tx.reward)

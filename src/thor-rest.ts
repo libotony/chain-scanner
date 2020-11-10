@@ -18,6 +18,7 @@ export namespace Thor {
     export type Code = Connex.Thor.Code
     export type Storage = Connex.Thor.Storage
     export type Event = Connex.Thor.Event
+    export type Transfer = Connex.Thor.Transfer
     export type VMOutput = Connex.Thor.VMOutput
     export interface CallTracerOutput {
         type: string,
