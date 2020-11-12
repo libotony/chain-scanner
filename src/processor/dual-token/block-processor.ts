@@ -41,10 +41,14 @@ export class BlockProcessor {
         }
     }
 
-    public async master(addr: string, master: string) {
+    public async master(addr: string, master: string, caller: string) {
         const acc = await this.account(addr)
 
         acc.master = master
+        if (acc.firstSeen === this.block.timestamp && acc.deployer == null) {
+            acc.deployer = caller
+        }
+
         this.updateCode.add(addr)
         return acc
     }
@@ -195,7 +199,7 @@ export class BlockProcessor {
                     const account = await this.account(acc.address)
                     account.code = null
                     account.master = null
-                    account.sponsor = null
+                    account.suicided = true
                 }
             }
         }
@@ -234,7 +238,9 @@ export class BlockProcessor {
                 firstSeen: this.block.timestamp,
                 code: null,
                 master: null,
-                sponsor: null
+                sponsor: null,
+                deployer: null,
+                suicided: false
             })
 
             this.acc.set(addr, newAcc)

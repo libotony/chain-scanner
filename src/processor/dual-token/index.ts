@@ -112,7 +112,7 @@ export class DualToken extends Processor {
                 for (const [_, e] of o.events.entries()) {
                     if (e.topics[0] === prototype.$Master.signature) {
                         const decoded = prototype.$Master.decode(e.data, e.topics)
-                        await proc.master(e.address, decoded.newMaster)
+                        await proc.master(e.address, decoded.newMaster, meta.transaction.origin)
                     } else if (e.topics[0] === prototype.$Sponsor.signature) {
                         const decoded = prototype.$Sponsor.decode(e.data, e.topics)
                         if (decoded.action === prototype.selected) {
