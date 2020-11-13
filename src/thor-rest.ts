@@ -28,6 +28,7 @@ export namespace Thor {
         gas?: string,
         gasUsed?: string,
         output?: string
+        input?: string,
         error?: string,
         calls?: CallTracerOutput[]
     }

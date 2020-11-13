@@ -1,5 +1,6 @@
 import { Thor } from '../thor-rest'
-import { prototype } from '../const'
+import { prototype, PrototypeAddress } from '../const'
+import { abi } from 'thor-devkit'
 
 export interface LogItem<T extends 'transfer' | 'event'> {
     type: T
@@ -53,6 +54,15 @@ export const newIterator = function *(tracer: Thor.CallTracerOutput, events: Tho
                     }
                 }
                 contract = t.to
+                if (contract === PrototypeAddress) {
+                    // 0x + 4byte selector + 1 word
+                    if (t.input && t.input.length >= (1 + 4 + 32) * 2) {
+                        const self = abi.decodeParameter('address', '0x' + t.input.slice(10))
+                        if (self) {
+                            contract = self
+                        }
+                    }
+                }
             } else {
                 contract = t.from
             }
