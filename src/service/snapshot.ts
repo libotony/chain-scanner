@@ -1,5 +1,5 @@
 import { EntityManager, getConnection, LessThan, In, MoreThan } from 'typeorm'
-import { REVERSIBLE_WINDOW } from '../utils'
+import { REVERSIBLE_WINDOW } from '../config'
 import { Snapshot } from '../explorer-db/entity/snapshot'
 import { SnapType } from '../explorer-db/types'
 

@@ -1,6 +1,7 @@
 import { SnapType, AssetType, MoveType } from '../../explorer-db/types'
 import { AssetMovement } from '../../explorer-db/entity/movement'
-import { displayID, blockIDtoNum, REVERSIBLE_WINDOW } from '../../utils'
+import { displayID, blockIDtoNum } from '../../utils'
+import { REVERSIBLE_WINDOW } from '../../config'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
 import { TransferEvent, ZeroAddress, TokenConfig, TokenBasic, prototype  } from '../../const'

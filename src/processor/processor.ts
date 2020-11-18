@@ -1,5 +1,7 @@
 import { EntityManager, getConnection } from 'typeorm'
-import { sleep, REVERSIBLE_WINDOW, InterruptedError, WaitNextTickError } from '../utils'
+import { sleep } from '../utils'
+import { REVERSIBLE_WINDOW } from '../config'
+import { InterruptedError, WaitNextTickError }  from '../error'
 import { EventEmitter } from 'events'
 import { getBest, getExpandedBlockByNumber } from '../service/block'
 import { SnapType } from '../explorer-db/types'

@@ -1,6 +1,7 @@
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
-import { blockIDtoNum, displayID, REVERSIBLE_WINDOW, DESTRUCT_CHECK_INTERVAL } from '../../utils'
+import { blockIDtoNum, displayID } from '../../utils'
+import { REVERSIBLE_WINDOW, DESTRUCT_CHECK_INTERVAL } from '../../config'
 import { EnergyAddress, TransferEvent, getPreAllocAccount, Network, prototype } from '../../const'
 import { getConnection, EntityManager } from 'typeorm'
 import { BlockProcessor, SnapAccount } from './block-processor'

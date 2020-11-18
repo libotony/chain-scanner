@@ -1,11 +1,12 @@
 import { Persist } from '../../foundation/persist'
 import { getConnection, MoreThan, createConnection } from 'typeorm'
 import { Block } from '../../explorer-db/entity/block'
-import { displayID, REVERSIBLE_WINDOW, blockIDtoNum, getThorREST } from '../../utils'
+import { displayID, blockIDtoNum, getThorREST } from '../../utils'
 import { Thor } from '../../thor-rest'
 import { Net } from '../../net'
 import { getNetwork, checkNetworkWithDB } from '../network'
 import { getExpandedBlockByID } from '../../service/block'
+import { REVERSIBLE_WINDOW } from '../../config'
 
 const net = getNetwork()
 const STOP_NUMBER = 0

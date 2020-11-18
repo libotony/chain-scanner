@@ -1,6 +1,6 @@
 import { EntityManager, getConnection, MoreThan, EntitySchema } from 'typeorm'
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
-import { REVERSIBLE_WINDOW } from '../utils'
+import { REVERSIBLE_WINDOW } from '../config'
 import { Block } from '../explorer-db/entity/block'
 import { Config } from '../explorer-db/entity/config'
 import { TransactionMeta } from '../explorer-db/entity/tx-meta'

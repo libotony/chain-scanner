@@ -1,8 +1,3 @@
-export const REVERSIBLE_WINDOW = 12
-export const DESTRUCT_CHECK_INTERVAL = 8640
-export const MAX_BLOCK_PROPOSERS = 101
-export const BLOCK_INTERVAL = 10
-
 export const blockIDtoNum = (blockID: string) => {
     if (typeof blockID === 'string' && !/^0x[0-9a-fA-f]{64}$/i.test(blockID)) {
         throw new Error('bytes32 required as param but got: ' + blockID)
@@ -65,18 +60,3 @@ class Metric {
         this.duration = BigInt(0)
     }
 }
-
-export class InterruptedError extends Error {
-    constructor() {
-        super('interrupted')
-    }
-}
-
-export class WaitNextTickError extends Error {
-    constructor() {
-        super()
-    }
-}
-
-WaitNextTickError.prototype.name = 'WaitNextTickError'
-InterruptedError.prototype.name = 'InterruptedError'
