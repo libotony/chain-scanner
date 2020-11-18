@@ -8,4 +8,6 @@
 *.tgz
 .env
 *.log
+*.log.*
+/src/scripts/local/
 ecosystem.config.js
