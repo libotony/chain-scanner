@@ -44,7 +44,7 @@ contract AuthorityUtils {
         Candidate[] memory _all = new Candidate[](count);
         for(uint i = 0; i<count; i++){
             (, address endorsor, bytes32 identity, bool active) = authority.get(_container[i]);
-            _all[i] = Candidate(curr, endorsor, identity, active);
+            _all[i] = Candidate(_container[i], endorsor, identity, active);
         }
 
         return _all;
