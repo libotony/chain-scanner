@@ -2,7 +2,6 @@ import { getConnection, EntityManager, In } from 'typeorm'
 import { Config } from '../../explorer-db/entity/config'
 import { Authority } from '../../explorer-db/entity/authority'
 import { AuthorityEvent } from '../../explorer-db/entity/authority-event'
-import { MAX_BLOCK_PROPOSERS } from '../../utils'
 
 const HEAD_KEY = 'authority-head'
 
@@ -43,6 +42,15 @@ export class Persist {
         return manager.insert(Authority, auth)
     }
 
+    public getAll(manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager.getRepository(Authority)
+            .find({})
+    }
+
     public remove(addrs: string[], manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
@@ -53,7 +61,7 @@ export class Persist {
             .delete({address: In(addrs)})
     }
 
-    public list(addrs: string[], manager?: EntityManager) {
+    public setListed(addrs: string[], manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
@@ -67,7 +75,7 @@ export class Persist {
             })
     }
 
-    public deactivate(addrs: string[], manager?: EntityManager) {
+    public setDeactivated(addrs: string[], manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
@@ -81,7 +89,7 @@ export class Persist {
             })
     }
 
-    public activate(addrs: string[], manager?: EntityManager) {
+    public setActivated(addrs: string[], manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
@@ -95,7 +103,7 @@ export class Persist {
             })
     }
 
-    public revoke(addrs: string[], manager?: EntityManager) {
+    public setRevoked(addrs: string[], manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
@@ -109,7 +117,7 @@ export class Persist {
             })
     }
 
-    public endorse(addrs: string[], manager?: EntityManager) {
+    public setEndorsed(addrs: string[], manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
@@ -123,7 +131,7 @@ export class Persist {
             })
     }
 
-    public unendorse(addrs: string[], manager?: EntityManager) {
+    public setUnendorsed(addrs: string[], manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager
         }
@@ -155,37 +163,6 @@ export class Persist {
         return manager
             .getRepository(Authority)
             .save(auth)
-    }
-
-    public listAuthorityCandidates(manager?: EntityManager) {
-        if (!manager) {
-            manager = getConnection().manager
-        }
-
-        return manager
-            .getRepository(Authority)
-            .find({
-                where: {
-                    listed: true,
-                    endorsed: true,
-                },
-                take: MAX_BLOCK_PROPOSERS
-            })
-    }
-
-    public listAuthorityUnendorsed(manager?: EntityManager) {
-        if (!manager) {
-            manager = getConnection().manager
-        }
-
-        return manager
-            .getRepository(Authority)
-            .find({
-                where: {
-                    listed: true,
-                    endorsed: false,
-                }
-            })
     }
 
     public insertAuthorityEvents(events: AuthorityEvent[], manager?: EntityManager) {
