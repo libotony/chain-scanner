@@ -7,7 +7,7 @@ import { AuthorityEvent } from '../../explorer-db/entity/authority-event'
 import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
 import { Block } from '../../explorer-db/entity/block'
 import { AuthorityAddress, authority, ParamsAddress, params } from '../../const'
-import { REVERSIBLE_WINDOW, MAX_BLOCK_PROPOSERS} from '../../config'
+import { REVERSIBLE_WINDOW, MAX_BLOCK_PROPOSERS } from '../../config'
 import * as logger from '../../logger'
 import { Thor } from '../../thor-rest'
 import { blockIDtoNum, displayID } from '../../utils'
@@ -84,31 +84,29 @@ export class MasterNodeWatcher extends Processor {
         signer.signed += 1
 
         // 2. activate and deactivate
-        let count = 0
+        const count = 0
         for (const n of nodes) {
-           if (n.listed) {
-               if (n.endorsed) {
+            if (n.listed) {
+                if (n.endorsed) {
                     endorsorToMaster.endorsed.set(n.endorsor, n.address)
-                    if (count++ < MAX_BLOCK_PROPOSERS) {
-                        if (n.active && inactive.has(n.address)) {
-                            events.push(manager.create(AuthorityEvent, {
-                                blockID: block.id,
-                                address: n.address,
-                                event: AuthEvent.Deactivate
-                            }))
-                            logger.log(`MasterNode(${n.address}) [Deactivate] at Block(${displayID(block.id)})`)
-                        }
-                        if (!n.active && !inactive.has(n.address)) {
-                            events.push(manager.create(AuthorityEvent, {
-                                blockID: block.id,
-                                address: n.address,
-                                event: AuthEvent.Activate
-                            }))
-                            logger.log(`MasterNode(${n.address}) [Activate] at Block(${displayID(block.id)})`)
-                        }
-                   }
-               } else {
-                   endorsorToMaster.unendorsed.set(n.endorsor, n.address)
+                } else {
+                    endorsorToMaster.unendorsed.set(n.endorsor, n.address)
+                }
+                if (n.active && inactive.has(n.address)) {
+                    events.push(manager.create(AuthorityEvent, {
+                        blockID: block.id,
+                        address: n.address,
+                        event: AuthEvent.Deactivate
+                    }))
+                    logger.log(`MasterNode(${n.address}) [Deactivate] at Block(${displayID(block.id)})`)
+                }
+                if (!n.active && !inactive.has(n.address)) {
+                    events.push(manager.create(AuthorityEvent, {
+                        blockID: block.id,
+                        address: n.address,
+                        event: AuthEvent.Activate
+                    }))
+                    logger.log(`MasterNode(${n.address}) [Activated] at Block(${displayID(block.id)})`)
                 }
             }
         }

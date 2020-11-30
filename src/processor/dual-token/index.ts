@@ -236,7 +236,8 @@ export class DualToken extends Processor {
                                 blockTime: snapAcc.blockTime,
                                 firstSeen: snapAcc.firstSeen,
                                 code: snapAcc.code,
-                                master: snapAcc.master
+                                master: snapAcc.master,
+                                sponsor: snapAcc.sponsor
                             })
                             accounts.set(snapAcc.address, acc)
                         }
