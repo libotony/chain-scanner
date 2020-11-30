@@ -72,7 +72,8 @@ createConnection().then(async (conn) => {
             listed++
             if (chain.active !== node.active) {
                 throw new Error(`Fatal: Master(${node.address}) active status mismatch, want ${node.active} got ${chain.active}`)
-            }        const endorsed = await isEndorsed(node.endorsor)
+            }
+            const endorsed = await isEndorsed(node.endorsor)
             if (endorsed !== node.endorsed) {
                 throw new Error(`Fatal: Master(${node.address}) endorsed status mismatch, want ${node.endorsed} got ${endorsed}`)
             }
