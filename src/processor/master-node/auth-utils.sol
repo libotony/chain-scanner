@@ -82,33 +82,25 @@ contract AuthorityUtils {
     }
 
     function inactives() public view returns(Candidate[] memory list){
-        uint256 requirement = endorsement();
         Candidate[] memory _container = new Candidate[](maxProposers);
 
         address curr = authority.first();
-        uint count=0;
         uint inActiveCount=0;
 
         for(;curr!=zero;) {
             (, address endorsor, bytes32 identity, bool active) = authority.get(curr);
-            if (endorsor.balance >= requirement && count<maxProposers) {
-                if (active==false){
-                    _container[inActiveCount] = Candidate(curr, endorsor, identity, active);
-                    inActiveCount++;
-                }
-                count++;
+            if (active==false){
+                _container[inActiveCount] = Candidate(curr, endorsor, identity, active);
+                inActiveCount++;
             }
             curr = authority.next(curr);
+
         }
 
-        if (inActiveCount == maxProposers){
-            return _container;
-        }else{
-            Candidate[] memory _inActives = new Candidate[](inActiveCount);
-            for(uint i=0; i< inActiveCount; i++){
-                _inActives[i]=_container[i];
-            }
-            return _inActives;
+        Candidate[] memory _inActives = new Candidate[](inActiveCount);
+        for(uint i=0; i< inActiveCount; i++){
+            _inActives[i]=_container[i];
         }
+        return _inActives;
     }
 }
