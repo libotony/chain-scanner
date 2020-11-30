@@ -43,7 +43,9 @@ main.set(snk.symbol, { ...snk, address: '0x540768b909782c430cc321192e6c2322f7749
 main.set(jur.symbol, { ...jur, address: '0x46209d5e5a49c1d403f4ee3a0a88c3a27e29e58d' })
 main.set(aqd.symbol, { ...aqd, address: '0xf9fc8681bec2c9f35d0dd2461d035e62d643659b' })
 main.set(yeet.symbol, { ...yeet, address: '0xae4c53b120cba91a44832f875107cbc8fbee185c' })
-main.set(hai.symbol, { ...hai, address: '0xacc280010b2ee0efc770bce34774376656d8ce14' })
+main.set(hai.symbol, {...hai, address: '0xacc280010b2ee0efc770bce34774376656d8ce14',
+    burnOnZero: true
+})
 
 test.set(pla.symbol, { ...pla, address: '0x645d2019ed39e58db76af602317d177b53ba8b9d' })
 test.set(sha.symbol, { ...sha, address: '0xa1bcfa20a82eca70a5af5420b11bc53a279024ec' })
