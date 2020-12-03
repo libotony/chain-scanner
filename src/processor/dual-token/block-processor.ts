@@ -16,7 +16,8 @@ export interface SnapAccount {
     firstSeen: number
     code: string|null
     master: string|null
-    sponsor: string|null
+    sponsor: string | null
+    suicided: boolean
 }
 
 export class BlockProcessor {
@@ -214,7 +215,8 @@ export class BlockProcessor {
             firstSeen: acc.firstSeen,
             code: acc.code,
             master: acc.master,
-            sponsor: acc.sponsor
+            sponsor: acc.sponsor,
+            suicided: acc.suicided
         })
     }
 
