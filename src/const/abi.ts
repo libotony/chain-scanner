@@ -32,6 +32,7 @@ export const prototype = {
     master: new abi.Function(methodMasterABI),
     currentSponsor: new abi.Function(currentSponsorABI),
     isSponsor: new abi.Function(isSponsorABI),
+    sponsored: '0x' + Buffer.from('sponsored').toString('hex').padEnd(64, '0'),
     unsponsored: '0x' + Buffer.from('unsponsored').toString('hex').padEnd(64, '0'),
     selected: '0x' + Buffer.from('selected').toString('hex').padEnd(64, '0')
 }

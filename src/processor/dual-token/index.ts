@@ -90,7 +90,6 @@ export class DualToken extends Processor {
         for (const meta of txs) {
             for (const [clauseIndex, o] of meta.transaction.outputs.entries()) {
                 for (const [_, t] of o.transfers.entries()) {
-
                     const transfer = manager.create(AssetMovement, {
                         ...t,
                         amount: BigInt(t.amount),
@@ -116,10 +115,18 @@ export class DualToken extends Processor {
                         await proc.master(e.address, decoded.newMaster, meta.transaction.origin)
                     } else if (e.topics[0] === prototype.$Sponsor.signature) {
                         const decoded = prototype.$Sponsor.decode(e.data, e.topics)
-                        if (decoded.action === prototype.selected) {
-                            await proc.sponsorSelected(e.address, decoded.sponsor)
-                        } else if (decoded.action === prototype.unsponsored) {
-                            await proc.sponsorUnSponsored(e.address, decoded.sponsor)
+                        switch (decoded.action) {
+                            case prototype.selected:
+                                await proc.sponsorSelected(e.address, decoded.sponsor)
+                                break
+                            case prototype.unsponsored:
+                                await proc.sponsorUnSponsored(e.address, decoded.sponsor)
+                                break
+                            case prototype.sponsored:
+                                const sponsor = await proc.getCurrentSponsor(e.address)
+                                if (!!sponsor && decoded.sponsor === sponsor) {
+                                    await proc.sponsorSelected(e.address, decoded.sponsor)
+                                }
                         }
                     } else if (e.address === EnergyAddress && e.topics[0] === TransferEvent.signature) {
                         const decoded = TransferEvent.decode(e.data, e.topics)

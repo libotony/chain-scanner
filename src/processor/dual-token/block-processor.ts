@@ -7,6 +7,7 @@ import { EntityManager, Not, IsNull } from 'typeorm'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { SnapType } from '../../explorer-db/types'
 import { ExtensionAddress, getForkConfig, PrototypeAddress, prototype, ZeroAddress } from '../../const'
+import * as logger from '../../logger'
 
 export interface SnapAccount {
     address: string
@@ -57,6 +58,7 @@ export class BlockProcessor {
     public async sponsorSelected(addr: string, sponsor: string) {
         const acc = await this.account(addr)
 
+        logger.log(`Account(${addr}) selected Sponsor(${sponsor})`)
         acc.sponsor = sponsor
         return acc
     }
@@ -66,6 +68,7 @@ export class BlockProcessor {
 
         if (acc.sponsor === sponsor) {
             acc.sponsor = null
+            logger.log(`Account(${addr}) got UnSponsor by ${sponsor}`)
         }
         return acc
     }
@@ -206,6 +209,23 @@ export class BlockProcessor {
         }
     }
 
+    public async getCurrentSponsor(addr: string) {
+        const ret = await this.thor.explain({
+            clauses: [{
+                to: PrototypeAddress,
+                value: '0x0',
+                data: prototype.currentSponsor.encode(addr)
+            }]
+        }, this.block.id)
+
+        const decoded = prototype.currentSponsor.decode(ret[0].data)
+        if (decoded['0'] === ZeroAddress) {
+            return null
+        } else {
+            return decoded['0'] as string
+        }
+    }
+
     private takeSnap(acc: Account) {
         this.snap.set(acc.address, {
             address: acc.address,
@@ -266,4 +286,5 @@ export class BlockProcessor {
             return decoded['0']
         }
     }
+
 }
