@@ -31,7 +31,7 @@ console.log(token);
 
     events = await thor.filterEventLogs({
         range: {unit: 'block', from: birthNumber, to: Number.MAX_SAFE_INTEGER },
-        options: {offset: 0, limit: 5},
+        options: {offset: 0, limit: 50},
         criteriaSet: [{address: token.address, topic0: TransferEvent.signature}],
         order: 'asc'
     })

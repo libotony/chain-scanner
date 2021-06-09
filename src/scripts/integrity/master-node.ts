@@ -16,7 +16,7 @@ const persist = new Persist()
 const get = async (master: string, revision: string) => {
     const ret = await thor.explain({
         clauses: [{
-            to:  AuthorityAddress,
+            to: AuthorityAddress,
             value: '0x0',
             data: authority.get.encode(master)
         }]
@@ -25,7 +25,7 @@ const get = async (master: string, revision: string) => {
     return { master, listed: getRet.listed, endorsor: getRet.endorsor, identity: getRet.identity, active: getRet.active }
 }
 
-const endorsement = async  (revision: string) => {
+const endorsement = async (revision: string) => {
     const ret = await thor.explain({
         clauses: [{
             to: ParamsAddress,
@@ -50,7 +50,7 @@ createConnection().then(async (conn) => {
                 .getRepository(Authority)
                 .find()
             const b = (await getBlockByNumber(h))!
-            resolve({block: b, nodes: n})
+            resolve({ block: b, nodes: n })
         }).catch(reject)
     })
 
@@ -102,7 +102,7 @@ createConnection().then(async (conn) => {
                 })
 
                 stream.on('end', () => {
-                    resolve({authNode})
+                    resolve({ authNode })
                 })
 
             }).catch(reject)

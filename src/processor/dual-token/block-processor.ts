@@ -46,6 +46,7 @@ export class BlockProcessor {
     public async master(addr: string, master: string, caller: string) {
         const acc = await this.account(addr)
 
+        // TODO:
         acc.master = master
         if (acc.firstSeen === this.block.timestamp && acc.deployer == null) {
             acc.deployer = caller
