@@ -2,7 +2,7 @@ import { createConnection, getManager, Transaction, LessThanOrEqual, getConnecti
 import { Persist } from '../../processor/dual-token/persist'
 import { Thor } from '../../thor-rest'
 import { Account } from '../../explorer-db/entity/account'
-import { PrototypeAddress, ZeroAddress, prototype } from '../../const'
+import { PrototypeAddress, ZeroAddress, prototype, ParamsAddress, AuthorityAddress, EnergyAddress, ExecutorAddress, ExtensionAddress } from '../../const'
 import { Net } from '../../net'
 import { getNetwork, checkNetworkWithDB } from '../network'
 import { getThorREST } from '../../utils'
@@ -14,6 +14,21 @@ import { MoveType } from '../../explorer-db/types'
 
 const net = getNetwork()
 const persist = new Persist()
+
+/*
+export const ParamsAddress = '0x' + Buffer.from('Params').toString('hex').padStart(40, '0')
+export const AuthorityAddress = '0x' + Buffer.from('Authority').toString('hex').padStart(40, '0')
+export const EnergyAddress = '0x' + Buffer.from('Energy').toString('hex').padStart(40, '0')
+export const ExecutorAddress = '0x' + Buffer.from('Executor').toString('hex').padStart(40, '0')
+export const PrototypeAddress = '0x' + Buffer.from('Prototype').toString('hex').padStart(40, '0')
+export const ExtensionAddres
+ */
+
+const skipFirstSeen = [ParamsAddress, AuthorityAddress, EnergyAddress, ExecutorAddress, PrototypeAddress, ExtensionAddress]
+// precompiled contracts
+for (let i = 1; i <= 9; i++){
+    skipFirstSeen.push('0x'+Buffer.alloc(1).fill(i).toString('hex').padStart(40, '0'))
+}
 
 createConnection().then(async (conn) => {
     const thor = new Thor(new Net(getThorREST()), net)
@@ -103,6 +118,48 @@ createConnection().then(async (conn) => {
         }
         if (chainAcc.hasCode === true && acc.code !== chainCode.code) {
             throw new Error(`Fatal: Account(${acc.address}) code mismatch`)
+        }
+        if (chainAcc.hasCode === false && acc.code!==null) {
+            throw new Error(`Fatal: Account(${acc.address}) hasCode status mismatch`)
+        }
+
+        const isSuicided = (acc: Connex.Thor.Account): boolean => {
+            return (BigInt(acc.balance) == BigInt(0) && BigInt(acc.energy) == BigInt(0) && acc.hasCode == false)   
+        }
+
+        if (acc.suicided) {
+            if (isSuicided(chainAcc) !== true){
+                throw new Error(`Fatal: Account(${acc.address}) suicided status mismatch`)
+            }
+        }
+
+        if (skipFirstSeen.indexOf(acc.address) === -1) {
+            const evs  = await thor.filterEventLogs({
+                range: {unit: 'block', from: 0, to: Number.MAX_SAFE_INTEGER },
+                options: {offset: 0, limit: 1},
+                criteriaSet: [{address: acc.address, topic0: prototype.$Master.signature}],
+                order: 'asc'
+            })
+    
+            const trs = await thor.filterTransferLogs({
+                range: {unit: 'block', from: 0, to: Number.MAX_SAFE_INTEGER },
+                options: {offset: 0, limit: 1},
+                criteriaSet: [{sender: acc.address}, {recipient: acc.address}],
+                order: 'asc'
+            })
+    
+            if (evs.length === 0 && trs.length === 0) {
+                throw new Error(`Fatal: Account(${acc.address}) can not find the first seen time`)
+            }
+
+            const firstSeen = evs[0].meta!.blockTimestamp < trs[0].meta!.blockTimestamp ? evs[0].meta!.blockTimestamp : trs[0].meta!.blockTimestamp
+            if (firstSeen !== acc.firstSeen){
+                throw new Error(`Fatal: Account(${acc.address}) first seen mismatch`)
+            }
+
+            if (acc.code != null && acc.deployer !== evs[0].meta?.txOrigin) {
+                throw new Error(`Fatal: Account(${acc.address}) deployer mismatch`)
+            }
         }
 
         count++
