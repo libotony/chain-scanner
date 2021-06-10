@@ -144,6 +144,10 @@ export class Thor {
         return this.httpPost<Thor.Event[]>('logs/event', arg)
     }
 
+    public filterTransferLogs(arg: Connex.Driver.FilterTransferLogsArg) {
+        return this.httpPost<Thor.Event[]>('logs/transfer', arg)
+    }
+
     public explain(arg: Connex.Driver.ExplainArg, revision: string) {
         return this.httpPost<Thor.VMOutput[]>('accounts/*', arg, { revision })
     }
