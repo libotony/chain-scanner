@@ -15,8 +15,8 @@ export interface SnapAccount {
     energy: string
     blockTime: number
     firstSeen: number
-    code: string|null
-    master: string|null
+    code: string | null
+    master: string | null
     sponsor: string | null
     suicided: boolean
 }
@@ -28,6 +28,8 @@ export class BlockProcessor {
     private snap = new Map<string, SnapAccount>()
     private updateCode = new Set<string>()
     private updateEnergy = new Set<string>()
+    private suicided = new Set<string>()
+    private updateMaster = new Map<string, { master: string; caller: string }>()
 
     constructor(
         readonly block: Block,
@@ -49,17 +51,17 @@ export class BlockProcessor {
         }
     }
 
+    public async destruct(addr: string) {
+        await this.account(addr)
+
+        this.suicided.add(addr)
+    }
+
     public async master(addr: string, master: string, caller: string) {
-        const acc = await this.account(addr)
+        await this.account(addr)
 
-        // TODO:
-        acc.master = master
-        if (acc.firstSeen === this.block.timestamp && acc.deployer == null) {
-            acc.deployer = caller
-        }
-
+        this.updateMaster.set(addr, { master, caller })
         this.updateCode.add(addr)
-        return acc
     }
 
     public async sponsorSelected(addr: string, sponsor: string) {
@@ -67,7 +69,6 @@ export class BlockProcessor {
 
         logger.log(`Account(${addr}) selected Sponsor(${sponsor})`)
         acc.sponsor = sponsor
-        return acc
     }
 
     public async sponsorUnSponsored(addr: string, sponsor: string) {
@@ -77,7 +78,6 @@ export class BlockProcessor {
             acc.sponsor = null
             logger.log(`Account(${addr}) got UnSponsor by ${sponsor}`)
         }
-        return acc
     }
 
     public async transferVeChain(move: AssetMovement) {
@@ -136,14 +136,34 @@ export class BlockProcessor {
                         acc.code = null
                         acc.master = null
                         acc.sponsor = null
+                        acc.deployer = null
+                        acc.suicided = true
                     }
                 }
             }
+
             if (this.updateCode.has(acc.address)) {
                 const code = await this.thor.getCode(acc.address, this.block.id)
                 if (code && code.code !== '0x') {
+                    // updateCode was triggered by updateMaster and other customized action
+                    if (this.updateMaster.has(acc.address) && acc.master === null && acc.code === null && acc.deployer === null) {
+                        // this is contract deployment
+                        acc.deployer = this.updateMaster.get(acc.address)!.caller
+                    }
                     acc.code = code.code
                 }
+            }
+
+            if (this.updateMaster.has(acc.address)) {
+                acc.master= this.updateMaster.get(acc.address)!.master
+            }
+
+            if (this.suicided.has(acc.address)) {
+                acc.code = null
+                acc.master = null
+                acc.sponsor = null
+                acc.deployer = null
+                acc.suicided = true
             }
         }
     }
@@ -197,9 +217,7 @@ export class BlockProcessor {
         const accounts = await this.manager
             .getRepository(Account)
             .find({
-                balance: BigInt(0),
-                energy: BigInt(0),
-                code: Not(IsNull())
+                code: Not(IsNull()) // might transfer vet or energy after it's destructed
             })
         for (const acc of accounts) {
             const chainAcc = await this.thor.getAccount(acc.address, this.block.id)
@@ -207,10 +225,7 @@ export class BlockProcessor {
                 const master = await this.getMaster(acc.address)
                 if (master === null) {
                     // contract suicided
-                    const account = await this.account(acc.address)
-                    account.code = null
-                    account.master = null
-                    account.suicided = true
+                    await this.destruct(acc.address)
                 }
             }
         }
@@ -258,7 +273,6 @@ export class BlockProcessor {
             this.takeSnap(acc)
             return acc
         } else {
-            // console.log(`Create Account(${addr}) at Block(${displayID(this.block.id)})`)
             const newAcc = this.manager.create(Account, {
                 address: addr,
                 balance: BigInt(0),
@@ -293,5 +307,4 @@ export class BlockProcessor {
             return decoded['0']
         }
     }
-
 }
