@@ -1,17 +1,21 @@
-import {ParamsAddress, AuthorityAddress, EnergyAddress, ExecutorAddress, PrototypeAddress, ExtensionAddress} from './address'
+import { ParamsAddress, AuthorityAddress, EnergyAddress, ExecutorAddress, PrototypeAddress, ExtensionAddress } from './address'
 import { Network } from './network'
 
 const uint8ToAddress = (input: number) => ('0x' + Buffer.alloc(1).fill(input).toString('hex').padStart(40, '0'))
 
-const preCompiledContract = [
-    uint8ToAddress(1),
-    uint8ToAddress(2),
-    uint8ToAddress(3),
-    uint8ToAddress(4),
-    uint8ToAddress(5),
-    uint8ToAddress(6),
-    uint8ToAddress(7),
-    uint8ToAddress(8)
+export const preCompiledContract = [
+    uint8ToAddress(0x1),
+    uint8ToAddress(0x2),
+    uint8ToAddress(0x3),
+    uint8ToAddress(0x4),
+    uint8ToAddress(0x5),
+    uint8ToAddress(0x6),
+    uint8ToAddress(0x7),
+    uint8ToAddress(0x8)
+]
+
+export const IstPreCompiledContract = [
+    uint8ToAddress(0x9)
 ]
 
 export const getPreAllocAccount = (net: Network) => {

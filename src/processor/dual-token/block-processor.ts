@@ -6,7 +6,7 @@ import { displayID } from '../../utils'
 import { EntityManager, Not, IsNull } from 'typeorm'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { SnapType } from '../../explorer-db/types'
-import { ExtensionAddress, getForkConfig, PrototypeAddress, prototype, ZeroAddress } from '../../const'
+import { ExtensionAddress, getForkConfig, PrototypeAddress, prototype, ZeroAddress, IstPreCompiledContract } from '../../const'
 import * as logger from '../../logger'
 
 export interface SnapAccount {
@@ -33,13 +33,19 @@ export class BlockProcessor {
         readonly block: Block,
         readonly thor: Thor,
         readonly manager: EntityManager
-    ) {}
+    ) { }
 
     public async prepare() {
         const forkConfig = getForkConfig(this.thor.genesisID)
         if (this.block.number === forkConfig.VIP191) {
             await this.account(ExtensionAddress)
             this.updateCode.add(ExtensionAddress)
+        }
+        if (this.block.number === forkConfig.ETH_IST) {
+            for (let addr of IstPreCompiledContract) {
+                await this.account(addr)
+                this.updateCode.add(addr)
+            }
         }
     }
 
