@@ -153,6 +153,10 @@ export class BlockProcessor {
                         acc.deployer = this.updateMaster.get(acc.address)!.caller
                     }
                     acc.code = code.code
+                    // re-deploy contract, get account back to live
+                    if (acc.suicided == true){
+                        acc.suicided =false
+                    }
                 }
             }
 

@@ -115,16 +115,6 @@ createConnection().then(async (conn) => {
             throw new Error(`Fatal: Account(${acc.address}) hasCode status mismatch`)
         }
 
-        const isSuicided = (acc: Connex.Thor.Account): boolean => {
-            return (BigInt(acc.balance) == BigInt(0) && BigInt(acc.energy) == BigInt(0) && acc.hasCode == false)   
-        }
-
-        if (acc.suicided) {
-            if (isSuicided(chainAcc) !== true){
-                throw new Error(`Fatal: Account(${acc.address}) suicided status mismatch`)
-            }
-        }
-
         if (skipDeployer.indexOf(acc.address) === -1 && acc.code !== null)  {
             const evs  = await thor.filterEventLogs({
                 range: {unit: 'block', from: 0, to: Number.MAX_SAFE_INTEGER },
@@ -137,8 +127,6 @@ createConnection().then(async (conn) => {
             if (evs.length === 0) {
                 throw new Error(`Fatal: Contract(${acc.address}) can not find newMaster event`)
             }
-
-
 
             if (acc.deployer !== evs[0].meta?.txOrigin) {
                 throw new Error(`Fatal: Account(${acc.address}) deployer mismatch`)
