@@ -102,13 +102,15 @@ export class BlockProcessor {
     }
 
     public async transferEnergy(move: AssetMovement) {
-        await this.account(move.sender)
-        await this.account(move.recipient)
-
         this.Movement.push(move)
 
-        await this.touchEnergy(move.sender)
-        await this.touchEnergy(move.recipient)
+        if (move.amount !== BigInt(0)) {
+            await this.account(move.sender)
+            await this.account(move.recipient)
+        
+            await this.touchEnergy(move.sender)
+            await this.touchEnergy(move.recipient)   
+        }
     }
 
     public accounts() {
