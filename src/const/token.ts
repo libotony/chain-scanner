@@ -15,8 +15,10 @@ export interface TokenConfig {
     burnOnZero?: boolean
 }
 
-const main = new Map<string, TokenBasic&TokenConfig>()
-const test = new Map<string, TokenBasic&TokenConfig>()
+export type Token = TokenBasic&TokenConfig
+ 
+const main = new Map<string, Token>()
+const test = new Map<string, Token>()
 
 const pla = { symbol: 'PLA', address: '', name: 'Plair', decimals: 18 }
 const sha = { symbol: 'SHA', address: '', name: 'Safe Haven', decimals: 18 }

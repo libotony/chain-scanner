@@ -4,7 +4,7 @@ import { displayID, blockIDtoNum } from '../../utils'
 import { REVERSIBLE_WINDOW } from '../../config'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
-import { TransferEvent, ZeroAddress, TokenConfig, TokenBasic, prototype  } from '../../const'
+import { TransferEvent, ZeroAddress, Token, prototype  } from '../../const'
 import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { EntityManager, getConnection } from 'typeorm'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
@@ -27,7 +27,7 @@ export class VIP180Transfer extends Processor {
 
     constructor(
         readonly thor: Thor,
-        readonly token: TokenBasic & TokenConfig,
+        readonly token:  Token,
     ) {
         super()
         this.persist = new Persist(token)

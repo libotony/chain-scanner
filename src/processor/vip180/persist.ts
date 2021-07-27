@@ -5,7 +5,7 @@ import { AssetMovement } from '../../explorer-db/entity/movement'
 import { AssetType } from '../../explorer-db/types'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
-import { TokenBasic } from '../../const'
+import { Token } from '../../const'
 
 export type RecentSnapshot = Snapshot & { isTrunk: boolean }
 
@@ -14,7 +14,7 @@ export class Persist {
         return `token-${this.token.symbol}-head`
     }
 
-    constructor(readonly token: TokenBasic) {}
+    constructor(readonly token: Token) {}
 
     public saveHead(val: number, manager?: EntityManager) {
         if (!manager) {
