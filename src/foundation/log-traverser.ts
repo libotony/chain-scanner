@@ -4,14 +4,14 @@ import { abi } from 'thor-devkit'
 
 export interface LogItem<T extends 'transfer' | 'event'> {
     type: T
-    data: T extends 'transfer'?Thor.Transfer: Thor.Event
+    data: T extends 'transfer' ? Thor.Transfer : Thor.Event
 }
 
-export const newIterator = function *(tracer: Thor.CallTracerOutput, events: Thor.Event[], transfers: Thor.Transfer[]) {
+export const newIterator = function* (tracer: Thor.CallTracerOutput, events: Thor.Event[], transfers: Thor.Transfer[]) {
     let event = 0
     let transfer = 0
 
-    const traverse = function*(t: Thor.CallTracerOutput): Generator<LogItem<'transfer' | 'event'>> {
+    const traverse = function* (t: Thor.CallTracerOutput): Generator<LogItem<'transfer' | 'event'>> {
         if (events.length === event && transfers.length === transfer) {
             return
         }
@@ -84,21 +84,22 @@ export const newIterator = function *(tracer: Thor.CallTracerOutput, events: Tho
 
         if (t.calls) {
             for (const call of t.calls) {
-                yield *traverse(call)
-            }
-            for (; event < events.length;) {
-                if (events[event].address !== contract) {
-                    break
-                }
-                yield {
-                    type: 'event',
-                    data: events[event++]
+                // dive into child calls then came back to parent context
+                yield* traverse(call)
+                for (; event < events.length;) {
+                    if (events[event].address !== contract) {
+                        break
+                    }
+                    yield {
+                        type: 'event',
+                        data: events[event++]
+                    }
                 }
             }
         }
     }
 
-    yield *traverse(tracer)
+    yield* traverse(tracer)
 
     if (events.length !== event || transfers.length !== transfer) {
         throw new Error('traverse index mismatch')
