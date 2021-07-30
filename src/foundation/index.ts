@@ -310,6 +310,8 @@ export class Foundation {
                                 } catch (e) {
                                     logger.error(`failed to re-organize logs(${tx.id}),err: ${e.toString()}`)
                                     let logIndex = 0
+                                    output.transfers = []
+                                    output.events = []
                                     for (const t of o.transfers) {
                                         output.transfers.push({
                                             ...t,
