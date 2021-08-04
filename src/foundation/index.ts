@@ -14,6 +14,7 @@ import { newIterator, LogItem } from './log-traverser'
 
 const SAMPLING_INTERVAL = 500
 const revertReasonSelector = '0x' + cry.keccak256('Error(string)').toString('hex').slice(0, 8)
+const panicErrorSelector = '0x' + cry.keccak256('Panic(uint256)').toString('hex').slice(0, 8)
 
 export class Foundation {
     private head: string | null = null
@@ -269,15 +270,27 @@ export class Foundation {
                                     clauseIndex,
                                     reason: null
                                 }
-                                if (vmError.error === 'execution reverted' &&
-                                    tracer.output && tracer.output.indexOf(revertReasonSelector) === 0) {
-                                    try {
-                                        const decoded = abi.decodeParameter('string', '0x' + tracer.output.slice(10))
-                                        if (decoded) {
-                                            vmError.reason = decoded
+                                if (vmError.error === 'execution reverted' && tracer.output) {
+                                    if (tracer.output.indexOf(revertReasonSelector) === 0) {
+                                        try {
+                                            const decoded = abi.decodeParameter('string', '0x' + tracer.output.slice(10))
+                                            if (decoded) {
+                                                vmError.reason = decoded
+                                            }
+                                        } catch {
+                                            logger.error(`decode Error(string) failed for tx: ${tx.id} at clause ${clauseIndex}`)
                                         }
-                                    } catch {
-                                        // Ignore the coder error
+                                    } else if (tracer.output.indexOf(panicErrorSelector) === 0) {
+                                        try {
+                                            const decoded = abi.decodeParameter('uint256', '0x' + tracer.output.slice(10))
+                                            if (decoded) {
+                                                vmError.reason = decoded
+                                            }
+                                        } catch {
+                                            logger.error(`decode Panic(uint256) failed for tx: ${tx.id} at clause ${clauseIndex}`)
+                                        }
+                                    } else {
+                                        logger.error(`unknown revert data format for tx: ${tx.id} at clause ${clauseIndex}`)
                                     }
                                 }
                                 break
