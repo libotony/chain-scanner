@@ -3,13 +3,13 @@ import { Persist } from './persist'
 import { getConnection, EntityManager } from 'typeorm'
 import { blockIDtoNum, displayID, sleep } from '../utils'
 import { REVERSIBLE_WINDOW } from '../config'
-import {InterruptedError} from '../error'
+import { InterruptedError } from '../error'
 import { EventEmitter } from 'events'
 import * as logger from '../logger'
 import { BranchTransaction } from '../explorer-db/entity/branch-transaction'
 import { TransactionMeta } from '../explorer-db/entity/tx-meta'
 import { Output, VMError } from '../explorer-db/types'
-import {cry, abi} from 'thor-devkit'
+import { cry, abi } from 'thor-devkit'
 import { newIterator, LogItem } from './log-traverser'
 
 const SAMPLING_INTERVAL = 500
@@ -50,7 +50,7 @@ export class Foundation {
             if (!config) {
                 return startPoint
             } else {
-                return  config.value
+                return config.value
             }
         }
     }
@@ -171,7 +171,7 @@ export class Foundation {
                 }
             } catch (e) {
                 if (!(e instanceof InterruptedError)) {
-                    logger.error('foundation loop: ' + (e as Error).stack )
+                    logger.error('foundation loop: ' + (e as Error).stack)
                 } else {
                     if (this.shutdown) {
                         this.ev.emit('closed')
@@ -359,7 +359,7 @@ export class Foundation {
                         nonce: tx.nonce,
                         dependsOn: tx.dependsOn,
                         origin: tx.origin,
-                        delegator: tx.delegator as string|null,
+                        delegator: tx.delegator as string | null,
                         clauses: tx.clauses,
                         clauseCount: tx.clauses.length,
                         size: tx.size,
@@ -374,7 +374,7 @@ export class Foundation {
                     reward += BigInt(tx.reward)
                 }
                 if (justUpdate) {
-                    await this.persist.updateBlock(b.id, {isTrunk}, manager)
+                    await this.persist.updateBlock(b.id, { isTrunk }, manager)
                 } else {
                     await this.persist.insertBlock({
                         ...b,
