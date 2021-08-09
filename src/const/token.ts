@@ -59,7 +59,7 @@ main.set(veed.symbol, {
     genesis: { '0x1eb065a93bf325f53abc47c23289946bedec3d72': '100000000000000000000000000000' }
 })
 main.set(mdn.symbol, { ...mdn, address: '0x1b44a9718e12031530604137f854160759677192' })
-main.set(vpu.symbol, {...vpu, address: '0xb0821559723dB89e0Bd14FEE81E13a3aaE007e65'})
+main.set(vpu.symbol, {...vpu, address: '0xb0821559723db89e0bd14fee81e13a3aae007e65'})
 
 test.set(pla.symbol, { ...pla, address: '0x645d2019ed39e58db76af602317d177b53ba8b9d' })
 test.set(sha.symbol, { ...sha, address: '0xa1bcfa20a82eca70a5af5420b11bc53a279024ec' })
