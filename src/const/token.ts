@@ -33,6 +33,7 @@ const yeet = { symbol: 'YEET', address: '', name: 'Yeet Coin', decimals: 18 }
 const hai = { symbol: 'HAI', address: '', name: 'HackenAI', decimals: 8 }
 const mdn = { symbol: 'MDN', address: '', name: 'Madini', decimals: 18 }
 const veed = { symbol: 'VEED', address: '', name: 'VIMworld', decimals: 18 }
+const vpu = { symbol: 'VPU', address: '', name: 'VPunks Token', decimals: 18 }
 
 main.set(pla.symbol, { ...pla, address: '0x89827f7bb951fd8a56f8ef13c5bfee38522f2e1f' })
 main.set(sha.symbol, { ...sha, address: '0x5db3c8a942333f6468176a870db36eef120a34dc' })
@@ -58,6 +59,7 @@ main.set(veed.symbol, {
     genesis: { '0x1eb065a93bf325f53abc47c23289946bedec3d72': '100000000000000000000000000000' }
 })
 main.set(mdn.symbol, { ...mdn, address: '0x1b44a9718e12031530604137f854160759677192' })
+main.set(vpu.symbol, {...vpu, address: '0xb0821559723dB89e0Bd14FEE81E13a3aaE007e65'})
 
 test.set(pla.symbol, { ...pla, address: '0x645d2019ed39e58db76af602317d177b53ba8b9d' })
 test.set(sha.symbol, { ...sha, address: '0xa1bcfa20a82eca70a5af5420b11bc53a279024ec' })
