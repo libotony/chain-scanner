@@ -1,4 +1,4 @@
-import { createConnection } from 'typeorm'
+import { createConnection, In } from 'typeorm'
 import { Thor } from '../../thor-rest'
 import { Net } from '../../net'
 import { getNetwork, checkNetworkWithDB } from '../network'
@@ -93,40 +93,48 @@ createConnection().then(async (conn) => {
     let count = 0
     let corrected = 0
     for (; ;) {
-    const txs = await conn
-        .getRepository(TransactionMeta)
-        .find({
-            order: { seq: 'ASC' },
-            relations: ['transaction'],
-            skip: offset,
-            take: limit,
-        })
-    count += txs.length
-    if (txs.length === 0) {
-        console.log(`Finished, count:${count}, corrected:${corrected}`)
-        break
-    }
-    offset += limit
-    for (let tx of txs) {
-        if (!tx.transaction.reverted) {
-            for (let [index, _] of tx.transaction.clauses.entries()) {
-                const op = tx.transaction.outputs[index]
-                if (op.events.length && op.transfers.length) {
-                    const ei = op.events[op.events.length - 1].overallIndex!
-                    const ti = op.transfers[op.transfers.length - 1].overallIndex!
-                    const max = ei > ti ? ei : ti
+        const ids = await conn
+            .getRepository(TransactionMeta)
+            .find({
+                select: ['txID'],
+                order: { seq: 'ASC' },
+                skip: offset,
+                take: limit,
+            })
+        if (!ids.length) {
+            console.log(`Finished, count:${count}, corrected:${corrected}`)
+            break
+        }
+        count += ids.length
 
-                    if (op.events.length + op.transfers.length != max + 1) {
-                        console.log(`Correcting ${tx.txID} at clause(${index})`)
-                        await fixOverallIndex(tx)
-                        corrected += 1
-                        break
+        const txs = await conn
+            .getRepository(TransactionMeta)
+            .find({
+                where: { txID: In(ids.map(x => x.txID)) },
+                order: { seq: 'ASC' },
+                relations: ['transaction']
+            })
+        offset += limit
+        for (let tx of txs) {
+            if (!tx.transaction.reverted) {
+                for (let [index, _] of tx.transaction.clauses.entries()) {
+                    const op = tx.transaction.outputs[index]
+                    if (op.events.length && op.transfers.length) {
+                        const ei = op.events[op.events.length - 1].overallIndex!
+                        const ti = op.transfers[op.transfers.length - 1].overallIndex!
+                        const max = ei > ti ? ei : ti
+
+                        if (op.events.length + op.transfers.length != max + 1) {
+                            console.log(`Correcting ${tx.txID} at clause(${index})`)
+                            await fixOverallIndex(tx)
+                            corrected += 1
+                            break
+                        }
                     }
                 }
             }
         }
     }
-}
 }).then(() => {
     process.exit(0)
 }).catch((e: Error) => {
