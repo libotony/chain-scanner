@@ -41,6 +41,15 @@ export const newIterator = function* (tracer: Thor.CallTracerOutput, events: Tho
                 type: 'event',
                 data: events[event++]
             }
+            for (; event < events.length;) {
+                if (events[event].address !== contract) {
+                    break
+                }
+                yield {
+                    type: 'event',
+                    data: events[event++]
+                }
+            }
         } else if (['CALL', 'CALLCODE', 'DELEGATECALL'].indexOf(t.type) !== -1) {
             if (t.type === 'CALL') {
                 if (t.value !== '0x0') {
@@ -94,6 +103,15 @@ export const newIterator = function* (tracer: Thor.CallTracerOutput, events: Tho
                         type: 'event',
                         data: events[event++]
                     }
+                }
+            }
+            for (; event < events.length;) {
+                if (events[event].address !== contract) {
+                    break
+                }
+                yield {
+                    type: 'event',
+                    data: events[event++]
                 }
             }
         }
