@@ -34,6 +34,10 @@ const hai = { symbol: 'HAI', address: '', name: 'HackenAI', decimals: 8 }
 const mdn = { symbol: 'MDN', address: '', name: 'Madini', decimals: 18 }
 const veed = { symbol: 'VEED', address: '', name: 'VIMworld', decimals: 18 }
 const vpu = { symbol: 'VPU', address: '', name: 'VPunks Token', decimals: 18 }
+const mvg = { symbol: 'MVG', address: '', name: 'Mad Viking Games', decimals: 18 }
+const wov = { symbol: 'WoV', address: '', name: 'WorldOfV', decimals: 18 }
+const gems = { symbol: 'GEMS', address: '', name: 'GEMS', decimals: 18 }
+const vex = {symbol: 'VEX', address: '', name:"Vexchange Token", decimals: 18}
 
 main.set(pla.symbol, { ...pla, address: '0x89827f7bb951fd8a56f8ef13c5bfee38522f2e1f' })
 main.set(sha.symbol, { ...sha, address: '0x5db3c8a942333f6468176a870db36eef120a34dc' })
@@ -59,7 +63,14 @@ main.set(veed.symbol, {
     genesis: { '0x1eb065a93bf325f53abc47c23289946bedec3d72': '100000000000000000000000000000' }
 })
 main.set(mdn.symbol, { ...mdn, address: '0x1b44a9718e12031530604137f854160759677192' })
-main.set(vpu.symbol, {...vpu, address: '0xb0821559723db89e0bd14fee81e13a3aae007e65'})
+main.set(vpu.symbol, { ...vpu, address: '0xb0821559723db89e0bd14fee81e13a3aae007e65' })
+main.set(mvg.symbol, { ...mvg, address: '0x99763494a7b545f983ee9fe02a3b5441c7ef1396' })
+main.set(wov.symbol, {
+    ...wov, address: '0x170f4ba8e7acf6510f55db26047c83d13498af8a',
+    burnOnZero: true
+})
+main.set(gems.symbol, { ...gems, address: '0x28c61940bdcf5a67158d00657e8c3989e112eb38' })
+main.set(vex.symbol, {...vex, address: '0x0bd802635eb9ceb3fcbe60470d2857b86841aab6'})
 
 test.set(pla.symbol, { ...pla, address: '0x645d2019ed39e58db76af602317d177b53ba8b9d' })
 test.set(sha.symbol, { ...sha, address: '0xa1bcfa20a82eca70a5af5420b11bc53a279024ec' })
@@ -78,6 +89,8 @@ test.set(veed.symbol, {
     genesis: { '0x9860a75e0b2746b4ee459483dd095206b761f9a6': '100000000000000000000000000000' }
 })
 test.set(mdn.symbol, { ...mdn, address: '0x4c76f2c483e0ec292c06d0a0d1440717ed0787c0' })
+test.set(mvg.symbol, { ...mvg, address: '0x6e32a40481dc95c7495b48ee81e3d388a0f0eb77' })
+test.set(gems.symbol, { ...gems, address: '0x7b12cdd6dc20bac5a7c85924e4d29f84a3bc376f' })
 
 export const getVIP180Token = (net: Network, symbol: string) => {
     if (net === Network.MainNet) {
