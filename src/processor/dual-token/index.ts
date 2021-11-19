@@ -1,5 +1,5 @@
 import { Thor } from '../../thor-rest'
-import { Persist } from './persist'
+import { Persist, TypeEnergyCount, TypeVETCount } from './persist'
 import { blockIDtoNum, displayID } from '../../utils'
 import { REVERSIBLE_WINDOW, DESTRUCT_CHECK_INTERVAL } from '../../config'
 import { EnergyAddress, TransferEvent, getPreAllocAccount, Network, prototype } from '../../const'
@@ -16,6 +16,7 @@ import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
 import { Block } from '../../explorer-db/entity/block'
 import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
 import { getBlockByNumber } from '../../service/block'
+import { Counts } from '../../explorer-db/entity/counts'
 
 export class DualToken extends Processor {
     private persist: Persist
@@ -175,8 +176,12 @@ export class DualToken extends Processor {
         if (accs.length) {
             await this.persist.saveAccounts(accs, manager)
         }
+        const cnts = proc.counts()
+        if (cnts.length) {
+            await this.persist.saveCounts(cnts, manager)
+        }
 
-        return proc.Movement.length + accs.length
+        return proc.Movement.length + accs.length + cnts.length
     }
 
     protected async latestTrunkCheck() {
@@ -227,6 +232,8 @@ export class DualToken extends Processor {
         const toRevert = snapshots.map(x => x.blockID)
         await getConnection().transaction(async (manager) => {
             const accounts = new Map<string, Account>()
+            const vCNTs = new Map<string, Counts>()
+            const eCNTs = new Map<string, Counts>()
             const accCreated: string[] = []
 
             for (; snapshots.length;) {
@@ -248,14 +255,27 @@ export class DualToken extends Processor {
                                 suicided: snapAcc.suicided
                             })
                             accounts.set(snapAcc.address, acc)
+
+                            vCNTs.set(snapAcc.address, manager.create(Counts, {
+                                address: snapAcc.address,
+                                type: TypeVETCount,
+                                in: snapAcc.vetCount.in,
+                                out: snapAcc.vetCount.out,
+                                self: snapAcc.vetCount.self
+                            }))
+                            eCNTs.set(snapAcc.address, manager.create(Counts, {
+                                address: snapAcc.address,
+                                type: TypeEnergyCount,
+                                in: snapAcc.energyCount.in,
+                                out: snapAcc.energyCount.out,
+                                self: snapAcc.energyCount.self
+                            }))
                         }
                     }
                 }
             }
 
-            const toSave: Account[] = []
             for (const [_, acc] of accounts.entries()) {
-                toSave.push(acc)
                 logger.log(`Account(${acc.address}) reverted to VET(${acc.balance}) Energy(${acc.balance}) BlockTime(${acc.blockTime}) at Block(${displayID(headID)})`)
             }
             for (const acc of accCreated) {
@@ -263,9 +283,11 @@ export class DualToken extends Processor {
             }
 
             if (accCreated.length) {
-                await this.persist.removeAccounts(accCreated)
+                await this.persist.removeAccounts(accCreated, manager)
+                await this.persist.removeCounts(accCreated, manager)
             }
-            await this.persist.saveAccounts(toSave, manager)
+            if (accounts.size) await this.persist.saveAccounts([...accounts.values()], manager)
+            if(vCNTs.size || eCNTs.size) await this.persist.saveCounts([...vCNTs.values(), ...eCNTs.values()], manager)
             await this.persist.removeMovements(toRevert, manager)
             await removeSnapshot(toRevert, this.snapType, manager)
             await this.saveHead(headNum, manager)

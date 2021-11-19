@@ -3,12 +3,19 @@ import { Account } from '../../explorer-db/entity/account'
 import { Thor } from '../../thor-rest'
 import { AssetMovement } from '../../explorer-db/entity/movement'
 import { displayID } from '../../utils'
-import { EntityManager, Not, IsNull } from 'typeorm'
+import { EntityManager, Not, IsNull, In } from 'typeorm'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { SnapType } from '../../explorer-db/types'
 import { ExtensionAddress, getForkConfig, PrototypeAddress, prototype, ZeroAddress, IstPreCompiledContract } from '../../const'
 import * as logger from '../../logger'
+import { Counts } from '../../explorer-db/entity/counts'
+import { TypeEnergyCount, TypeVETCount } from './persist'
 
+export interface  SnapCount {
+    in: number
+    out: number
+    self: number
+}
 export interface SnapAccount {
     address: string
     balance: string
@@ -19,12 +26,15 @@ export interface SnapAccount {
     master: string | null
     sponsor: string | null
     suicided: boolean
+    vetCount: SnapCount
+    energyCount: SnapCount
 }
 
 export class BlockProcessor {
     public Movement: AssetMovement[] = []
 
     private acc = new Map<string, Account>()
+    private cnt = new Map<string, Counts>()
     private snap = new Map<string, SnapAccount>()
     private updateCode = new Set<string>()
     private updateEnergy = new Set<string>()
@@ -97,6 +107,13 @@ export class BlockProcessor {
 
         this.Movement.push(move)
 
+        if (move.sender === move.recipient) {
+            this.cnt.get('v' + move.sender)!.self++
+        } else {
+            this.cnt.get('v' + move.sender)!.out++
+            this.cnt.get('v' + move.recipient)!.in++
+        }
+
         await this.touchEnergy(move.sender)
         await this.touchEnergy(move.recipient)
     }
@@ -107,10 +124,17 @@ export class BlockProcessor {
         if (move.amount !== BigInt(0)) {
             await this.account(move.sender)
             await this.account(move.recipient)
-        
+
             await this.touchEnergy(move.sender)
-            await this.touchEnergy(move.recipient)   
+            await this.touchEnergy(move.recipient)
         }
+
+        if (move.sender === move.recipient) {
+            this.cnt.get('e' + move.sender)!.self++
+        } else {
+            this.cnt.get('e' + move.sender)!.out++
+            this.cnt.get('e' + move.recipient)!.in++
+        }        
     }
 
     public accounts() {
@@ -119,6 +143,25 @@ export class BlockProcessor {
             accs.push(acc)
         }
         return accs
+    }
+
+    public counts() {
+        const cnts: Counts[] = []
+        const compare = (a:Counts, b: SnapCount): boolean => {
+            if (a.in === b.in && a.out === b.out && a.self === b.self) {
+                return true
+            }
+            return false
+        }
+
+        for (const [_, cnt] of this.cnt.entries()) {
+            const snap = this.snap.get(cnt.address)!
+            if (!compare(cnt, cnt.type===TypeVETCount?snap.vetCount: snap.energyCount)) {
+                cnts.push(cnt)   
+            }
+        }
+
+        return cnts
     }
 
     public async finalize() {
@@ -154,14 +197,14 @@ export class BlockProcessor {
                     }
                     acc.code = code.code
                     // re-deploy contract, get account back to live
-                    if (acc.suicided == true){
-                        acc.suicided =false
+                    if (acc.suicided == true) {
+                        acc.suicided = false
                     }
                 }
             }
 
             if (this.updateMaster.has(acc.address)) {
-                acc.master= this.updateMaster.get(acc.address)!.master
+                acc.master = this.updateMaster.get(acc.address)!.master
             }
 
             if (this.suicided.has(acc.address)) {
@@ -254,7 +297,7 @@ export class BlockProcessor {
         }
     }
 
-    private takeSnap(acc: Account) {
+    private takeSnap(acc: Account, vetCnt: Counts, energyCnt: Counts) {
         this.snap.set(acc.address, {
             address: acc.address,
             balance: acc.balance.toString(10),
@@ -264,7 +307,9 @@ export class BlockProcessor {
             code: acc.code,
             master: acc.master,
             sponsor: acc.sponsor,
-            suicided: acc.suicided
+            suicided: acc.suicided,
+            vetCount: { in: vetCnt.in, out: vetCnt.out, self: vetCnt.self },
+            energyCount: { in: energyCnt.in, out: energyCnt.out, self: energyCnt.self },
         })
     }
 
@@ -275,8 +320,46 @@ export class BlockProcessor {
 
         const acc = await this.manager.getRepository(Account).findOne({ address: addr })
         if (acc) {
+            const counts = await this.manager.getRepository(Counts).find({
+                where: { address: addr, type: In([TypeVETCount, TypeVETCount]) },
+            })
+
+            let v: Counts | null = null
+            let e: Counts | null = null
+
+            for (const cnt of counts) {
+                if (cnt.type === TypeVETCount) {
+                    v = cnt
+                }
+                if (cnt.type === TypeEnergyCount) {
+                    e = cnt
+                }
+            }
+
+            if (v === null) {
+                v = this.manager.create(Counts, {
+                    address: addr,
+                    type: TypeVETCount,
+                    in: 0,
+                    out: 0,
+                    self: 0
+                })
+            }
+            if (e === null) {
+                e = this.manager.create(Counts, {
+                    address: addr,
+                    type: TypeEnergyCount,
+                    in: 0,
+                    out: 0,
+                    self: 0
+                })
+            }
+
+            this.cnt.set('v' + addr, v)
+            this.cnt.set('e' + addr, e)
+
             this.acc.set(addr, acc)
-            this.takeSnap(acc)
+            this.takeSnap(acc, v, e)
             return acc
         } else {
             const newAcc = this.manager.create(Account, {
@@ -292,8 +375,26 @@ export class BlockProcessor {
                 suicided: false
             })
 
+            let v = this.manager.create(Counts, {
+                address: addr,
+                type: TypeVETCount,
+                in: 0,
+                out: 0,
+                self: 0
+            })
+
+            let e = this.manager.create(Counts, {
+                address: addr,
+                type: TypeEnergyCount,
+                in: 0,
+                out: 0,
+                self: 0
+            })
+            this.cnt.set('v' + addr, v)
+            this.cnt.set('e' + addr, e)
+
             this.acc.set(addr, newAcc)
-            this.takeSnap(newAcc)
+            this.takeSnap(newAcc, v, e)
             return newAcc
         }
     }

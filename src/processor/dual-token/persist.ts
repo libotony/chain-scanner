@@ -2,9 +2,12 @@ import { getConnection, EntityManager, In } from 'typeorm'
 import { Config } from '../../explorer-db/entity/config'
 import { AssetMovement } from '../../explorer-db/entity/movement'
 import { Account } from '../../explorer-db/entity/account'
-import { AssetType } from '../../explorer-db/types'
+import { AssetType, CountType } from '../../explorer-db/types'
+import { Counts } from '../../explorer-db/entity/counts'
 
 const HEAD_KEY = 'dual-token-head'
+export const TypeVETCount = CountType.Transfer + AssetType.VET
+export const TypeEnergyCount = CountType.Transfer + AssetType.VTHO
 
 export class Persist {
 
@@ -76,4 +79,24 @@ export class Persist {
             })
     }
 
+    public removeCounts(accs: string[], manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
+            .getRepository(Counts)
+            .delete({
+                address: In([...accs]),
+                type: In([TypeVETCount, TypeEnergyCount])
+            })
+    }
+
+    public saveCounts (cnts: Counts[], manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager.save(cnts)
+    }
 }
