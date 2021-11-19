@@ -127,14 +127,14 @@ export class BlockProcessor {
 
             await this.touchEnergy(move.sender)
             await this.touchEnergy(move.recipient)
-        }
 
-        if (move.sender === move.recipient) {
-            this.cnt.get('e' + move.sender)!.self++
-        } else {
-            this.cnt.get('e' + move.sender)!.out++
-            this.cnt.get('e' + move.recipient)!.in++
-        }        
+            if (move.sender === move.recipient) {
+                this.cnt.get('e' + move.sender)!.self++
+            } else {
+                this.cnt.get('e' + move.sender)!.out++
+                this.cnt.get('e' + move.recipient)!.in++
+            }  
+        }      
     }
 
     public accounts() {
