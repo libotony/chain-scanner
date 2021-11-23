@@ -124,19 +124,18 @@ export class BlockProcessor {
     public async transferEnergy(move: AssetMovement) {
         this.Movement.push(move)
 
-        if (move.amount !== BigInt(0)) {
-            await this.account(move.sender)
-            await this.account(move.recipient)
+        await this.account(move.sender)
+        await this.account(move.recipient)
+        if (move.sender === move.recipient) {
+            this.cnt.get('e' + move.sender)!.self++
+        } else {
+            this.cnt.get('e' + move.sender)!.out++
+            this.cnt.get('e' + move.recipient)!.in++
+        }
 
+        if (move.amount !== BigInt(0)) {
             await this.touchEnergy(move.sender)
             await this.touchEnergy(move.recipient)
-
-            if (move.sender === move.recipient) {
-                this.cnt.get('e' + move.sender)!.self++
-            } else {
-                this.cnt.get('e' + move.sender)!.out++
-                this.cnt.get('e' + move.recipient)!.in++
-            }
         }
     }
 
