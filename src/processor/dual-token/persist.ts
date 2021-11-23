@@ -91,12 +91,4 @@ export class Persist {
                 type: In([TypeVETCount, TypeEnergyCount])
             })
     }
-
-    public saveCounts (cnts: Counts[], manager?: EntityManager) {
-        if (!manager) {
-            manager = getConnection().manager
-        }
-
-        return manager.save(cnts)
-    }
 }

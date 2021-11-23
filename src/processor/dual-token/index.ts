@@ -1,7 +1,7 @@
 import { Thor } from '../../thor-rest'
 import { Persist, TypeEnergyCount, TypeVETCount } from './persist'
 import { blockIDtoNum, displayID } from '../../utils'
-import { REVERSIBLE_WINDOW, DESTRUCT_CHECK_INTERVAL } from '../../config'
+import { REVERSIBLE_WINDOW, SUICIDED_CHECK_INTERVAL } from '../../config'
 import { EnergyAddress, TransferEvent, getPreAllocAccount, Network, prototype } from '../../const'
 import { getConnection, EntityManager } from 'typeorm'
 import { BlockProcessor, SnapAccount } from './block-processor'
@@ -17,6 +17,7 @@ import { Block } from '../../explorer-db/entity/block'
 import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
 import { getBlockByNumber } from '../../service/block'
 import { Counts } from '../../explorer-db/entity/counts'
+import { saveCounts } from '../../service/counts'
 
 export class DualToken extends Processor {
     private persist: Persist
@@ -159,8 +160,8 @@ export class DualToken extends Processor {
             await proc.touchEnergy(block.beneficiary)
         }
 
-        if (saveSnapshot && (block.number % DESTRUCT_CHECK_INTERVAL === 0)) {
-            await proc.destructCheck()
+        if (saveSnapshot && (block.number % SUICIDED_CHECK_INTERVAL === 0)) {
+            await proc.checkSuicided()
         }
 
         if (proc.Movement.length) {
@@ -178,7 +179,7 @@ export class DualToken extends Processor {
         }
         const cnts = proc.counts()
         if (cnts.length) {
-            await this.persist.saveCounts(cnts, manager)
+            await saveCounts(cnts, manager)
         }
 
         return proc.Movement.length + accs.length + cnts.length

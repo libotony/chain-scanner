@@ -11,7 +11,7 @@ import * as logger from '../../logger'
 import { Counts } from '../../explorer-db/entity/counts'
 import { TypeEnergyCount, TypeVETCount } from './persist'
 
-export interface  SnapCount {
+export interface SnapCount {
     in: number
     out: number
     self: number
@@ -39,7 +39,7 @@ export class BlockProcessor {
     private updateCode = new Set<string>()
     private updateEnergy = new Set<string>()
     private suicided = new Set<string>()
-    private updateMaster = new Map<string, { master: string; caller: string }>()
+    private updateMaster = new Map<string, { master: string|null; txOrigin: string }>()
 
     constructor(
         readonly block: Block,
@@ -67,12 +67,14 @@ export class BlockProcessor {
         this.suicided.add(addr)
     }
 
-    public async master(addr: string, newMaster: string, caller: string) {
+    public async master(addr: string, newMaster: string, txOrigin: string) {
         const master = newMaster === ZeroAddress ? null : newMaster
         const acc = await this.account(addr)
 
-        this.updateMaster.set(addr, { master, caller })
-        this.updateCode.add(addr)
+        this.updateMaster.set(addr, { master, txOrigin })
+        if (acc.code === null) {
+            this.updateCode.add(addr)
+        }
     }
 
     public async sponsorSelected(addr: string, sponsor: string) {
@@ -134,8 +136,8 @@ export class BlockProcessor {
             } else {
                 this.cnt.get('e' + move.sender)!.out++
                 this.cnt.get('e' + move.recipient)!.in++
-            }  
-        }      
+            }
+        }
     }
 
     public accounts() {
@@ -148,7 +150,7 @@ export class BlockProcessor {
 
     public counts() {
         const cnts: Counts[] = []
-        const compare = (a:Counts, b: SnapCount): boolean => {
+        const compare = (a: Counts, b: SnapCount): boolean => {
             if (a.in === b.in && a.out === b.out && a.self === b.self) {
                 return true
             }
@@ -157,8 +159,8 @@ export class BlockProcessor {
 
         for (const [_, cnt] of this.cnt.entries()) {
             const snap = this.snap.get(cnt.address)!
-            if (!compare(cnt, cnt.type===TypeVETCount?snap.vetCount: snap.energyCount)) {
-                cnts.push(cnt)   
+            if (!compare(cnt, cnt.type === TypeVETCount ? snap.vetCount : snap.energyCount)) {
+                cnts.push(cnt)
             }
         }
 
@@ -172,32 +174,24 @@ export class BlockProcessor {
                 acc.energy = BigInt(ret.energy)
                 acc.blockTime = this.block.timestamp
 
-                if (
-                    acc.code !== null && ret.hasCode === false &&
-                    acc.energy === BigInt(0) && acc.balance === BigInt(0)
-                ) {
-                    const master = await this.getMaster(acc.address)
-                    // contract suicide
-                    if (master === null) {
-                        acc.code = null
-                        acc.master = null
-                        acc.sponsor = null
-                        acc.deployer = null
-                        acc.suicided = true
-                    }
+                // contract suicided will trigger a energy-drain action if that contract has energy left
+                // since we acquired the account obj from the blockchain, check it anyway
+                if (acc.code !== null && ret.hasCode === false &&
+                    acc.energy === BigInt(0) && acc.balance === BigInt(0)) {
+                    this.suicided.add(acc.address)
                 }
             }
 
             if (this.updateCode.has(acc.address)) {
                 const code = await this.thor.getCode(acc.address, this.block.id)
                 if (code && code.code !== '0x') {
-                    // updateCode was triggered by updateMaster and other customized action
-                    if (this.updateMaster.has(acc.address) && acc.master === null && acc.code === null && acc.deployer === null) {
-                        // this is contract deployment
-                        acc.deployer = this.updateMaster.get(acc.address)!.caller
-                    }
                     acc.code = code.code
-                    // re-deploy contract, get account back to live
+
+                    // if updateCode was triggered by updateMaster, it could be a contract deployment triggered by a contract
+                    if (this.updateMaster.has(acc.address) && acc.deployer === null) {
+                        acc.deployer = this.updateMaster.get(acc.address)!.txOrigin
+                    }
+                    // re-deploy contract, get account back to live(create2)
                     if (acc.suicided == true) {
                         acc.suicided = false
                     }
@@ -263,20 +257,16 @@ export class BlockProcessor {
         }
     }
 
-    public async destructCheck() {
+    public async checkSuicided() {
         const accounts = await this.manager
             .getRepository(Account)
             .find({
-                code: Not(IsNull()) // might transfer vet or energy after it's destructed
+                code: Not(IsNull()) // might holding vet/energy after destructed
             })
         for (const acc of accounts) {
             const chainAcc = await this.thor.getAccount(acc.address, this.block.id)
             if (chainAcc.hasCode === false) {
-                const master = await this.getMaster(acc.address)
-                if (master === null) {
-                    // contract suicided
-                    await this.destruct(acc.address)
-                }
+                await this.destruct(acc.address)
             }
         }
     }
