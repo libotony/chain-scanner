@@ -312,7 +312,7 @@ export class BlockProcessor {
         const acc = await this.manager.getRepository(Account).findOne({ address: addr })
         if (acc) {
             const counts = await this.manager.getRepository(Counts).find({
-                where: { address: addr, type: In([TypeVETCount, TypeVETCount]) },
+                where: { address: addr, type: In([TypeVETCount, TypeEnergyCount]) },
             })
 
             let v: Counts | null = null
@@ -387,22 +387,6 @@ export class BlockProcessor {
             this.acc.set(addr, newAcc)
             this.takeSnap(newAcc, v, e)
             return newAcc
-        }
-    }
-
-    private async getMaster(addr: string) {
-        const ret = await this.thor.explain({
-            clauses: [{
-                to: PrototypeAddress,
-                value: '0x0',
-                data: prototype.master.encode(addr)
-            }]
-        }, this.block.id)
-        const decoded = prototype.master.decode(ret[0].data)
-        if (decoded['0'] === ZeroAddress) {
-            return null
-        } else {
-            return decoded['0']
         }
     }
 }

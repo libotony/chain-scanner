@@ -19,7 +19,7 @@ createConnection().then(async (conn) => {
     }>((resolve, reject) => {
         conn.manager.transaction('SERIALIZABLE', async manager => {
             const h = (await persist.getHead(manager))!
-            const b = (await getBlockByNumber(h))!
+            const b = (await getBlockByNumber(h, manager))!
             const cnts = await manager
                 .getRepository(Counts)
                 .find({type: In([TypeVETCount, TypeEnergyCount])})
