@@ -288,7 +288,7 @@ export class DualToken extends Processor {
                 await this.persist.removeCounts(accCreated, manager)
             }
             if (accounts.size) await this.persist.saveAccounts([...accounts.values()], manager)
-            if(vCNTs.size || eCNTs.size) await this.persist.saveCounts([...vCNTs.values(), ...eCNTs.values()], manager)
+            if(vCNTs.size || eCNTs.size) await saveCounts([...vCNTs.values(), ...eCNTs.values()], manager)
             await this.persist.removeMovements(toRevert, manager)
             await removeSnapshot(toRevert, this.snapType, manager)
             await this.saveHead(headNum, manager)
