@@ -67,8 +67,9 @@ export class BlockProcessor {
         this.suicided.add(addr)
     }
 
-    public async master(addr: string, master: string, caller: string) {
-        await this.account(addr)
+    public async master(addr: string, newMaster: string, caller: string) {
+        const master = newMaster === ZeroAddress ? null : newMaster
+        const acc = await this.account(addr)
 
         this.updateMaster.set(addr, { master, caller })
         this.updateCode.add(addr)
