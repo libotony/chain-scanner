@@ -1,4 +1,4 @@
-import { SnapType, MoveType } from '../../explorer-db/types'
+import { SnapType, MoveType, CountType } from '../../explorer-db/types'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
 import { insertSnapshot, listRecentSnapshot, clearSnapShot, removeSnapshot } from '../../service/snapshot'
@@ -6,11 +6,80 @@ import { EntityManager, getConnection } from 'typeorm'
 import { Processor } from '../processor'
 import * as logger from '../../logger'
 import { blockIDtoNum } from '../../utils'
-import { REVERSIBLE_WINDOW }from '../../config'
+import { REVERSIBLE_WINDOW } from '../../config'
 import { Block } from '../../explorer-db/entity/block'
 import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
 import { AggregatedTransaction } from '../../explorer-db/entity/aggregated-tx'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
+import { Counts } from '../../explorer-db/entity/counts'
+import { saveCounts } from '../../service/counts'
+
+const JobCountType = CountType.TX
+const JobSnapType = SnapType.ExpandTX
+
+interface SnapCount {
+    address: string|null
+    in: number
+    out: number
+    self: number
+}
+
+class BlockProcessor {
+    private cnt = new Map<string|null, Counts>()
+    private snap = new Map<string|null, SnapCount>()
+
+    constructor(
+        readonly block: Block,
+        readonly manager: EntityManager
+    ) { }
+
+    async count(addr: string|null) {
+        if (this.cnt.has(addr)) {
+            return this.cnt.get(addr)!
+        }
+
+        let count: Counts | null = null
+        const loaded = await this.manager
+            .getRepository(Counts)
+            .findOne({ address: addr, type: JobCountType })
+
+        if (loaded) {
+            count = loaded
+        } else {
+            count = this.manager.create(Counts, {
+                address: addr,
+                type: JobCountType,
+                in: 0,
+                out: 0,
+                self: 0
+            })
+        }
+
+        this.cnt.set(addr, count)
+        this.takeSnap(count)
+        return count
+    }
+
+    takeSnap(cnt: Counts) {
+        this.snap.set(cnt.address, { address: cnt.address, in: cnt.in, out: cnt.out, self: cnt.self })
+    }
+
+    counts() {
+        return [...this.cnt.values()]
+    }
+
+    snapshot() {
+        const snapshot = new Snapshot()
+        snapshot.blockID = this.block.id
+        snapshot.type = JobSnapType
+        snapshot.data = null
+
+        if (this.snap.size) {
+            snapshot.data = [...this.snap.values()]
+        }
+        return snapshot
+    }
+}
 
 export class ExpandTX extends Processor {
     private persist: Persist
@@ -20,7 +89,7 @@ export class ExpandTX extends Processor {
     ) {
         super()
         this.persist = new Persist()
-     }
+    }
 
     protected loadHead(manager?: EntityManager) {
         return this.persist.getHead(manager)
@@ -36,13 +105,14 @@ export class ExpandTX extends Processor {
     }
 
     protected get snapType() {
-        return SnapType.ExpandTX
+        return JobSnapType
     }
 
     /**
      * @return inserted column number
      */
     protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, saveSnapshot = false) {
+        const proc = new BlockProcessor(block, manager)
         const aggregated: AggregatedTransaction[] = []
         for (const [_, meta] of txs.entries()) {
             const rec = new Set<string | null>()
@@ -57,6 +127,8 @@ export class ExpandTX extends Processor {
                             blockID: block.id,
                             seq: { ...meta.seq }
                         }))
+                        const cnt = await proc.count(c.to)
+                        cnt.in++
                     }
                     rec.add(c.to)
                 }
@@ -67,18 +139,15 @@ export class ExpandTX extends Processor {
                 type: rec.has(meta.transaction.origin) ? MoveType.Self : MoveType.Out,
                 txID: meta.txID,
                 blockID: block.id,
-                seq: {...meta.seq}
+                seq: { ...meta.seq }
             }))
-
+            const cnt = await proc.count(meta.transaction.origin)
+            rec.has(meta.transaction.origin) ? cnt.self++ : cnt.out++
         }
         await this.persist.saveTXs(aggregated, manager)
+        await saveCounts(proc.counts(), manager)
         if (saveSnapshot) {
-            const snapshot = new Snapshot()
-            snapshot.blockID = block.id
-            snapshot.type = this.snapType
-            snapshot.data = null
-
-            await insertSnapshot(snapshot, manager)
+            await insertSnapshot(proc.snapshot(), manager)
         }
 
         return aggregated.length
@@ -105,7 +174,25 @@ export class ExpandTX extends Processor {
                 const toRevert = snapshots.map(x => x.blockID)
 
                 await getConnection().transaction(async (manager) => {
+                    const counts = new Map<string|null, Counts>()
+                    for (; snapshots.length;) {
+                        const snap = snapshots.pop()!
+                        if (snap.data) {
+                            for (const c of snap.data as SnapCount[]) {
+                                const cnt = manager.create(Counts, {
+                                    address: c.address,
+                                    type: JobCountType,
+                                    in: c.in,
+                                    out: c.out,
+                                    self: c.self
+                                })
+                                counts.set(c.address, cnt)
+                            }
+                        }
+                    }
+
                     await this.persist.removeTXs(toRevert, manager)
+                    if (counts.size) await saveCounts([...counts.values()], manager)
                     await this.saveHead(headNum, manager)
                     await removeSnapshot(toRevert, this.snapType, manager)
                     logger.log('-> revert to head: ' + headNum)
