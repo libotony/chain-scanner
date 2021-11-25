@@ -42,11 +42,11 @@ createConnection().then(async (conn) => {
         if (cnt.type === TypeVETCount) {
             c1  = await getConnection()
                 .getRepository(AggregatedMovement)
-                .count({ participant: cnt.address, asset: AssetType.VET })
+                .count({ participant: cnt.address as string, asset: AssetType.VET })
         } else {
             c1  = await getConnection()
                 .getRepository(AggregatedMovement)
-                .count({ participant: cnt.address, asset: AssetType.VTHO })
+                .count({ participant: cnt.address as string, asset: AssetType.VTHO })
         }
         const c2 = cnt.in + cnt.out + cnt.self
         

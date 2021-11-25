@@ -157,7 +157,7 @@ export class BlockProcessor {
         }
 
         for (const [_, cnt] of this.cnt.entries()) {
-            const snap = this.snap.get(cnt.address)!
+            const snap = this.snap.get(cnt.address as string)!
             if (!compare(cnt, cnt.type === TypeVETCount ? snap.vetCount : snap.energyCount)) {
                 cnts.push(cnt)
             }
