@@ -1,6 +1,6 @@
 import * as LRU from 'lru-cache'
 import { EntityManager, getConnection } from 'typeorm'
-import { SnapType, AuthEvent } from '../../explorer-db/types'
+import { SnapType, AuthEvent, CountType } from '../../explorer-db/types'
 import { Authority } from '../../explorer-db/entity/authority'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { AuthorityEvent } from '../../explorer-db/entity/authority-event'
@@ -16,6 +16,8 @@ import { Processor } from '../processor'
 import { Persist } from './persist'
 import { ListAll, ListInactive } from './auth-utils'
 
+const JobSnapType = SnapType.Authority
+
 interface SnapAuthority {
     address: string,
     reward: string,
@@ -25,7 +27,7 @@ interface SnapAuthority {
 export class MasterNodeWatcher extends Processor {
 
     protected get snapType() {
-        return SnapType.Authority
+        return JobSnapType
     }
     private persist: Persist
     private paramsCache = new LRU<string, BigInt>(1024)

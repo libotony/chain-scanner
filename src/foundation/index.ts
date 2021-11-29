@@ -321,7 +321,7 @@ export class Foundation {
                                         }
                                     }
                                 } catch (e) {
-                                    logger.error(`failed to re-organize logs(${tx.id}),err: ${e.toString()}`)
+                                    logger.error(`failed to re-organize logs(${tx.id}),err: ${(e as Error).toString()}`)
                                     let logIndex = 0
                                     output.transfers = []
                                     output.events = []

@@ -15,7 +15,6 @@ Promise.resolve().then(async () => {
 
     await conn.getRepository(Authority).clear()
     await conn.getRepository(AuthorityEvent).clear()
-    await conn.getRepository(Counts).delete({type: CountType.Signed})
     await conn.getRepository(Snapshot).delete({type: SnapType.Authority})
     await conn.getRepository(Config).delete({ key: 'authority-head'})
 }).then(() => {

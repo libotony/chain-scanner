@@ -42,7 +42,7 @@ export abstract class Processor {
         manager: EntityManager,
         saveSnapshot?: boolean
     ): Promise<number>
-    protected abstract async latestTrunkCheck(): Promise<void>
+    protected abstract latestTrunkCheck(): Promise<void>
 
     protected async getHead() {
         if (this.head !== null) {
