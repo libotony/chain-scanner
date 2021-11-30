@@ -43,7 +43,7 @@ export class DualToken extends Processor {
     protected get snapType() {
         return SnapType.DualToken
     }
-
+    
     /**
      * @return inserted column number
      */

@@ -1,4 +1,4 @@
-import { getConnection, EntityManager, } from 'typeorm'
+import { getConnection, EntityManager, MoreThanOrEqual, Equal, Not, } from 'typeorm'
 import { Block } from '../explorer-db/entity/block'
 import { TransactionMeta } from '../explorer-db/entity/tx-meta'
 
@@ -11,7 +11,7 @@ export const getBest = (manager?: EntityManager) => {
         .getRepository(Block)
         .findOne({
             where: { isTrunk: true },
-            order: {id: 'DESC'}
+            order: { id: 'DESC' }
         }) as Promise<Block>
 }
 
@@ -22,7 +22,7 @@ export const getBlockByID = (blockID: string, manager?: EntityManager) => {
 
     return manager
         .getRepository(Block)
-        .findOne({id: blockID})
+        .findOne({ id: blockID })
 }
 
 export const getBlockByNumber = (num: number, manager?: EntityManager) => {
@@ -32,7 +32,7 @@ export const getBlockByNumber = (num: number, manager?: EntityManager) => {
 
     return manager
         .getRepository(Block)
-        .findOne({number: num, isTrunk: true})
+        .findOne({ number: num, isTrunk: true })
 }
 
 export const getExpandedBlockByNumber = async (num: number, manager?: EntityManager) => {
@@ -45,7 +45,7 @@ export const getExpandedBlockByNumber = async (num: number, manager?: EntityMana
         .findOne({ number: num, isTrunk: true })
 
     if (!block) {
-        return {block, txs: [] } as {block: Block|undefined, txs: TransactionMeta[]}
+        return { block, txs: [] } as { block: Block | undefined, txs: TransactionMeta[] }
     }
 
     const txs = await manager
@@ -53,10 +53,35 @@ export const getExpandedBlockByNumber = async (num: number, manager?: EntityMana
         .find({
             where: { blockID: block.id },
             order: { seq: 'ASC' },
-            relations: [ 'transaction' ]
+            relations: ['transaction']
         })
 
-    return {block, txs}
+    return { block, txs }
+}
+
+// get a none-empty block from (number)[start,infinite) 
+export const getNextExpandedBlock = async (start: number, manager?: EntityManager) => {
+    if (!manager) {
+        manager = getConnection().manager
+    }
+
+    const block = await manager
+        .getRepository(Block)
+        .findOne({ number: MoreThanOrEqual(start), isTrunk: true, txCount: Not(0) })
+
+    if (!block) {
+        return { block, txs: [] } as { block: Block | undefined, txs: TransactionMeta[] }
+    }
+
+    const txs = await manager
+        .getRepository(TransactionMeta)
+        .find({
+            where: { blockID: block.id },
+            order: { seq: 'ASC' },
+            relations: ['transaction']
+        })
+
+    return { block, txs }
 }
 
 export const getExpandedBlockByID = async (id: string, manager?: EntityManager) => {
@@ -69,7 +94,7 @@ export const getExpandedBlockByID = async (id: string, manager?: EntityManager) 
         .findOne({ id })
 
     if (!block) {
-        return {block , txs: []} as {block: Block|undefined, txs: TransactionMeta[]}
+        return { block, txs: [] } as { block: Block | undefined, txs: TransactionMeta[] }
     }
 
     const txs = await manager
@@ -77,8 +102,8 @@ export const getExpandedBlockByID = async (id: string, manager?: EntityManager) 
         .find({
             where: { blockID: block.id },
             order: { seq: 'ASC' },
-            relations: [ 'transaction' ]
+            relations: ['transaction']
         })
 
-    return {block, txs}
+    return { block, txs }
 }

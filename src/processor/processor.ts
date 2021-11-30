@@ -1,13 +1,14 @@
 import { EntityManager, getConnection } from 'typeorm'
 import { sleep } from '../utils'
 import { REVERSIBLE_WINDOW } from '../config'
-import { InterruptedError, WaitNextTickError }  from '../error'
+import { InterruptedError, WaitNextTickError } from '../error'
 import { EventEmitter } from 'events'
-import { getBest, getExpandedBlockByNumber } from '../service/block'
+import { getBest, getExpandedBlockByNumber, getNextExpandedBlock } from '../service/block'
 import { SnapType } from '../explorer-db/types'
 import * as logger from '../logger'
 import { Block } from '../explorer-db/entity/block'
 import { TransactionMeta } from '../explorer-db/entity/tx-meta'
+import { Reporter } from '../reporter'
 
 const SAMPLING_INTERVAL = 1 * 1000
 
@@ -33,8 +34,8 @@ export abstract class Processor {
         })
     }
 
-    protected abstract loadHead(manager?: EntityManager): Promise<number|null>
-    protected abstract saveHead(head: number,  manager?: EntityManager): Promise<void>
+    protected abstract loadHead(manager?: EntityManager): Promise<number | null>
+    protected abstract saveHead(head: number, manager?: EntityManager): Promise<void>
     protected abstract bornAt(): Promise<number>
     protected abstract processBlock(
         block: Block,
@@ -57,8 +58,12 @@ export abstract class Processor {
         return
     }
 
-    protected enoughToWrite(count: number) {
+    protected needFlush(count: number) {
         return !!count
+    }
+
+    protected get skipEmptyBlock() {
+        return false
     }
 
     private async beforeStart() {
@@ -95,7 +100,7 @@ export abstract class Processor {
                 const timeLogger = logger.taskTime(new Date())
                 await getConnection().transaction(async (manager) => {
                     for (let i = head + 1; i <= best.number; i++) {
-                        const {block, txs} = await getExpandedBlockByNumber(i, manager)
+                        const { block, txs } = await getExpandedBlockByNumber(i, manager)
                         await this.processBlock(block!, txs, manager, true)
                     }
                     await this.saveHead(best.number, manager)
@@ -119,40 +124,50 @@ export abstract class Processor {
 
     private async fastForward(target: number) {
         const head = await this.getHead()
+        const reporter = new Reporter()
+        let column: number
 
-        let startNum = head + 1
-        console.time('time')
-        let count = 0
-        for (let i = head + 1 ; i <= target;) {
+        for (let i = head; i <= target;) {
+            column = 0
             await getConnection().transaction(async (manager) => {
                 for (; i <= target;) {
-                    if (this.shutdown) {
-                        throw new InterruptedError()
-                    }
-                    const {block, txs} = await getExpandedBlockByNumber(i++, manager)
-                    count += await this.processBlock(block!, txs, manager)
-
-                    if (i === target + 1) {
-                        await this.saveHead(i - 1, manager)
-                        process.stdout.write(`imported blocks(${i - startNum}) at block(${i - 1}) `)
-                        console.timeEnd('time')
-                        break
-                    }
-
-                    if (this.enoughToWrite(count)) {
-                        await this.saveHead(i - 1, manager)
-                        count = 0
-                        if ((i - startNum) >= 1000) {
-                            process.stdout.write(`imported blocks(${i - startNum}) at block(${i - 1}) `)
-                            console.timeEnd('time')
-                            console.time('time')
-                            startNum = i
+                    i+=1
+                    if (this.skipEmptyBlock) {
+                        const { block, txs } = await getNextExpandedBlock(i, manager)
+                        if (block) {
+                            if (block.number > target) {
+                                i = target
+                            } else {
+                                column += await this.processBlock(block!, txs, manager)
+                                i = block.number
+                            }
                         }
+                        // if next block not found due to missing in database,then we are done :< 
+                    } else {
+                        const { block, txs } = await getNextExpandedBlock(i, manager)
+                        if (!block) {
+                            throw new Error(`block(${i} missing in database)`)
+                        }
+                        column += await this.processBlock(block!, txs, manager)
+                    }
+                    reporter.update(i)
+
+                    if (this.needFlush(column) || i >= target || this.shutdown) {
+                        await this.saveHead(i, manager)
                         break
                     }
                 }
             })
-            this.head = i - 1
+
+            if (i >= target || this.shutdown || reporter.processed >= 1000) {
+                process.stdout.write(reporter.log())
+            }
+
+            if (this.shutdown) {
+                throw new InterruptedError()
+            }
+
+            this.head = i
         }
     }
 }

@@ -52,7 +52,7 @@ export class MasterNodeWatcher extends Processor {
         return Promise.resolve(1)
     }
 
-    protected enoughToWrite(count: number) {
+    protected needFlush(count: number) {
         return count >= 50
     }
 

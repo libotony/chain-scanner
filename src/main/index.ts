@@ -10,6 +10,7 @@ import { Net } from '../net'
 import { getThorREST } from '../utils'
 import * as logger from '../logger'
 import { ExpandTX } from '../processor/expand-tx'
+import { Noop } from '../processor/noop'
 
 const printUsage = (msg = '') => {
     logger.error(`${msg ? msg + '\n\n' : ''}Usage: node index.js [Network][Task][...Args]
@@ -62,6 +63,9 @@ switch (process.argv[3]) {
         break
     case 'authority':
         task = new MasterNodeWatcher(thor)
+        break
+    case 'noop':
+        task = new Noop()
         break
     default:
         printUsage('invalid task name')
