@@ -144,7 +144,7 @@ export abstract class Processor {
                         }
                         // if next block not found due to missing in database,then we are done :< 
                     } else {
-                        const { block, txs } = await getNextExpandedBlock(i, manager)
+                        const { block, txs } = await getExpandedBlockByNumber(i, manager)
                         if (!block) {
                             throw new Error(`block(${i} missing in database)`)
                         }
