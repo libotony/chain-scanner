@@ -108,6 +108,10 @@ export class ExpandTX extends Processor {
         return JobSnapType
     }
 
+    protected get skipEmptyBlock() {
+        return true
+    }
+    
     /**
      * @return inserted column number
      */

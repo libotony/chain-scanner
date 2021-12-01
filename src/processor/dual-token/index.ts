@@ -44,6 +44,10 @@ export class DualToken extends Processor {
         return SnapType.DualToken
     }
     
+    protected get skipEmptyBlock() {
+        return true
+    }
+
     /**
      * @return inserted column number
      */
