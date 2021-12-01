@@ -127,10 +127,10 @@ export abstract class Processor {
         const reporter = new Reporter()
         let column: number
 
-        for (let i = head; i <= target;) {
+        for (let i = head; i < target;) {
             column = 0
             await getConnection().transaction(async (manager) => {
-                for (; i <= target;) {
+                for (; i < target;) {
                     i+=1
                     if (this.skipEmptyBlock) {
                         const { block, txs } = await getNextExpandedBlock(i, manager)
