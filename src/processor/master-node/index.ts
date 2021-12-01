@@ -53,7 +53,7 @@ export class MasterNodeWatcher extends Processor {
     }
 
     protected needFlush(count: number) {
-        return count >= 50
+        return count >= 2000
     }
 
     /**
