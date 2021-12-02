@@ -8,7 +8,6 @@ import { SnapType } from '../explorer-db/types'
 import * as logger from '../logger'
 import { Block } from '../explorer-db/entity/block'
 import { TransactionMeta } from '../explorer-db/entity/tx-meta'
-import { Reporter } from '../reporter'
 
 const SAMPLING_INTERVAL = 1 * 1000
 
@@ -97,14 +96,14 @@ export abstract class Processor {
                     await this.fastForward(best.number - REVERSIBLE_WINDOW)
                     head = await this.getHead()
                 }
-                const timeLogger = logger.taskTime(new Date())
+                const timeLogger = logger.task()
                 await getConnection().transaction(async (manager) => {
                     for (let i = head + 1; i <= best.number; i++) {
                         const { block, txs } = await getExpandedBlockByNumber(i, manager)
                         await this.processBlock(block!, txs, manager, true)
                     }
                     await this.saveHead(best.number, manager)
-                    logger.log(`-> save head: ${best.number}(${best.timestamp % 60}) ${timeLogger(new Date())}`)
+                    logger.log(`-> save head: ${best.number}(${best.timestamp % 60}), elapsed: ${timeLogger.elapsed()}`)
                 })
                 this.head = best.number
             } catch (e) {
@@ -124,11 +123,13 @@ export abstract class Processor {
 
     private async fastForward(target: number) {
         const head = await this.getHead()
-        const reporter = new Reporter()
+        const taskLogger = logger.task()
         let column: number
 
         for (let i = head; i < target;) {
             column = 0
+            taskLogger.reset()
+            taskLogger.update(i)
             await getConnection().transaction(async (manager) => {
                 for (; i < target;) {
                     i+=1
@@ -150,17 +151,17 @@ export abstract class Processor {
                         }
                         column += await this.processBlock(block!, txs, manager)
                     }
-                    reporter.update(i)
 
                     if (this.needFlush(column) || i >= target || this.shutdown) {
                         await this.saveHead(i, manager)
+                        taskLogger.update(i)
                         break
                     }
                 }
             })
 
-            if (i >= target || this.shutdown || reporter.processed >= 1000) {
-                process.stdout.write(reporter.log())
+            if (i >= target || this.shutdown || taskLogger.processed() >= 1000) {
+                logger.log(`imported blocks(${taskLogger.processed()}) at Block(${i}), time: ${taskLogger.elapsed()}`)
             }
 
             if (this.shutdown) {

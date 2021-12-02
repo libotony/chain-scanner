@@ -145,11 +145,11 @@ export class Foundation {
                 }
 
                 if (best.parentID === head) {
-                    const timeLogger = logger.taskTime(new Date())
+                    const timeLogger = logger.task()
                     await getConnection().transaction(async (manager) => {
                         await this.block(best).process(manager)
                         await this.persist.saveHead(best.id, manager)
-                        logger.log(`-> save head: ${displayID(best.id)}(${best.timestamp % 60}) ${timeLogger(new Date())}`)
+                        logger.log(`-> save head: ${displayID(best.id)}(${best.timestamp % 60}), elapsed: ${timeLogger.elapsed()}`)
                     })
                     this.head = best.id
                 } else {
