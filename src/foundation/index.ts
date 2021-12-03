@@ -410,42 +410,38 @@ export class Foundation {
             }
         }
     }
-
+    
     private async fastForward(target: number) {
         const head = await this.getHead()
         const headNum = head ? blockIDtoNum(head) : -1
+        const taskLogger = logger.task()
 
-        let count = 0
+        let column = 0
         let b: Thor.ExpandedBlock
 
-        for (let i = headNum + 1; i <= target;) {
-            const startNum = i
-            console.time('time')
+        for (let i = headNum; i <= target;) {
+            column = 0
+            taskLogger.reset()
+            taskLogger.update(i)
             await getConnection().transaction(async (manager) => {
                 for (; i <= target;) {
-                    if (this.shutdown) {
-                        throw new InterruptedError()
-                    }
-                    b = (await this.getBlockFromREST(i++))!
-                    count += await this.block(b).process(manager)
+                    i += 1
+                    b = (await this.getBlockFromREST(i))!
+                    column += await this.block(b).process(manager)
 
-                    if (count >= 3000) {
+                    if (column >= 3000 || i >= target || this.shutdown) {
                         await this.persist.saveHead(b.id, manager)
-                        process.stdout.write(`imported blocks(${i - startNum}) at block(${displayID(b.id)}) `)
-                        console.timeEnd('time')
-                        count = 0
-                        break
-                    }
-
-                    if (i === target + 1) {
-                        await this.persist.saveHead(b.id, manager)
-                        process.stdout.write(`imported blocks(${i - startNum}) at block(${displayID(b.id)}) `)
-                        console.timeEnd('time')
+                        taskLogger.update(i)
                         break
                     }
                 }
             })
+            logger.log(`imported blocks(${taskLogger.processed()}) at block(${displayID(b!.id)}), time: ${taskLogger.elapsed()}`)
             this.head = b!.id
+
+            if (this.shutdown) {
+                throw new InterruptedError()
+            }
         }
     }
 
