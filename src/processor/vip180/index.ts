@@ -1,10 +1,10 @@
-import { SnapType, AssetType, MoveType } from '../../explorer-db/types'
+import { SnapType, AssetType, MoveType, CountType } from '../../explorer-db/types'
 import { AssetMovement } from '../../explorer-db/entity/movement'
 import { displayID, blockIDtoNum } from '../../utils'
 import { REVERSIBLE_WINDOW } from '../../config'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
-import { TransferEvent, ZeroAddress, Token, prototype  } from '../../const'
+import { TransferEvent, ZeroAddress, Token, prototype } from '../../const'
 import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { EntityManager, getConnection } from 'typeorm'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
@@ -15,23 +15,127 @@ import * as logger from '../../logger'
 import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
 import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
 import { Block } from '../../explorer-db/entity/block'
+import { Counts } from '../../explorer-db/entity/counts'
+import { saveCounts } from '../../service/counts'
 
 interface SnapAccount {
     address: string
-    type: AssetType
     balance: string
+    in: number
+    out: number
+    self: number
+}
+
+class BlockProcessor {
+    private acc = new Map<string, TokenBalance>()
+    private snap = new Map<string, SnapAccount>()
+    private cnt = new Map<string, Counts>()
+
+    constructor(
+        readonly asset: AssetType,
+        readonly persist: Persist,
+        readonly block: Block,
+        readonly manager: EntityManager
+    ) { }
+
+    async account(addr: string) {
+        if (this.acc.has(addr)) {
+            return { account: this.acc.get(addr)!, count: this.cnt.get(addr)! }
+        }
+
+        let acc = await this.persist.getAccount(addr, this.manager)
+        if (!acc) {
+            acc = this.manager.create(TokenBalance, {
+                address: addr,
+                type: this.asset,
+                balance: BigInt(0)
+            })
+        }
+
+        let cnt = await this.persist.getCount(addr, this.manager)
+        if (!cnt) {
+            cnt = this.manager.create(Counts, {
+                address: addr,
+                type: CountType.Transfer + this.asset,
+                out: 0,
+                in: 0,
+                self:0
+            })
+        }
+
+        this.acc.set(acc.address, acc)
+        this.cnt.set(acc.address, cnt)
+        this.takeSnap(acc, cnt)
+        return { account: acc, count: cnt }
+    }
+
+    takeSnap(acc: TokenBalance, cnt: Counts) {
+        this.snap.set(acc.address, { address: acc.address, balance: acc.balance.toString(10), in: cnt.in, out: cnt.out, self: cnt.self })
+    }
+
+    counts() {
+        // returns true if are the same
+        const compareCNT = (cnt: Counts, snap: SnapAccount) => {
+            if (cnt.in === snap.in && cnt.out === snap.out && cnt.self === cnt.self) {
+                return true
+            }
+            return false
+        }
+
+        for (const [addr, cnt] of this.cnt) {
+            // remove unchanged counts
+            if (compareCNT(cnt, this.snap.get(addr)!)) {
+                this.cnt.delete(addr)
+            }
+        }
+
+        return [...this.cnt.values()]
+    }
+
+    accounts() {
+        // returns true if are the same
+        const compareAccount = (acc: TokenBalance, snap: SnapAccount) => {
+            if (acc.balance === BigInt(snap.balance)) {
+                return true
+            }
+            return false
+        }
+
+        for (const [addr, acc] of this.acc) {
+            // remove unchanged accounts
+            if (compareAccount(acc, this.snap.get(addr)!)) {
+                this.acc.delete(addr)
+            }
+        }
+
+        return [...this.acc.values()]
+    }
+
+    snapshot() {
+        const snapshot = new Snapshot()
+        snapshot.blockID = this.block.id
+        snapshot.type = SnapType.VIP180Token + this.asset
+        snapshot.data = null
+
+        if (this.snap.size) {
+            snapshot.data = [...this.snap.values()]
+        }
+        return snapshot
+    }
 }
 
 export class VIP180Transfer extends Processor {
     private persist: Persist
+    private asset: AssetType
 
     constructor(
         readonly thor: Thor,
-        readonly token:  Token,
+        readonly token: Token,
     ) {
         super()
         this.persist = new Persist(token)
-     }
+        this.asset = AssetType[this.token.symbol as keyof typeof AssetType]
+    }
 
     protected loadHead(manager?: EntityManager) {
         return this.persist.getHead(manager)
@@ -44,9 +148,9 @@ export class VIP180Transfer extends Processor {
 
     protected async bornAt() {
         const events = await this.thor.filterEventLogs({
-            range: {unit: 'block', from: 0, to: Number.MAX_SAFE_INTEGER },
-            options: {offset: 0, limit: 1},
-            criteriaSet: [{address: this.token.address, topic0: prototype.$Master.signature}],
+            range: { unit: 'block', from: 0, to: Number.MAX_SAFE_INTEGER },
+            options: { offset: 0, limit: 1 },
+            criteriaSet: [{ address: this.token.address, topic0: prototype.$Master.signature }],
             order: 'asc'
         })
         if (events.length) {
@@ -57,38 +161,14 @@ export class VIP180Transfer extends Processor {
     }
 
     protected get snapType() {
-        return SnapType.VIP180Token + AssetType[this.token.symbol as keyof typeof AssetType]
+        return SnapType.VIP180Token + this.asset
     }
-
     /**
      * @return inserted column number
      */
     protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, saveSnapshot = false) {
+        const proc = new BlockProcessor(this.asset, this.persist, block, manager)
         const movements: AssetMovement[] = []
-        const acc = new Map<string, TokenBalance>()
-        const snap = new Map<string, SnapAccount>()
-
-        const account = async (addr: string) => {
-            if (acc.has(addr)) {
-                return acc.get(addr)!
-            }
-            const dbAcc = await this.persist.getAccount(addr, manager)
-
-            if (dbAcc) {
-                acc.set(addr, dbAcc)
-                snap.set(addr, {...dbAcc, balance: dbAcc.balance.toString(10)})
-                return dbAcc
-            } else {
-                const newAcc = manager.create(TokenBalance, {
-                    address: addr,
-                    type: AssetType[this.token.symbol as keyof typeof AssetType],
-                    balance: BigInt(0)
-                })
-                acc.set(addr, newAcc)
-                snap.set(addr, {...newAcc, balance: newAcc.balance.toString(10)})
-                return newAcc
-            }
-        }
 
         const attachAggregated = (transfer: AssetMovement) => {
             if (transfer.sender === transfer.recipient) {
@@ -144,7 +224,7 @@ export class VIP180Transfer extends Processor {
                             amount: BigInt(decoded._value),
                             txID: meta.txID,
                             blockID: block.id,
-                            asset: AssetType[this.token.symbol as keyof typeof AssetType],
+                            asset: this.asset,
                             moveIndex: {
                                 txIndex: meta.seq.txIndex,
                                 clauseIndex,
@@ -156,17 +236,24 @@ export class VIP180Transfer extends Processor {
 
                         logger.log(`Account(${movement.sender}) -> Account(${movement.recipient}): ${movement.amount} ${this.token.symbol}`)
                         // Transfer from address(0) considered to be mint token
+                        const { account: senderAcc, count: senderCnt } = await proc.account(movement.sender)
                         if (movement.sender !== ZeroAddress) {
-                            const senderAcc = await account(movement.sender)
                             senderAcc.balance = senderAcc.balance - movement.amount
                             if (senderAcc.balance < 0) {
                                 throw new Error(`Fatal: ${this.token.symbol} balance under 0 of Account(${movement.sender}) at Block(${displayID(block.id)})`)
                             }
                         }
 
+                        const { account: recipientAcc, count: recipientCnt } = await proc.account(movement.recipient)
                         if (this.token.burnOnZero !== true || movement.recipient !== ZeroAddress) {
-                            const recipientAcc = await account(movement.recipient)
                             recipientAcc.balance = recipientAcc.balance + movement.amount
+                        }
+
+                        if (movement.sender === movement.recipient) {
+                            senderCnt.self++
+                        } else {
+                            senderCnt.out++
+                            recipientCnt.in++
                         }
                     }
                 }
@@ -177,32 +264,21 @@ export class VIP180Transfer extends Processor {
             await this.persist.saveMovements(movements, manager)
         }
 
-        if (acc.size) {
-            const x: TokenBalance[] = []
-            for (const [_, a] of acc.entries()) {
-                x.push(a)
-            }
-            await this.persist.saveAccounts(x, manager)
+        const accounts = proc.accounts()
+        if (accounts.length) {
+            await this.persist.saveAccounts(accounts, manager)
+        }
+
+        const counts = proc.counts()
+        if (counts.length) {
+            await saveCounts(counts, manager)
         }
 
         if (saveSnapshot) {
-            const snapshot = new Snapshot()
-            snapshot.blockID = block.id
-            snapshot.type = this.snapType
-
-            if (!snap.size) {
-                snapshot.data = null
-            } else {
-                const data: object[] = []
-                for (const [_, s] of snap.entries()) {
-                    data.push(s)
-                }
-                snapshot.data = data
-            }
-            await insertSnapshot(snapshot, manager)
+            await insertSnapshot(proc.snapshot(), manager)
         }
 
-        return movements.length + acc.size
+        return movements.length + accounts.length + counts.length
     }
 
     protected async latestTrunkCheck() {
@@ -228,6 +304,7 @@ export class VIP180Transfer extends Processor {
 
                 await getConnection().transaction(async (manager) => {
                     const accounts = new Map<string, TokenBalance>()
+                    const counts = new Map<string, Counts>()
 
                     for (; snapshots.length;) {
                         const snap = snapshots.pop()!
@@ -236,20 +313,27 @@ export class VIP180Transfer extends Processor {
                                 const acc = manager.create(TokenBalance, {
                                     address: snapAcc.address,
                                     balance: BigInt(snapAcc.balance),
-                                    type: snapAcc.type,
+                                    type: this.asset
+                                })
+                                const cnt = manager.create(Counts, {
+                                    address: snapAcc.address,
+                                    type: CountType.Transfer+this.asset,
+                                    in: snapAcc.in,
+                                    out: snapAcc.out,
+                                    self: snapAcc.self
                                 })
                                 accounts.set(snapAcc.address, acc)
+                                counts.set(snapAcc.address, cnt)
                             }
                         }
                     }
 
-                    const toSave: TokenBalance[] = []
                     for (const [_, acc] of accounts.entries()) {
-                        toSave.push(acc)
                         logger.log(`Account(${acc.address})'s Token(${this.token.symbol}) reverted to ${acc.balance} at Block(${displayID(headID)})`)
                     }
 
-                    await this.persist.saveAccounts(toSave, manager)
+                    if (accounts.size) await this.persist.saveAccounts([...accounts.values()], manager)
+                    if (counts.size) await saveCounts([...counts.values()], manager)
                     await this.persist.removeMovements(toRevert, manager)
                     await removeSnapshot(toRevert, this.snapType, manager)
                     await this.saveHead(headNum, manager)
@@ -273,7 +357,7 @@ export class VIP180Transfer extends Processor {
                         balances.push(manager.create(TokenBalance, {
                             address: addr,
                             balance: BigInt(this.token.genesis[addr]),
-                            type: AssetType[this.token.symbol as keyof typeof AssetType]
+                            type: this.asset
                         }))
                     }
                 }

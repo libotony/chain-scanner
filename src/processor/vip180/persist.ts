@@ -2,19 +2,25 @@
 import { EntityManager, getConnection, In } from 'typeorm'
 import { Config } from '../../explorer-db/entity/config'
 import { AssetMovement } from '../../explorer-db/entity/movement'
-import { AssetType } from '../../explorer-db/types'
+import { AssetType, CountType } from '../../explorer-db/types'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { Token } from '../../const'
+import { Counts } from '../../explorer-db/entity/counts'
 
 export type RecentSnapshot = Snapshot & { isTrunk: boolean }
 
 export class Persist {
+    private asset: AssetType
+
+    constructor(readonly token: Token) {
+        this.asset = AssetType[this.token.symbol as keyof typeof AssetType]
+    }
+
     private get HEAD_KEY() {
         return `token-${this.token.symbol}-head`
     }
 
-    constructor(readonly token: Token) {}
 
     public saveHead(val: number, manager?: EntityManager) {
         if (!manager) {
@@ -50,7 +56,17 @@ export class Persist {
 
         return manager
             .getRepository(TokenBalance)
-            .findOne({ address: addr, type: AssetType[this.token.symbol as keyof typeof AssetType] })
+            .findOne({ address: addr, type: this.asset })
+    }
+
+    public getCount(addr: string, manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager
+            .getRepository(Counts)
+            .findOne({ address: addr, type: CountType.Transfer + this.asset })
     }
 
     public saveMovements(movements: AssetMovement[], manager?: EntityManager) {
@@ -78,7 +94,7 @@ export class Persist {
             .getRepository(AssetMovement)
             .delete({
                 blockID: In([...ids]),
-                asset: AssetType[this.token.symbol as keyof typeof AssetType]
+                asset: this.asset
             })
     }
 
