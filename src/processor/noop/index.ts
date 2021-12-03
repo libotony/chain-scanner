@@ -28,12 +28,16 @@ export class Noop extends Processor {
     }
 
     protected get snapType() {
-        return 4 as SnapType
+        return 99 as SnapType
     }
 
 
     protected get skipEmptyBlock() {
         return true
+    }
+
+    protected needFlush(count:number) {
+        return count>= 2000
     }
 
     /**

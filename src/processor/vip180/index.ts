@@ -163,6 +163,11 @@ export class VIP180Transfer extends Processor {
     protected get snapType() {
         return SnapType.VIP180Token + this.asset
     }
+
+    protected needFlush(count:number) {
+        return count>= 2000
+    }
+    
     /**
      * @return inserted column number
      */

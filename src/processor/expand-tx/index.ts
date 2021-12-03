@@ -111,6 +111,10 @@ export class ExpandTX extends Processor {
     protected get skipEmptyBlock() {
         return true
     }
+
+    protected needFlush(count:number) {
+        return count>= 2000
+    }
     
     /**
      * @return inserted column number
