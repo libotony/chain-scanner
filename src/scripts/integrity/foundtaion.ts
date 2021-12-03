@@ -5,13 +5,18 @@ import { displayID, blockIDtoNum, getThorREST } from '../../utils'
 import { Thor } from '../../thor-rest'
 import { Net } from '../../net'
 import { getNetwork, checkNetworkWithDB } from '../network'
-import { getExpandedBlockByID } from '../../service/block'
+import { getBlockByID, getBlockTxList } from '../../service/block'
 import { REVERSIBLE_WINDOW } from '../../config'
 
 const net = getNetwork()
 const STOP_NUMBER = 0
 const persist = new Persist()
 const thor = new Thor(new Net(getThorREST()), net)
+
+let checkTx = false
+if (process.argv[3] && process.argv[3].toLowerCase() === 'yes') {
+    checkTx = true
+}
 
 const getBlockFromREST = async (id: string) => {
     const b = await thor.getBlock(id, 'regular');
@@ -25,7 +30,7 @@ const getBlockFromREST = async (id: string) => {
 }
 
 createConnection().then(async () => {
-    // await checkNetworkWithDB(net)
+    await checkNetworkWithDB(net)
 
     const head = (await persist.getHead())!
     const headNum = blockIDtoNum(head.value)
@@ -37,37 +42,45 @@ createConnection().then(async () => {
 
     let current = head.value
     for (; ;) {
-       const { block, txs } = await getExpandedBlockByID(current)
-       if (!block) {
+        const block = await getBlockByID(current)
+        if (!block) {
             throw new Error(`Continuity failed: Block(${displayID(current)}) missing`)
         }
-       if ((block.timestamp < (new Date().getTime() / 1000 - REVERSIBLE_WINDOW * 10)) && !block.isTrunk) {
+        if ((block.timestamp < (new Date().getTime() / 1000 - REVERSIBLE_WINDOW * 10)) && !block.isTrunk) {
             throw new Error(`Block(${displayID(current)}) in branch`)
         }
-       let chainB: Thor.Block<'regular'>
-       try {
+        let chainB: Thor.Block<'regular'>
+        try {
             chainB = (await getBlockFromREST(block.id))!
         } catch {
             continue
         }
-       for (const [index, tx] of chainB.transactions.entries()) {
-            if (txs[index].txID !== tx) {
-                console.log(txs)
-                throw new Error(`Block(${displayID(current)})'s TX(#${index}) mismatch`)
+
+        if (block.txCount !== chainB.transactions.length) {
+            throw new Error(`Block(${displayID(current)})'s TX count mismatch`)
+        }
+
+        if (checkTx && block.txCount) {
+            const txs = await getBlockTxList(block.id)
+            for (const [index, tx] of chainB.transactions.entries()) {
+                if (txs[index].txID !== tx) {
+                    throw new Error(`Block(${displayID(current)})'s TX(#${index}) mismatch`)
+                }
             }
         }
-       if (block.number === STOP_NUMBER) {
+
+        if (block.number === STOP_NUMBER) {
             console.log('Finished integrity check')
             break
         }
-       if (block.number % 1000 === 0) {
+        if (block.number % 1000 === 0) {
             console.log(`Processed to Block(${displayID(block.id)})`)
         }
-       current = block.parentID
+        current = block.parentID
     }
 
     process.exit(0)
-}). catch ((e: Error) => {
+}).catch((e: Error) => {
     console.log('Integrity check: ')
     console.log(e)
     process.exit(1)

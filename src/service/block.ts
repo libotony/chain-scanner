@@ -84,26 +84,43 @@ export const getNextExpandedBlock = async (start: number, manager?: EntityManage
     return { block, txs }
 }
 
-export const getExpandedBlockByID = async (id: string, manager?: EntityManager) => {
+export const getExpandedBlockByID = async (blockID: string, manager?: EntityManager) => {
     if (!manager) {
         manager = getConnection().manager
     }
 
     const block = await manager
         .getRepository(Block)
-        .findOne({ id })
+        .findOne({ id: blockID })
 
     if (!block) {
         return { block, txs: [] } as { block: Block | undefined, txs: TransactionMeta[] }
     }
 
-    const txs = await manager
-        .getRepository(TransactionMeta)
-        .find({
-            where: { blockID: block.id },
-            order: { seq: 'ASC' },
-            relations: ['transaction']
-        })
+    let txs: TransactionMeta[] = []
+    if (block.txCount) {
+        txs = await manager
+            .getRepository(TransactionMeta)
+            .find({
+                where: { blockID: block.id },
+                order: { seq: 'ASC' },
+                relations: ['transaction']
+            })
+    }
 
     return { block, txs }
+}
+
+export const getBlockTxList = async (blockID: string, manager?: EntityManager) => {
+    if (!manager) {
+        manager = getConnection().manager
+    }
+
+    return manager
+        .getRepository(TransactionMeta)
+        .find({
+            where: { blockID },
+            order: { seq: 'ASC' },
+            select: ["txID"]
+        })
 }
