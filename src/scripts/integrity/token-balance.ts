@@ -2,18 +2,22 @@ import { createConnection } from 'typeorm'
 import { Thor } from '../../thor-rest'
 import { balanceOf, getVIP180Token } from '../../const'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
-import { AssetType } from '../../explorer-db/types'
+import { AssetType, CountType } from '../../explorer-db/types'
 import { Persist } from '../../processor/vip180/persist'
 import { Net } from '../../net'
 import { getNetwork, checkNetworkWithDB } from '../network'
 import { getThorREST } from '../../utils'
 import { getBlockByNumber } from '../../service/block'
 import { Block } from '../../explorer-db/entity/block'
+import { Counts } from '../../explorer-db/entity/counts'
+import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
 
 const net = getNetwork()
 const thor = new Thor(new Net(getThorREST()), net)
 const token = getVIP180Token(thor.genesisID, process.argv[3] || 'OCE')
 const persist = new Persist(token)
+const assetType = AssetType[token.symbol as keyof typeof AssetType]
+const countsType = CountType.Transfer + assetType
 
 createConnection().then(async (conn) => {
     await checkNetworkWithDB(net)
@@ -26,7 +30,7 @@ createConnection().then(async (conn) => {
             const accs = await manager
                 .getRepository(TokenBalance)
                 .find({
-                    where: { type: AssetType[token.symbol as keyof typeof AssetType] }
+                    where: { type:  assetType}
                 })
             const b = (await getBlockByNumber(h))!
             resolve({block: b, accounts: accs})
@@ -53,8 +57,27 @@ createConnection().then(async (conn) => {
             continue
         }
         if (acc.balance !== chainBalance) {
-            throw new Error(`Fatal: ${token.symbol} balance mismatch of Account(${acc.address}), want ${acc.balance} got ${chainBalance}`)
+            throw new Error(`Fatal: ${token.symbol} balance mismatch of Account(${acc.address}), want ${chainBalance} got ${acc.balance}`)
         }
+
+        const counts = await conn.manager
+            .getRepository(Counts)
+            .findOne({ address: acc.address, type: countsType })
+    
+        if (!counts) {
+            throw new Error(`Fatal: can not find ${token.symbol} counts of Account(${acc.address})`)
+        }
+        
+        const wanted = await conn.manager
+            .getRepository(AggregatedMovement)
+            .count({participant: acc.address, asset: assetType})
+
+        const actual = counts.in + counts.out + counts.self
+        
+        if (wanted !== actual) {
+            throw new Error(`Fatal: ${token.symbol} counts mismatch of Account(${acc.address}), want ${wanted} got ${actual}`)
+        }
+
         count++
         if (count % 1000 === 0) {
             console.log('checked ', count)
