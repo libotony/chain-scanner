@@ -6,7 +6,7 @@ import { AssetType, CountType } from '../../explorer-db/types'
 import { Persist } from '../../processor/vip180/persist'
 import { Net } from '../../net'
 import { getNetwork, checkNetworkWithDB } from '../network'
-import { getThorREST } from '../../utils'
+import { blockIDtoNum, getThorREST } from '../../utils'
 import { getBlockByNumber } from '../../service/block'
 import { Block } from '../../explorer-db/entity/block'
 import { Counts } from '../../explorer-db/entity/counts'
@@ -58,6 +58,13 @@ createConnection().then(async (conn) => {
         }
         if (acc.balance !== chainBalance) {
             throw new Error(`Fatal: ${token.symbol} balance mismatch of Account(${acc.address}), want ${chainBalance} got ${acc.balance}`)
+        }
+
+        if (count % 100 === 0) {
+            const h = (await persist.getHead(conn.manager))!
+            if (h !== blockIDtoNum(head)) {
+                throw new Error('head is moving, the job might be still running, exit!')
+            }
         }
 
         const counts = await conn.manager
