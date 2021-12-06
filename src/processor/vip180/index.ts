@@ -76,7 +76,7 @@ class BlockProcessor {
     counts() {
         // returns true if are the same
         const compareCNT = (cnt: Counts, snap: SnapAccount) => {
-            if (cnt.in === snap.in && cnt.out === snap.out && cnt.self === cnt.self) {
+            if (cnt.in === snap.in && cnt.out === snap.out && cnt.self === snap.self) {
                 return true
             }
             return false
