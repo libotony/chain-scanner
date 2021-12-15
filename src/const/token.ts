@@ -37,7 +37,8 @@ const vpu = { symbol: 'VPU', address: '', name: 'VPunks Token', decimals: 18 }
 const mvg = { symbol: 'MVG', address: '', name: 'Mad Viking Games', decimals: 18 }
 const wov = { symbol: 'WoV', address: '', name: 'WorldOfV', decimals: 18 }
 const gems = { symbol: 'GEMS', address: '', name: 'GEMS', decimals: 18 }
-const vex = {symbol: 'VEX', address: '', name:"Vexchange Token", decimals: 18}
+const vex = { symbol: 'VEX', address: '', name: 'Vexchange Token', decimals: 18 }
+const abcd = {symbol: 'ABCD', address: '', name: 'ABCC Token', decimals: 6}
 
 main.set(pla.symbol, { ...pla, address: '0x89827f7bb951fd8a56f8ef13c5bfee38522f2e1f' })
 main.set(sha.symbol, { ...sha, address: '0x5db3c8a942333f6468176a870db36eef120a34dc' })
@@ -91,6 +92,10 @@ test.set(veed.symbol, {
 test.set(mdn.symbol, { ...mdn, address: '0x4c76f2c483e0ec292c06d0a0d1440717ed0787c0' })
 test.set(mvg.symbol, { ...mvg, address: '0x6e32a40481dc95c7495b48ee81e3d388a0f0eb77' })
 test.set(gems.symbol, { ...gems, address: '0x7b12cdd6dc20bac5a7c85924e4d29f84a3bc376f' })
+test.set(abcd.symbol, {
+    ...abcd, address: '0x1f3ae201aba40089052be0291c09f1262d543744',
+    burnOnZero: true
+})
 
 export const getVIP180Token = (net: Network, symbol: string) => {
     if (net === Network.MainNet) {
