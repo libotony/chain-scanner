@@ -262,40 +262,45 @@ export class Foundation {
                     const outputs: Output[] = []
                     let vmError: VMError | null = null
                     if (tx.reverted) {
-                        for (const [clauseIndex, _] of tx.clauses.entries()) {
-                            const tracer = await this.thor.traceClause(b.id, index, clauseIndex)
-                            if (tracer.error) {
-                                vmError = {
-                                    error: tracer.error,
-                                    clauseIndex,
-                                    reason: null
-                                }
-                                if (vmError.error === 'execution reverted' && tracer.output) {
-                                    if (tracer.output.indexOf(revertReasonSelector) === 0) {
-                                        try {
-                                            const decoded = abi.decodeParameter('string', '0x' + tracer.output.slice(10))
-                                            if (decoded) {
-                                                vmError.reason = decoded
-                                            }
-                                        } catch {
-                                            logger.error(`decode Error(string) failed for tx: ${tx.id} at clause ${clauseIndex}`)
-                                        }
-                                    } else if (tracer.output.indexOf(panicErrorSelector) === 0) {
-                                        try {
-                                            const decoded = abi.decodeParameter('uint256', '0x' + tracer.output.slice(10))
-                                            if (decoded) {
-                                                vmError.reason = decoded
-                                            }
-                                        } catch {
-                                            logger.error(`decode Panic(uint256) failed for tx: ${tx.id} at clause ${clauseIndex}`)
-                                        }
-                                    } else {
-                                        logger.error(`unknown revert data format for tx: ${tx.id} at clause ${clauseIndex}`)
-                                    }
-                                }
-                                break
-                            }
+                        vmError = {
+                            error: "execution reverted",
+                            clauseIndex: -1,
+                            reason: null
                         }
+                        // for (const [clauseIndex, _] of tx.clauses.entries()) {
+                        //     const tracer = await this.thor.traceClause(b.id, index, clauseIndex)
+                        //     if (tracer.error) {
+                        //         vmError = {
+                        //             error: tracer.error,
+                        //             clauseIndex,
+                        //             reason: null
+                        //         }
+                        //         if (vmError.error === 'execution reverted' && tracer.output) {
+                        //             if (tracer.output.indexOf(revertReasonSelector) === 0) {
+                        //                 try {
+                        //                     const decoded = abi.decodeParameter('string', '0x' + tracer.output.slice(10))
+                        //                     if (decoded) {
+                        //                         vmError.reason = decoded
+                        //                     }
+                        //                 } catch {
+                        //                     logger.error(`decode Error(string) failed for tx: ${tx.id} at clause ${clauseIndex}`)
+                        //                 }
+                        //             } else if (tracer.output.indexOf(panicErrorSelector) === 0) {
+                        //                 try {
+                        //                     const decoded = abi.decodeParameter('uint256', '0x' + tracer.output.slice(10))
+                        //                     if (decoded) {
+                        //                         vmError.reason = decoded
+                        //                     }
+                        //                 } catch {
+                        //                     logger.error(`decode Panic(uint256) failed for tx: ${tx.id} at clause ${clauseIndex}`)
+                        //                 }
+                        //             } else {
+                        //                 logger.error(`unknown revert data format for tx: ${tx.id} at clause ${clauseIndex}`)
+                        //             }
+                        //         }
+                        //         break
+                        //     }
+                        // }
                     } else {
                         for (const [clauseIndex, o] of tx.outputs.entries()) {
                             const output: Output = {
