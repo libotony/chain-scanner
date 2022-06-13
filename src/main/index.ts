@@ -11,12 +11,13 @@ import { getThorREST } from '../utils'
 import * as logger from '../logger'
 import { ExpandTX } from '../processor/expand-tx'
 import { Noop } from '../processor/noop'
+import { RevertReason } from '../processor/revert'
 
 const printUsage = (msg = '') => {
     logger.error(`${msg ? msg + '\n\n' : ''}Usage: node index.js [Network][Task][...Args]
 --------
 Network:    [main|test]
-Task:       [foundation|expand-tx|dual-token|token|authority]`)
+Task:       [foundation|expand-tx|dual-token|token|authority|revert]`)
     process.exit(-1)
 }
 
@@ -63,6 +64,9 @@ switch (process.argv[3]) {
         break
     case 'authority':
         task = new MasterNodeWatcher(thor)
+        break
+    case 'revert':
+        task = new RevertReason(thor)
         break
     case 'noop':
         task = new Noop()
