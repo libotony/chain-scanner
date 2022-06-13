@@ -9,12 +9,9 @@ import * as logger from '../logger'
 import { BranchTransaction } from '../explorer-db/entity/branch-transaction'
 import { TransactionMeta } from '../explorer-db/entity/tx-meta'
 import { Output, VMError } from '../explorer-db/types'
-import { cry, abi } from 'thor-devkit'
 import { newIterator, LogItem } from './log-traverser'
 
 const SAMPLING_INTERVAL = 500
-const revertReasonSelector = '0x' + cry.keccak256('Error(string)').toString('hex').slice(0, 8)
-const panicErrorSelector = '0x' + cry.keccak256('Panic(uint256)').toString('hex').slice(0, 8)
 
 export class Foundation {
     private head: string | null = null
@@ -261,42 +258,7 @@ export class Foundation {
 
                     const outputs: Output[] = []
                     let vmError: VMError | null = null
-                    if (tx.reverted) {
-                        for (const [clauseIndex, _] of tx.clauses.entries()) {
-                            const tracer = await this.thor.traceClause(b.id, index, clauseIndex)
-                            if (tracer.error) {
-                                vmError = {
-                                    error: tracer.error,
-                                    clauseIndex,
-                                    reason: null
-                                }
-                                if (vmError.error === 'execution reverted' && tracer.output) {
-                                    if (tracer.output.indexOf(revertReasonSelector) === 0) {
-                                        try {
-                                            const decoded = abi.decodeParameter('string', '0x' + tracer.output.slice(10))
-                                            if (decoded) {
-                                                vmError.reason = decoded
-                                            }
-                                        } catch {
-                                            logger.error(`decode Error(string) failed for tx: ${tx.id} at clause ${clauseIndex}`)
-                                        }
-                                    } else if (tracer.output.indexOf(panicErrorSelector) === 0) {
-                                        try {
-                                            const decoded = abi.decodeParameter('uint256', '0x' + tracer.output.slice(10))
-                                            if (decoded) {
-                                                vmError.reason = decoded
-                                            }
-                                        } catch {
-                                            logger.error(`decode Panic(uint256) failed for tx: ${tx.id} at clause ${clauseIndex}`)
-                                        }
-                                    } else {
-                                        logger.error(`unknown revert data format for tx: ${tx.id} at clause ${clauseIndex}`)
-                                    }
-                                }
-                                break
-                            }
-                        }
-                    } else {
+                    if (!tx.reverted) {
                         for (const [clauseIndex, o] of tx.outputs.entries()) {
                             const output: Output = {
                                 contractAddress: o.contractAddress,
@@ -449,9 +411,11 @@ export class Foundation {
         const b = await this.thor.getBlock(num, 'expanded');
         // cache for the following blocks
         (async () => {
-            for (let i = 1; i <= 10; i++) {
-                await this.thor.getBlock(num + i, 'expanded')
-            }
+            if (num % 5 == 0) {
+                for (let i = 1; i <= 10; i++) {
+                    await this.thor.getBlock(num + i, 'expanded')
+                }
+            }            
         })().catch()
         return b
     }
