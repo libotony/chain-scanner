@@ -103,7 +103,7 @@ export abstract class Processor {
                         await this.processBlock(block!, txs, manager, true)
                     }
                     await this.saveHead(best.number, manager)
-                    logger.log(`-> save head: ${best.number}(${best.timestamp % 60}), elapsed: ${timeLogger.elapsed()}`)
+                    logger.log(`-> save head: ${best.number}(${best.timestamp % 60}), elapsed: ${timeLogger.elapsed}`)
                 })
                 this.head = best.number
             } catch (e) {
@@ -124,15 +124,14 @@ export abstract class Processor {
     private async fastForward(target: number) {
         const head = await this.getHead()
         const taskLogger = logger.task()
-        let column: number
+        let column: number = 0
 
         for (let i = head; i < target;) {
-            column = 0
-            taskLogger.reset()
             taskLogger.update(i)
+
             await getConnection().transaction(async (manager) => {
                 for (; i < target;) {
-                    i+=1
+                    i += 1
                     if (this.skipEmptyBlock) {
                         const { block, txs } = await getNextExpandedBlock(i, manager)
                         if (block) {
@@ -154,14 +153,16 @@ export abstract class Processor {
 
                     if (this.needFlush(column) || i >= target || this.shutdown) {
                         await this.saveHead(i, manager)
+                        column = 0
                         taskLogger.update(i)
                         break
                     }
                 }
             })
 
-            if (i >= target || this.shutdown || taskLogger.processed() >= 1000) {
-                logger.log(`imported blocks(${taskLogger.processed()}) at Block(${i}), time: ${taskLogger.elapsed()}`)
+            if (taskLogger.processed >= 1000 || taskLogger.ms > 60 * 1000 || i >= target || this.shutdown) {
+                logger.log(`imported blocks(${taskLogger.processed}) at Block(${i}), time: ${taskLogger.elapsed}`)
+                taskLogger.reset()
             }
 
             if (this.shutdown) {

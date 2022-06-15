@@ -146,7 +146,7 @@ export class Foundation {
                     await getConnection().transaction(async (manager) => {
                         await this.block(best).process(manager)
                         await this.persist.saveHead(best.id, manager)
-                        logger.log(`-> save head: ${displayID(best.id)}(${best.timestamp % 60}), elapsed: ${timeLogger.elapsed()}`)
+                        logger.log(`-> save head: ${displayID(best.id)}(${best.timestamp % 60}), elapsed: ${timeLogger.elapsed}`)
                     })
                     this.head = best.id
                 } else {
@@ -382,8 +382,6 @@ export class Foundation {
         let b: Thor.ExpandedBlock
 
         for (let i = headNum; i <= target;) {
-            column = 0
-            taskLogger.reset()
             taskLogger.update(i)
             await getConnection().transaction(async (manager) => {
                 for (; i <= target;) {
@@ -393,12 +391,15 @@ export class Foundation {
 
                     if (column >= 3000 || i >= target || this.shutdown) {
                         await this.persist.saveHead(b.id, manager)
+                        column = 0
                         taskLogger.update(i)
                         break
                     }
                 }
             })
-            logger.log(`imported blocks(${taskLogger.processed()}) at block(${displayID(b!.id)}), time: ${taskLogger.elapsed()}`)
+            logger.log(`imported blocks(${taskLogger.processed}) at block(${displayID(b!.id)}), time: ${taskLogger.elapsed}`)
+            taskLogger.reset()
+
             this.head = b!.id
 
             if (this.shutdown) {

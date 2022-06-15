@@ -28,10 +28,14 @@ export const task = () => {
             }
             obj.endBlk = blockNum
         },
-        processed() {
+        get processed() {
             return obj.endBlk - obj.startBlk
         },
-        elapsed() {
+        get ms() {
+            const ts = hrtime.bigint() - obj.ts
+            return Math.floor(Number(ts)/1e6)           
+        },
+        get elapsed() {
             const ts = hrtime.bigint() - obj.ts
             if (ts > BigInt(1e9)) {
                 return (Number(ts)/1e9).toFixed(2) +'s'
