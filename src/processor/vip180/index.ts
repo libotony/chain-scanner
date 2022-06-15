@@ -250,7 +250,8 @@ export class VIP180Transfer extends Processor {
                         }
 
                         const { account: recipientAcc, count: recipientCnt } = await proc.account(movement.recipient)
-                        if (this.token.burnOnZero !== true || movement.recipient !== ZeroAddress) {
+                        // burn on transferring to zero as default action
+                        if (movement.recipient !== ZeroAddress) {
                             recipientAcc.balance = recipientAcc.balance + movement.amount
                         }
 
