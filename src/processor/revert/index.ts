@@ -7,11 +7,10 @@ import { Block } from '../../explorer-db/entity/block'
 import { cry, abi } from 'thor-devkit'
 import { Thor } from '../../thor-rest'
 import * as logger from '../../logger'
-import { Transaction } from '../../explorer-db/entity/transaction'
 import { REVERSIBLE_WINDOW } from '../../config'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { clearSnapShot, insertSnapshot, listRecentSnapshot } from '../../service/snapshot'
-import { getExpandedBlockByID, getExpandedBlockByNumber } from '../../service/block'
+import { getExpandedBlockByNumber } from '../../service/block'
 import { blockIDtoNum } from '../../utils'
 
 const revertReasonSelector = '0x' + cry.keccak256('Error(string)').toString('hex').slice(0, 8)
