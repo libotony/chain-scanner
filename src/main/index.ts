@@ -1,4 +1,4 @@
-import { Network, getVIP180Token } from '../const'
+import { Network } from '../const'
 import { Foundation } from '../foundation'
 import { Processor } from '../processor/processor'
 import { Thor } from '../thor-rest'
@@ -12,6 +12,7 @@ import * as logger from '../logger'
 import { ExpandTX } from '../processor/expand-tx'
 import { Noop } from '../processor/noop'
 import { RevertReason } from '../processor/revert'
+import { getVIP180Token } from '../token-list'
 
 const printUsage = (msg = '') => {
     logger.error(`${msg ? msg + '\n\n' : ''}Usage: node index.js [Network][Task][...Args]
@@ -59,7 +60,7 @@ switch (process.argv[3]) {
             const token = getVIP180Token(net!, process.argv[4])
             task =  new VIP180Transfer(thor, token)
         } catch (e) {
-            printUsage(e.message)
+            printUsage((e as Error).message)
         }
         break
     case 'authority':

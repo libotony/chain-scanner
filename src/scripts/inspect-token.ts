@@ -1,8 +1,9 @@
 import { Thor } from '../thor-rest'
-import { prototype, TransferEvent, totalSupply, getVIP180Token} from '../const'
+import { prototype, TransferEvent, totalSupply } from '../const'
 import { displayID, getThorREST } from '../utils'
 import { Net } from '../net'
 import { getNetwork } from './network'
+import { getVIP180Token } from '../token-list'
 
 const net = getNetwork()
 
@@ -12,9 +13,9 @@ console.log(token);
 
 (async () => {
     let events = await thor.filterEventLogs({
-        range: {unit: 'block', from: 0, to: Number.MAX_SAFE_INTEGER },
-        options: {offset: 0, limit: 1},
-        criteriaSet: [{address: token.address, topic0: prototype.$Master.signature}],
+        range: { unit: 'block', from: 0, to: Number.MAX_SAFE_INTEGER },
+        options: { offset: 0, limit: 1 },
+        criteriaSet: [{ address: token.address, topic0: prototype.$Master.signature }],
         order: 'asc'
     })
     console.log('bornAt ', events[0].meta!.blockNumber)
@@ -29,18 +30,19 @@ console.log(token);
     }, birthNumber.toString())
     console.log('total supply:', totalSupply.decode(ret[0].data).supply)
 
+    const evCnt = 20
     events = await thor.filterEventLogs({
-        range: {unit: 'block', from: birthNumber, to: Number.MAX_SAFE_INTEGER },
-        options: {offset: 0, limit: 50},
-        criteriaSet: [{address: token.address, topic0: TransferEvent.signature}],
+        range: { unit: 'block', from: birthNumber, to: Number.MAX_SAFE_INTEGER },
+        options: { offset: 0, limit: evCnt },
+        criteriaSet: [{ address: token.address, topic0: TransferEvent.signature }],
         order: 'asc'
     })
 
     const formated = events.map(x => {
-        return { decoded: TransferEvent.decode(x.data, x.topics), meta: x.meta  }
+        return { decoded: TransferEvent.decode(x.data, x.topics), meta: x.meta }
     }).map(x => `Block(${displayID(x.meta!.blockID)}): ${x.decoded._from} -> ${x.decoded._to}: ${x.decoded._value}`)
 
-    console.log('first 5 transfer:')
+    console.log('first ' + evCnt + ' transfer:')
     console.log(formated.join('\n'))
     process.exit(0)
 })().catch((e) => {

@@ -2,8 +2,9 @@ import { getConnection, EntityManager, In } from 'typeorm'
 import { Config } from '../../explorer-db/entity/config'
 import { AssetMovement } from '../../explorer-db/entity/movement'
 import { Account } from '../../explorer-db/entity/account'
-import { AssetType, CountType } from '../../explorer-db/types'
+import { CountType } from '../../explorer-db/types'
 import { Counts } from '../../explorer-db/entity/counts'
+import { AssetType } from '../../types'
 
 const HEAD_KEY = 'dual-token-head'
 export const TypeVETCount = CountType.Transfer + AssetType.VET

@@ -1,8 +1,8 @@
 import { createConnection } from 'typeorm'
 import { Thor } from '../../thor-rest'
-import { balanceOf, getVIP180Token } from '../../const'
+import { balanceOf } from '../../const'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
-import { AssetType, CountType } from '../../explorer-db/types'
+import { CountType } from '../../explorer-db/types'
 import { Persist } from '../../processor/vip180/persist'
 import { Net } from '../../net'
 import { getNetwork, checkNetworkWithDB } from '../network'
@@ -11,6 +11,8 @@ import { getBlockByNumber } from '../../service/block'
 import { Block } from '../../explorer-db/entity/block'
 import { Counts } from '../../explorer-db/entity/counts'
 import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
+import { getVIP180Token } from '../../token-list'
+import { AssetType } from '../../types'
 
 const net = getNetwork()
 const thor = new Thor(new Net(getThorREST()), net)

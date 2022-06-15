@@ -2,10 +2,10 @@
 import { EntityManager, getConnection, In } from 'typeorm'
 import { Config } from '../../explorer-db/entity/config'
 import { AssetMovement } from '../../explorer-db/entity/movement'
-import { AssetType, CountType } from '../../explorer-db/types'
+import { CountType } from '../../explorer-db/types'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
-import { Token } from '../../const'
+import { AssetType, Token } from '../../types'
 import { Counts } from '../../explorer-db/entity/counts'
 
 export type RecentSnapshot = Snapshot & { isTrunk: boolean }

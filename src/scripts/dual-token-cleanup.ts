@@ -2,9 +2,10 @@ import { Account } from '../explorer-db/entity/account'
 import { AssetMovement } from '../explorer-db/entity/movement'
 import { Config } from '../explorer-db/entity/config'
 import { Snapshot } from '../explorer-db/entity/snapshot'
-import { SnapType, AssetType, CountType } from '../explorer-db/types'
+import { SnapType, CountType } from '../explorer-db/types'
 import { In, createConnection, getConnectionOptions } from 'typeorm'
 import { Counts } from '../explorer-db/entity/counts'
+import { AssetType } from '../types'
 
 Promise.resolve().then(async () => {
     const opt = await getConnectionOptions()

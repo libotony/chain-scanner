@@ -4,8 +4,8 @@ import { getNetwork, checkNetworkWithDB } from '../network'
 import { getBlockByNumber } from '../../service/block'
 import { Block } from '../../explorer-db/entity/block'
 import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
-import { AssetType } from '../../explorer-db/types'
 import { Counts } from '../../explorer-db/entity/counts'
+import { AssetType } from '../../types'
 
 const net = getNetwork()
 const persist = new Persist()

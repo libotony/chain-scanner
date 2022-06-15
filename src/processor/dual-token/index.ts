@@ -10,7 +10,7 @@ import { Account } from '../../explorer-db/entity/account'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { Processor } from '../processor'
-import { AssetType, SnapType, MoveType } from '../../explorer-db/types'
+import { SnapType, MoveType } from '../../explorer-db/types'
 import * as logger from '../../logger'
 import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
 import { Block } from '../../explorer-db/entity/block'
@@ -18,6 +18,7 @@ import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
 import { getBlockByNumber } from '../../service/block'
 import { Counts } from '../../explorer-db/entity/counts'
 import { saveCounts } from '../../service/counts'
+import { AssetType } from '../../types'
 
 export class DualToken extends Processor {
     private persist: Persist

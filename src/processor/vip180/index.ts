@@ -1,10 +1,10 @@
-import { SnapType, AssetType, MoveType, CountType } from '../../explorer-db/types'
+import { SnapType, MoveType, CountType } from '../../explorer-db/types'
 import { AssetMovement } from '../../explorer-db/entity/movement'
 import { displayID, blockIDtoNum } from '../../utils'
 import { REVERSIBLE_WINDOW } from '../../config'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
-import { TransferEvent, ZeroAddress, Token, prototype } from '../../const'
+import { TransferEvent, ZeroAddress, prototype } from '../../const'
 import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { EntityManager, getConnection } from 'typeorm'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
@@ -17,6 +17,7 @@ import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
 import { Block } from '../../explorer-db/entity/block'
 import { Counts } from '../../explorer-db/entity/counts'
 import { saveCounts } from '../../service/counts'
+import { AssetType, Token } from '../../types'
 
 interface SnapAccount {
     address: string
