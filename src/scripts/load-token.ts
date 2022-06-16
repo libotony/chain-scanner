@@ -85,6 +85,8 @@ void (async () => {
                 token.genesis = genesis[Network.TestNet][token.symbol]
             }
             list[Network.TestNet][token.symbol] = token
+        } else if (pending.indexOf(item.symbol) === -1) {
+            pending.push(item.symbol)
         }
     }
 
