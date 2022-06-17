@@ -43,6 +43,10 @@ export const getVIP180Token = (net: Network, symbol: string) => {
 `
 }
 
+const red = (input: string) => {
+    return `\x1b[31m${input}\x1b[0m`
+}
+
 void (async () => {
     const pending = []
 
@@ -95,6 +99,7 @@ void (async () => {
     await file.close()
 
     console.log('Pending: ' + pending.join(', '))
+    console.log(red('DOT NOT FORGET TO UPDATE IN MASS!'))
     process.exit(0)
 })().catch((e) => {
     console.log(e)
