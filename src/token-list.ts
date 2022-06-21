@@ -8,7 +8,7 @@ export const getVIP180Token = (net: Network, symbol: string) => {
     }
 
     if (!list[net][symbol]) {
-        throw new Error('unknown token: ' + symbol+ 'at net: '+ net === Network.MainNet ? 'MaiNet': 'TestNet')
+        throw new Error('unknown token: ' + symbol+ ' @'+ (net === Network.MainNet ? 'MainNet': 'TestNet'))
     }
 
     return list[net][symbol]
