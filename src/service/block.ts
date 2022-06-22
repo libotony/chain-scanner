@@ -73,13 +73,16 @@ export const getNextExpandedBlock = async (start: number, manager?: EntityManage
         return { block, txs: [] } as { block: Block | undefined, txs: TransactionMeta[] }
     }
 
-    const txs = await manager
-        .getRepository(TransactionMeta)
-        .find({
-            where: { blockID: block.id },
-            order: { seq: 'ASC' },
-            relations: ['transaction']
-        })
+    let txs: TransactionMeta[] = []
+    if (block.txCount) {
+        txs = await manager
+            .getRepository(TransactionMeta)
+            .find({
+                where: { blockID: block.id },
+                order: { seq: 'ASC' },
+                relations: ['transaction']
+            })
+    }
 
     return { block, txs }
 }
