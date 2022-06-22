@@ -10,7 +10,7 @@ import * as logger from '../../logger'
 import { REVERSIBLE_WINDOW } from '../../config'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { clearSnapShot, insertSnapshot, listRecentSnapshot } from '../../service/snapshot'
-import { getExpandedBlockByNumber } from '../../service/block'
+import { getExpandedBlockByNumber, getNextExpandedBlock } from '../../service/block'
 import { blockIDtoNum } from '../../utils'
 
 const revertReasonSelector = '0x' + cry.keccak256('Error(string)').toString('hex').slice(0, 8)
@@ -41,13 +41,12 @@ export class RevertReason extends Processor {
         return SnapType.Revert
     }
 
-
-    protected get skipEmptyBlock() {
-        return true
-    }
-
     protected needFlush(count: number) {
         return count >= 100
+    }
+
+    protected async nextBlock(from: number, target: number) {
+        return getNextExpandedBlock(from)
     }
 
     /**

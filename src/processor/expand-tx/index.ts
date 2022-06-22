@@ -13,6 +13,7 @@ import { AggregatedTransaction } from '../../explorer-db/entity/aggregated-tx'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { Counts } from '../../explorer-db/entity/counts'
 import { saveCounts } from '../../service/counts'
+import { getNextExpandedBlock } from '../../service/block'
 
 const JobCountType = CountType.TX
 const JobSnapType = SnapType.ExpandTX
@@ -108,12 +109,12 @@ export class ExpandTX extends Processor {
         return JobSnapType
     }
 
-    protected get skipEmptyBlock() {
-        return true
-    }
-
     protected needFlush(count:number) {
         return count>= 2000
+    }
+
+    protected async nextBlock(from: number, target: number) {
+        return getNextExpandedBlock(from)
     }
     
     /**

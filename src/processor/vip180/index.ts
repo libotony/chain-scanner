@@ -18,6 +18,7 @@ import { Block } from '../../explorer-db/entity/block'
 import { Counts } from '../../explorer-db/entity/counts'
 import { saveCounts } from '../../service/counts'
 import { AssetType, Token } from '../../types'
+import { getExpandedBlockByNumber } from '../../service/block'
 
 interface SnapAccount {
     address: string
@@ -60,7 +61,7 @@ class BlockProcessor {
                 type: CountType.Transfer + this.asset,
                 out: 0,
                 in: 0,
-                self:0
+                self: 0
             })
         }
 
@@ -165,10 +166,31 @@ export class VIP180Transfer extends Processor {
         return SnapType.VIP180Token + this.asset
     }
 
-    protected needFlush(count:number) {
-        return count>= 2000
+    protected needFlush(count: number) {
+        return count >= 2000
     }
-    
+
+    protected async nextBlock(from: number, target: number) {
+        const events = await this.thor.filterEventLogs({
+            range: { unit: 'block', from: from, to: target },
+            options: { offset: 0, limit: 1 },
+            order: 'asc',
+            criteriaSet: [{
+                address: this.token.address, 
+                topic0: TransferEvent.signature  
+            }]
+        })
+
+        let blkNum: number
+        if (events.length === 0) {
+            blkNum = target
+        } else {
+            blkNum = events[0].meta!.blockNumber
+        }
+
+        return getExpandedBlockByNumber(blkNum)
+    }
+
     /**
      * @return inserted column number
      */
@@ -324,7 +346,7 @@ export class VIP180Transfer extends Processor {
                                 })
                                 const cnt = manager.create(Counts, {
                                     address: snapAcc.address,
-                                    type: CountType.Transfer+this.asset,
+                                    type: CountType.Transfer + this.asset,
                                     in: snapAcc.in,
                                     out: snapAcc.out,
                                     self: snapAcc.self

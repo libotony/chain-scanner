@@ -15,7 +15,7 @@ import * as logger from '../../logger'
 import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
 import { Block } from '../../explorer-db/entity/block'
 import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
-import { getBlockByNumber } from '../../service/block'
+import { getBlockByNumber, getNextExpandedBlock } from '../../service/block'
 import { Counts } from '../../explorer-db/entity/counts'
 import { saveCounts } from '../../service/counts'
 import { AssetType } from '../../types'
@@ -44,13 +44,13 @@ export class DualToken extends Processor {
     protected get snapType() {
         return SnapType.DualToken
     }
-    
-    protected get skipEmptyBlock() {
-        return true
-    }
 
     protected needFlush(count:number) {
         return count>= 2000
+    }
+
+    protected async nextBlock(from: number, target: number) {
+        return getNextExpandedBlock(from)
     }
 
     /**

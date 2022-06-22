@@ -61,8 +61,8 @@ export abstract class Processor {
         return !!count
     }
 
-    protected get skipEmptyBlock() {
-        return false
+    protected async nextBlock(from: number, target: number) {
+        return getExpandedBlockByNumber(from)
     }
 
     private async beforeStart() {
@@ -126,29 +126,21 @@ export abstract class Processor {
         const taskLogger = logger.task()
         let column: number = 0
 
-        for (let i = head; i < target;) {
+        for (let i = head + 1; i <= target; i++) {
             taskLogger.update(i)
 
             await getConnection().transaction(async (manager) => {
-                for (; i < target;) {
-                    i += 1
-                    if (this.skipEmptyBlock) {
-                        const { block, txs } = await getNextExpandedBlock(i, manager)
-                        if (block) {
-                            if (block.number > target) {
-                                i = target
-                            } else {
-                                column += await this.processBlock(block!, txs, manager)
-                                i = block.number
-                            }
-                        }
-                        // if next block not found due to missing in database,then we are done :< 
+                for (; i <= target; i++) {
+                    const { block, txs } = await this.nextBlock(i, target)
+                    if (!block) {
+                        throw new Error(`block(${i} missing in database)`)
+                    }
+
+                    if (block.number > target) {
+                        i = target
                     } else {
-                        const { block, txs } = await getExpandedBlockByNumber(i, manager)
-                        if (!block) {
-                            throw new Error(`block(${i} missing in database)`)
-                        }
                         column += await this.processBlock(block!, txs, manager)
+                        i = block.number
                     }
 
                     if (this.needFlush(column) || i >= target || this.shutdown) {
