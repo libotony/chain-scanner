@@ -51,6 +51,15 @@ export class Persist {
             .find({})
     }
 
+    public getInactive(manager?: EntityManager) {
+        if (!manager) {
+            manager = getConnection().manager
+        }
+
+        return manager.getRepository(Authority)
+            .find({listed: true, active: false})
+    }
+
     public remove(addrs: string[], manager?: EntityManager) {
         if (!manager) {
             manager = getConnection().manager

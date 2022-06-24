@@ -19,7 +19,7 @@ const contractAddr = '0x' + cry.keccak256(Buffer.alloc(40)).slice(12).toString('
    we can compute the contract deployed offline and call the methods in clause#1
 */
 
-interface MasterNode {
+export interface MasterNode {
     master: string,
     endorsor: string,
     identity: string,

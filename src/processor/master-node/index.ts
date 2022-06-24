@@ -1,20 +1,21 @@
 import * as LRU from 'lru-cache'
 import { EntityManager, getConnection } from 'typeorm'
-import { SnapType, AuthEvent, CountType } from '../../explorer-db/types'
+import { SnapType, AuthEvent } from '../../explorer-db/types'
 import { Authority } from '../../explorer-db/entity/authority'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { AuthorityEvent } from '../../explorer-db/entity/authority-event'
 import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
 import { Block } from '../../explorer-db/entity/block'
 import { AuthorityAddress, authority, ParamsAddress, params } from '../../const'
-import { REVERSIBLE_WINDOW } from '../../config'
+import { BLOCK_INTERVAL, REVERSIBLE_WINDOW } from '../../config'
 import * as logger from '../../logger'
 import { Thor } from '../../thor-rest'
 import { blockIDtoNum, displayID } from '../../utils'
 import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { Processor } from '../processor'
 import { Persist } from './persist'
-import { ListAll, ListInactive } from './auth-utils'
+import { ListAll, ListInactive, MasterNode } from './auth-utils'
+import { getBlockByID } from '../../service/block'
 
 const JobSnapType = SnapType.Authority
 
@@ -61,8 +62,23 @@ export class MasterNodeWatcher extends Processor {
      */
     protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, saveSnapshot = false) {
         const nodes = await this.persist.getAll(manager)
-        const inActivesNodes = await ListInactive(this.thor, block.id)
 
+        let inActiveNodes: MasterNode[] = []
+        const parent = (await getBlockByID(block.parentID, manager))!
+        if (block.timestamp - parent.timestamp === BLOCK_INTERVAL && block.score === parent.score) {
+            const list = await this.persist.getInactive(manager)
+            for (const item of list) {
+                inActiveNodes.push({
+                    master: item.address,
+                    endorsor: item.endorsor,
+                    identity: item.identity,
+                    active: item.active,
+                })
+            }
+        } else {
+            inActiveNodes = await ListInactive(this.thor, block.id)
+        }
+        
         const endorsorToMaster = {
             endorsed: new Map<string, string>(),
             unendorsed: new Map<string, string>()
@@ -71,7 +87,7 @@ export class MasterNodeWatcher extends Processor {
         const pendingEndorsorCheck: string[] = []
         const inactive = new Set<string>()
 
-        for (const n of inActivesNodes) {
+        for (const n of inActiveNodes) {
             inactive.add(n.master)
         }
 
