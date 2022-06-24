@@ -18,7 +18,13 @@ export enum AssetType {
     MVG,
     WoV,
     GEMS,
-    VEX
+    VEX,
+    VEUSD,
+    DHN,
+    UNION,
+    VST,
+    PPR,
+    DRAGON
 }
 
 export interface Token {
