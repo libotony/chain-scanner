@@ -13,28 +13,28 @@ import { AggregatedTransaction } from '../../explorer-db/entity/aggregated-tx'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { Counts } from '../../explorer-db/entity/counts'
 import { saveCounts } from '../../service/counts'
-import { getNextExpandedBlock } from '../../service/block'
+import { getExpandedBlockByNumber, getNextExpandedBlock } from '../../service/block'
 
 const JobCountType = CountType.TX
 const JobSnapType = SnapType.ExpandTX
 
 interface SnapCount {
-    address: string|null
+    address: string | null
     in: number
     out: number
     self: number
 }
 
 class BlockProcessor {
-    private cnt = new Map<string|null, Counts>()
-    private snap = new Map<string|null, SnapCount>()
+    private cnt = new Map<string | null, Counts>()
+    private snap = new Map<string | null, SnapCount>()
 
     constructor(
         readonly block: Block,
         readonly manager: EntityManager
     ) { }
 
-    async count(addr: string|null) {
+    async count(addr: string | null) {
         if (this.cnt.has(addr)) {
             return this.cnt.get(addr)!
         }
@@ -109,14 +109,20 @@ export class ExpandTX extends Processor {
         return JobSnapType
     }
 
-    protected needFlush(count:number) {
-        return count>= 2000
+    protected needFlush(count: number) {
+        return count >= 2000
     }
 
     protected async nextBlock(from: number, target: number) {
-        return getNextExpandedBlock(from)
+        const b = await getNextExpandedBlock(from)
+
+        if (!b.block) {
+            return getExpandedBlockByNumber(target)
+        }
+
+        return b
     }
-    
+
     /**
      * @return inserted column number
      */
@@ -183,7 +189,7 @@ export class ExpandTX extends Processor {
                 const toRevert = snapshots.map(x => x.blockID)
 
                 await getConnection().transaction(async (manager) => {
-                    const counts = new Map<string|null, Counts>()
+                    const counts = new Map<string | null, Counts>()
                     for (; snapshots.length;) {
                         const snap = snapshots.pop()!
                         if (snap.data) {

@@ -46,7 +46,13 @@ export class RevertReason extends Processor {
     }
 
     protected async nextBlock(from: number, target: number) {
-        return getNextExpandedBlock(from)
+        const b = await getNextExpandedBlock(from)
+
+        if (!b.block) {
+            return getExpandedBlockByNumber(target)
+        }
+
+        return b
     }
 
     /**

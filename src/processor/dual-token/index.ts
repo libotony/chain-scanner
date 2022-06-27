@@ -52,17 +52,15 @@ export class DualToken extends Processor {
     }
 
     protected async nextBlock(from: number, target: number) {
-        const b = await getNextExpandedBlock(from)
+        let b = await getNextExpandedBlock(from)
 
-        if (b.block && b.block.number === from) {
-            return b
+        if (!b.block) {
+            b = await getExpandedBlockByNumber(target)
         }
 
-        // check if hard forks skipped
-        let end: number = target
-        if (b.block) {
-            end = b.block.number
-        }
+        // do not skip some of the hard fork blocks
+        // which updates builtin or precompile contracts
+        const end = b.block!.number <= target ? b.block!.number  : target
         if (from < this.forkConfig.VIP191 && this.forkConfig.VIP191 < end) {
             return getExpandedBlockByNumber(this.forkConfig.VIP191)
         }

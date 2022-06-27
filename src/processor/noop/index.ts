@@ -4,7 +4,7 @@ import { EntityManager } from 'typeorm'
 import { Processor } from '../processor'
 import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
 import { Block } from '../../explorer-db/entity/block'
-import { getNextExpandedBlock } from '../../service/block'
+import { getExpandedBlockByNumber, getNextExpandedBlock } from '../../service/block'
 
 export class Noop extends Processor {
     private persist: Persist
@@ -34,7 +34,13 @@ export class Noop extends Processor {
 
 
     protected async nextBlock(from: number, target: number) {
-        return getNextExpandedBlock(from)
+        const b = await getNextExpandedBlock(from)
+
+        if (!b.block) {
+            return getExpandedBlockByNumber(target)
+        }
+
+        return b
     }
 
     protected needFlush(count:number) {
