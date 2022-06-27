@@ -2,7 +2,7 @@ import { Thor } from '../../thor-rest'
 import { Persist, TypeEnergyCount, TypeVETCount } from './persist'
 import { blockIDtoNum, displayID } from '../../utils'
 import { REVERSIBLE_WINDOW, SUICIDED_CHECK_INTERVAL } from '../../config'
-import { EnergyAddress, TransferEvent, getPreAllocAccount, Network, prototype } from '../../const'
+import { EnergyAddress, TransferEvent, getPreAllocAccount, Network, prototype, getForkConfig, ForkConfig } from '../../const'
 import { getConnection, EntityManager } from 'typeorm'
 import { BlockProcessor, SnapAccount } from './block-processor'
 import { AssetMovement } from '../../explorer-db/entity/movement'
@@ -15,17 +15,19 @@ import * as logger from '../../logger'
 import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
 import { Block } from '../../explorer-db/entity/block'
 import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
-import { getBlockByNumber, getNextExpandedBlock } from '../../service/block'
+import { getBlockByNumber, getExpandedBlockByID, getExpandedBlockByNumber, getNextExpandedBlock } from '../../service/block'
 import { Counts } from '../../explorer-db/entity/counts'
 import { saveCounts } from '../../service/counts'
 import { AssetType } from '../../types'
 
 export class DualToken extends Processor {
     private persist: Persist
+    private forkConfig: ForkConfig
 
     constructor(readonly thor: Thor) {
         super()
         this.persist = new Persist()
+        this.forkConfig = getForkConfig(thor.genesisID)
     }
 
     protected loadHead(manager?: EntityManager) {
@@ -45,12 +47,30 @@ export class DualToken extends Processor {
         return SnapType.DualToken
     }
 
-    protected needFlush(count:number) {
-        return count>= 2000
+    protected needFlush(count: number) {
+        return count >= 2000
     }
 
     protected async nextBlock(from: number, target: number) {
-        return getNextExpandedBlock(from)
+        const b = await getNextExpandedBlock(from)
+
+        if (b.block && b.block.number === from) {
+            return b
+        }
+
+        // check if hard forks skipped
+        let end: number = target
+        if (b.block) {
+            end = b.block.number
+        }
+        if (from < this.forkConfig.VIP191 && this.forkConfig.VIP191 < end) {
+            return getExpandedBlockByNumber(this.forkConfig.VIP191)
+        }
+        if (from < this.forkConfig.ETH_IST && this.forkConfig.ETH_IST < end) {
+            return getExpandedBlockByNumber(this.forkConfig.ETH_IST)
+        }
+
+        return b
     }
 
     /**
@@ -297,7 +317,7 @@ export class DualToken extends Processor {
                 await this.persist.removeCounts(accCreated, manager)
             }
             if (accounts.size) await this.persist.saveAccounts([...accounts.values()], manager)
-            if(vCNTs.size || eCNTs.size) await saveCounts([...vCNTs.values(), ...eCNTs.values()], manager)
+            if (vCNTs.size || eCNTs.size) await saveCounts([...vCNTs.values(), ...eCNTs.values()], manager)
             await this.persist.removeMovements(toRevert, manager)
             await removeSnapshot(toRevert, this.snapType, manager)
             await this.saveHead(headNum, manager)
