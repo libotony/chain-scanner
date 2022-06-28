@@ -16,6 +16,44 @@ import { blockIDtoNum } from '../../utils'
 const revertReasonSelector = '0x' + cry.keccak256('Error(string)').toString('hex').slice(0, 8)
 const panicErrorSelector = '0x' + cry.keccak256('Panic(uint256)').toString('hex').slice(0, 8)
 
+const decodeReason = (output: string): string|null => {
+    if (output.indexOf(revertReasonSelector) === 0 || output.indexOf(panicErrorSelector) === 0) {
+        const revert = output.indexOf(revertReasonSelector) === 0
+        
+        let type = 'string'
+        if (!revert) {
+            type = 'uint256'
+        }
+
+        try {
+            const decoded = abi.decodeParameter(type, '0x' + output.slice(10)) as string
+            if (decoded) {
+                if (revert) {
+                    return decoded
+                }
+
+                return `Panic(0x${parseInt(decoded).toString(16).padStart(2, '0')})`
+            }
+        } catch (e) {
+            /* https://docs.soliditylang.org/en/latest/control-structures.html#try-catch
+               In some cases, contract A calls B and catches the error as low-level data in bytes then revert the error in A.
+               This does not cover every case, e.g. some one just revert(hash) out.
+            */
+            if (revert) {
+                const msg = 'invalid utf8 byte sequence; invalid continuation byte'
+                if ((e as Error).toString().includes(msg)) { 
+                    const decoded = abi.decodeParameter('bytes', '0x' + output.slice(10))
+                    return decodeReason(decoded)
+                }
+            }
+            
+            throw e
+        }
+    }
+
+    return null
+}
+
 export class RevertReason extends Processor {
     private persist: Persist
 
@@ -72,26 +110,13 @@ export class RevertReason extends Processor {
                             reason: null
                         }
                         if (vmError.error === 'execution reverted' && tracer.output) {
-                            if (tracer.output.indexOf(revertReasonSelector) === 0) {
-                                try {
-                                    const decoded = abi.decodeParameter('string', '0x' + tracer.output.slice(10))
-                                    if (decoded) {
-                                        vmError.reason = decoded
-                                    }
-                                } catch {
-                                    logger.error(`decode Error(string) failed for tx: ${tx.txID} at clause ${clauseIndex}`)
+                            try {
+                                vmError.reason = decodeReason(tracer.output)
+                                if (!vmError.reason) {
+                                    logger.error(`unknown revert data format for tx: ${tx.txID} at clause ${clauseIndex}`)
                                 }
-                            } else if (tracer.output.indexOf(panicErrorSelector) === 0) {
-                                try {
-                                    const decoded = abi.decodeParameter('uint256', '0x' + tracer.output.slice(10))
-                                    if (decoded) {
-                                        vmError.reason = decoded
-                                    }
-                                } catch {
-                                    logger.error(`decode Panic(uint256) failed for tx: ${tx.txID} at clause ${clauseIndex}`)
-                                }
-                            } else {
-                                logger.error(`unknown revert data format for tx: ${tx.txID} at clause ${clauseIndex}`)
+                            } catch (e) {
+                                logger.error(`decode reason failed for tx: ${tx.txID} at clause ${clauseIndex}`)
                             }
                         }
                         await this.persist.updateVmError(tx.txID, vmError)
