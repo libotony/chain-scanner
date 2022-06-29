@@ -119,7 +119,7 @@ export class RevertReason extends Processor {
                                 logger.error(`decode reason failed for tx: ${tx.txID} at clause ${clauseIndex}`)
                             }
                         }
-                        await this.persist.updateVmError(tx.txID, vmError)
+                        await this.persist.updateVmError(tx.txID, vmError, manager)
                         cnt++
                         break
                     }
