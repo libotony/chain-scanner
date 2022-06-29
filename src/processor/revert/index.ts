@@ -16,10 +16,10 @@ import { blockIDtoNum } from '../../utils'
 const revertReasonSelector = '0x' + cry.keccak256('Error(string)').toString('hex').slice(0, 8)
 const panicErrorSelector = '0x' + cry.keccak256('Panic(uint256)').toString('hex').slice(0, 8)
 
-const decodeReason = (output: string): string|null => {
+const decodeReason = (output: string): string | null => {
     if (output.indexOf(revertReasonSelector) === 0 || output.indexOf(panicErrorSelector) === 0) {
         const revert = output.indexOf(revertReasonSelector) === 0
-        
+
         let type = 'string'
         if (!revert) {
             type = 'uint256'
@@ -41,12 +41,12 @@ const decodeReason = (output: string): string|null => {
             */
             if (revert) {
                 const msg = 'invalid utf8 byte sequence; invalid continuation byte'
-                if ((e as Error).toString().includes(msg)) { 
+                if ((e as Error).toString().includes(msg)) {
                     const decoded = abi.decodeParameter('bytes', '0x' + output.slice(10))
                     return decodeReason(decoded)
                 }
             }
-            
+
             throw e
         }
     }
@@ -135,7 +135,7 @@ export class RevertReason extends Processor {
             await insertSnapshot(snapshot, manager)
         }
 
-        return cnt
+        return cnt ? cnt : 1
     }
 
     protected async latestTrunkCheck() {
