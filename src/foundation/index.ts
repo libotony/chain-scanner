@@ -236,6 +236,7 @@ export class Foundation {
                 let reward = BigInt(0)
                 let score = 0
                 let gasChanged = 0
+                let revertCount = 0
 
                 if (b.number > 0) {
                     const prevBlock = (await this.thor.getBlock(b.parentID, 'regular'))!
@@ -317,6 +318,8 @@ export class Foundation {
                             }
                             outputs.push(output)
                         }
+                    } else {
+                        revertCount++
                     }
 
                     txs.push({
@@ -357,7 +360,8 @@ export class Foundation {
                         score,
                         reward,
                         gasChanged,
-                        txCount: b.transactions.length
+                        txCount: b.transactions.length,
+                        revertCount: revertCount
                     }, manager)
                 }
                 if (txs.length) {
