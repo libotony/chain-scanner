@@ -87,13 +87,13 @@ createConnection().then(async () => {
 const signals: NodeJS.Signals[]  = ['SIGINT', 'SIGTERM', 'SIGQUIT']
 signals.forEach(sig => {
     process.on(sig, (s) => {
-        process.stdout.write(`got signal: ${s}, terminating
-`)
-        if (!shutdown) {
+        if (!shutdown) { 
             shutdown = true
             task.stop().then(() => {
                 process.exit(0)
             })
+            process.stdout.write(`got signal: ${s}, terminating
+`)
         }
     })
 })
