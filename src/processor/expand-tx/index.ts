@@ -13,7 +13,7 @@ import { AggregatedTransaction } from '../../explorer-db/entity/aggregated-tx'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
 import { Counts } from '../../explorer-db/entity/counts'
 import { saveCounts } from '../../service/counts'
-import { getExpandedBlockByNumber, getNextExpandedBlock } from '../../service/block'
+import { getExpandedBlockByID, getExpandedBlockByNumber, getNextBlockIDWithTx } from '../../service/block'
 
 const JobCountType = CountType.TX
 const JobSnapType = SnapType.ExpandTX
@@ -113,14 +113,9 @@ export class ExpandTX extends Processor {
         return count >= 2000
     }
 
-    protected async nextBlock(from: number, target: number) {
-        const b = await getNextExpandedBlock(from)
-
-        if (!b.block) {
-            return getExpandedBlockByNumber(target)
-        }
-
-        return b
+    protected async nextBlock(from: number, to: number, manager: EntityManager) {
+        let blockID = await getNextBlockIDWithTx(from, to, manager)
+        return blockID ? getExpandedBlockByID(blockID) : getExpandedBlockByNumber(to)
     }
 
     /**

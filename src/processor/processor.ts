@@ -61,8 +61,8 @@ export abstract class Processor {
         return !!count
     }
 
-    protected async nextBlock(from: number, target: number) {
-        return getExpandedBlockByNumber(from)
+    protected async nextBlock(from: number, to: number, manager: EntityManager) {
+        return getExpandedBlockByNumber(from, manager)
     }
 
     private async beforeStart() {
@@ -131,7 +131,7 @@ export abstract class Processor {
 
             await getConnection().transaction(async (manager) => {
                 for (; i <= target; i++) {
-                    const { block, txs } = await this.nextBlock(i, target)
+                    const { block, txs } = await this.nextBlock(i, target, manager)
                     if (!block) {
                         throw new Error(`block(${i} missing in database)`)
                     }

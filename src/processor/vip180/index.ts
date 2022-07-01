@@ -170,9 +170,9 @@ export class VIP180Transfer extends Processor {
         return count >= 2000
     }
 
-    protected async nextBlock(from: number, target: number) {
+    protected async nextBlock(from: number, to: number, manager: EntityManager) {
         const events = await this.thor.filterEventLogs({
-            range: { unit: 'block', from: from, to: target },
+            range: { unit: 'block', from: from, to: to },
             options: { offset: 0, limit: 1 },
             order: 'asc',
             criteriaSet: [{
@@ -183,7 +183,7 @@ export class VIP180Transfer extends Processor {
 
         let blkNum: number
         if (events.length === 0) {
-            blkNum = target
+            blkNum = to
         } else {
             blkNum = events[0].meta!.blockNumber
         }

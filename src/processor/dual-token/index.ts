@@ -15,7 +15,7 @@ import * as logger from '../../logger'
 import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
 import { Block } from '../../explorer-db/entity/block'
 import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
-import { getBlockByNumber, getExpandedBlockByID, getExpandedBlockByNumber, getNextExpandedBlock } from '../../service/block'
+import { getBlockByNumber, getExpandedBlockByID, getExpandedBlockByNumber, getNextBlockIDWithTx } from '../../service/block'
 import { Counts } from '../../explorer-db/entity/counts'
 import { saveCounts } from '../../service/counts'
 import { AssetType } from '../../types'
@@ -51,20 +51,23 @@ export class DualToken extends Processor {
         return count >= 2000
     }
 
-    protected async nextBlock(from: number, target: number) {
-        let b = await getNextExpandedBlock(from)
-
-        if (!b.block) {
-            b = await getExpandedBlockByNumber(target)
+    // dual token cannot skip the blocks which update builtin or precompiled contracts
+    // For now: VIP191 and ETH_IST
+    protected async nextBlock(from:number, to:number, manager:EntityManager) {
+        let blockID = await getNextBlockIDWithTx(from, to, manager)
+        const b = blockID ? await getExpandedBlockByID(blockID) : await getExpandedBlockByNumber(to)
+        
+        const block = b.block!
+        if (block.number === from) {
+            return b
         }
 
         // do not skip some of the hard fork blocks
-        // which updates builtin or precompile contracts
-        const end = b.block!.number <= target ? b.block!.number  : target
-        if (from < this.forkConfig.VIP191 && this.forkConfig.VIP191 < end) {
+        // which updates builtin or precompiled contracts
+        if (from < this.forkConfig.VIP191 && this.forkConfig.VIP191 < block.number) {
             return getExpandedBlockByNumber(this.forkConfig.VIP191)
         }
-        if (from < this.forkConfig.ETH_IST && this.forkConfig.ETH_IST < end) {
+        if (from < this.forkConfig.ETH_IST && this.forkConfig.ETH_IST < block.number) {
             return getExpandedBlockByNumber(this.forkConfig.ETH_IST)
         }
 
