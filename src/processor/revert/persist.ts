@@ -1,10 +1,7 @@
 
-import { EntityManager, getConnection, MoreThan, MoreThanOrEqual } from 'typeorm'
-import { REVERSIBLE_WINDOW } from '../../config'
-import { Block } from '../../explorer-db/entity/block'
+import { EntityManager, getConnection } from 'typeorm'
 import { Config } from '../../explorer-db/entity/config'
 import { Transaction } from '../../explorer-db/entity/transaction'
-import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
 import { VMError } from '../../explorer-db/types'
 
 export class Persist {
