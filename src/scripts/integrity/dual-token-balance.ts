@@ -15,12 +15,12 @@ import { MoveType } from '../../explorer-db/types'
 const net = getNetwork()
 const persist = new Persist()
 
-
 const skipDeployer = [ParamsAddress, AuthorityAddress, EnergyAddress, ExecutorAddress, PrototypeAddress, ExtensionAddress]
 // pre-compiled contracts
 for (let i = 1; i <= 9; i++){
     skipDeployer.push('0x'+Buffer.alloc(1).fill(i).toString('hex').padStart(40, '0'))
 }
+const Suicided: string[] = []
 
 createConnection().then(async (conn) => {
     const thor = new Thor(new Net(getThorREST()), net)
@@ -101,18 +101,22 @@ createConnection().then(async (conn) => {
         if (acc.energy !== BigInt(chainAcc.energy)) {
             throw new Error(`Fatal: energy mismatch of Account(${acc.address}) chain:${chainAcc.energy} db:${acc.energy}`)
         }
-        if (acc.master !== chainMaster) {
-            throw new Error(`Fatal: master of Account(${acc.address}) mismatch,chain:${chainMaster} db:${acc.master}`)
-        }
-        if (acc.sponsor !== chainSponsor) {
-            // tslint:disable-next-line: max-line-length
-            throw new Error(`Fatal: sponsor of Account(${acc.address}) mismatch,chain:${chainSponsor} db:${acc.sponsor}`)
-        }
-        if (chainAcc.hasCode === true && acc.code !== chainCode.code) {
-            throw new Error(`Fatal: Account(${acc.address}) code mismatch`)
-        }
-        if (chainAcc.hasCode === false && acc.code!==null) {
-            throw new Error(`Fatal: Account(${acc.address}) hasCode status mismatch`)
+
+        if (chainAcc.hasCode === false && acc.code !== null) {
+            // possible SUICIDE
+            Suicided.push(acc.address)
+        } else {
+            if (chainAcc.hasCode === true && acc.code !== chainCode.code) {
+                throw new Error(`Fatal: Account(${acc.address}) code mismatch`)
+            }
+    
+            if (acc.master !== chainMaster) {
+                throw new Error(`Fatal: master of Account(${acc.address}) mismatch,chain:${chainMaster} db:${acc.master}`)
+            }
+            if (acc.sponsor !== chainSponsor) {
+                // tslint:disable-next-line: max-line-length
+                throw new Error(`Fatal: sponsor of Account(${acc.address}) mismatch,chain:${chainSponsor} db:${acc.sponsor}`)
+            }
         }
 
         if (skipDeployer.indexOf(acc.address) === -1 && acc.code !== null)  {
@@ -141,7 +145,7 @@ createConnection().then(async (conn) => {
     console.log('checking aggregated movements....')
 
     await conn.manager.transaction('SERIALIZABLE', async manager => {
-        const c1 = await getConnection()
+        const c1 = await manager
         .getRepository(AssetMovement)
         .count()
         const c2 = await getConnection()
@@ -153,6 +157,11 @@ createConnection().then(async (conn) => {
             throw new Error(`Fatal: aggregated movements mismatch, origin (${c1}) got aggregated:${c2}`)
         }
     })
+
+    if (Suicided.length) {
+        console.log('Possible SUICIDED accounts:')
+        console.log(Suicided.join('\n'))
+    }
     console.log('all done!')
 }).then(() => {
     process.exit(0)
