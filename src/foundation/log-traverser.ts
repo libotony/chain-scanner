@@ -1,5 +1,5 @@
 import { Thor } from '../thor-rest'
-import { prototype, PrototypeAddress } from '../const'
+import { EnergyAddress, prototype, PrototypeAddress, TransferEvent } from '../const'
 import { abi } from 'thor-devkit'
 
 export interface LogItem<T extends 'transfer' | 'event'> {
@@ -84,6 +84,29 @@ export const newIterator = function* (tracer: Thor.CallTracerOutput, events: Tho
                     data: events[event++]
                 }
             }
+        } else if (t.type === 'SELFDESTRUCT') {
+            if (events.length > event) {
+                const ev = events[event]
+                if (ev.address === EnergyAddress) {
+                    const decoded = TransferEvent.decode(ev.data, ev.topics)
+                    if (decoded._from === t.from && decoded._to === t.to) {
+                        yield {
+                            type: 'event',
+                            data: events[event++]
+                        }
+                    }
+                }
+            }
+            if (t.value !== '0x0') {
+                const tr = transfers[transfer]
+                if (tr.sender !== t.from || tr.recipient !== t.to || tr.amount !== t.value) {
+                    throw new Error('SELFDESTRUCT: transfer log mismatch')
+                }
+                yield {
+                    type: 'transfer',
+                    data: transfers[transfer++]
+                }
+            }
         } else if (t.type === 'STATICCALL') {
             // static call does not modify state(emit events,transfer values, write to storage), just skip
             return
@@ -96,7 +119,7 @@ export const newIterator = function* (tracer: Thor.CallTracerOutput, events: Tho
                 // dive into child calls then came back to parent context
                 yield* traverse(call)
                 for (; event < events.length;) {
-                    if (events[event].address !== contract) {
+                    if (events[event].address !== contract!) {
                         break
                     }
                     yield {
@@ -106,7 +129,7 @@ export const newIterator = function* (tracer: Thor.CallTracerOutput, events: Tho
                 }
             }
             for (; event < events.length;) {
-                if (events[event].address !== contract) {
+                if (events[event].address !== contract!) {
                     break
                 }
                 yield {
