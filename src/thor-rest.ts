@@ -36,7 +36,7 @@ export namespace Thor {
 }
 
 export class Thor {
-    private cache: LRU<string, any>
+    private caches: { block: LRU<string, any>; main: LRU<string, any>; }
     private get headerValidator() {
         return (headers: Record<string, string>) => {
             const xGeneID = headers['x-genesis-id']
@@ -48,28 +48,31 @@ export class Thor {
 
     // default genesis ID to mainnet
     constructor(readonly net: Net, readonly genesisID = Network.MainNet) {
-        this.cache = new LRU<string, any>(1024 * 4)
+        this.caches = {
+            block: new LRU<string, any>(128),
+            main: new LRU<string, any>(2048)
+        }
     }
 
     public async getBlock<T extends 'expanded' | 'regular'>(
         revision: string | number,
         type: T
-    ): Promise<Thor.Block<T>|null> {
+    ): Promise<Thor.Block<T> | null> {
         const expanded = type === 'expanded'
-        const cacheOrLoad = async (func: () => Promise<Thor.Block<T>|null>) => {
+        const cacheOrLoad = async (func: () => Promise<Thor.Block<T> | null>) => {
             if (revision === 'best') {
                 return func()
             }
 
-            const { key, IDKey } = ((): {key: string; IDKey: string} => {
+            const { key, IDKey } = ((): { key: string; IDKey: string } => {
                 if (typeof revision === 'string' && isBytes32(revision)) {
                     return {
-                        key: (expanded ? 'b-e' : 'b-r') + blockIDtoNum(revision).toString(),
-                        IDKey: (expanded ? 'b-e' : 'b-r') + revision
+                        key: (expanded ? 'e' : 'r') + blockIDtoNum(revision).toString(),
+                        IDKey: (expanded ? 'e' : 'r') + revision
                     }
                 } else if (typeof revision === 'number') {
                     return {
-                        key: (expanded ? 'b-e' : 'b-r') + revision.toString(),
+                        key: (expanded ? 'e' : 'r') + revision.toString(),
                         IDKey: ''
                     }
                 } else {
@@ -77,10 +80,10 @@ export class Thor {
                 }
             })()
 
-            if (this.cache.has(key!)) {
-                return this.cache.get(key!) as Thor.Block<T>
-            } else if (!!IDKey && this.cache.has(IDKey)) {
-                return this.cache.get(IDKey!) as Thor.Block<T>
+            if (this.caches.block.has(key!)) {
+                return this.caches.block.get(key!) as Thor.Block<T>
+            } else if (!!IDKey && this.caches.block.has(IDKey)) {
+                return this.caches.block.get(IDKey!) as Thor.Block<T>
             }
 
             const b = await func()
@@ -92,14 +95,14 @@ export class Thor {
                             ...b,
                             transactions: (b as Thor.ExpandedBlock).transactions.map(x => x.id)
                         }
-                        this.cache.set('b-r' + b.number, regular)
-                        this.cache.set('b-r' + b.id, regular)
+                        this.caches.block.set('b-r' + b.number, regular)
+                        this.caches.block.set('b-r' + b.id, regular)
 
-                        this.cache.set('b-e' + b.number, b)
-                        this.cache.set('b-e' + b.id, b)
+                        this.caches.block.set('b-e' + b.number, b)
+                        this.caches.block.set('b-e' + b.id, b)
                     } else {
-                        this.cache.set('b-r' + b.number, b)
-                        this.cache.set('b-r' + b.id, b)
+                        this.caches.block.set('b-r' + b.number, b)
+                        this.caches.block.set('b-r' + b.id, b)
                     }
                 }
             }
@@ -107,36 +110,36 @@ export class Thor {
         }
 
         return cacheOrLoad(() => {
-            return this.httpGet<Thor.Block<T>|null>(`blocks/${revision}`, { expanded })
+            return this.httpGet<Thor.Block<T> | null>(`blocks/${revision}`, { expanded })
         })
     }
-    public getTransaction(id: string, head ?: string) {
+    public getTransaction(id: string, head?: string) {
         return this.httpGet<Thor.Transaction>(`transactions/${id}`, head ? { head } : {})
     }
-    public getReceipt(id: string, head ?: string) {
+    public getReceipt(id: string, head?: string) {
         return this.httpGet<Thor.Receipt>(`transactions/${id}/receipt`, head ? { head } : {})
     }
-    public async getAccount(addr: string, revision ?: string) {
+    public async getAccount(addr: string, revision?: string) {
         const get = () => {
             return this.httpGet<Thor.Account>(`accounts/${addr}`, revision ? { revision } : {})
         }
         if (revision && isBytes32(revision)) {
             const key = 'a' + revision + addr
-            if (this.cache.has(key)) {
-                return this.cache.get(key) as Thor.Account
+            if (this.caches.main.has(key)) {
+                return this.caches.main.get(key) as Thor.Account
             }
 
             const acc = await get()
-            this.cache.set(key, acc)
+            this.caches.main.set(key, acc)
             return acc
         }
 
         return get()
     }
-    public getCode(addr: string, revision ?: string) {
+    public getCode(addr: string, revision?: string) {
         return this.httpGet<Thor.Code>(`accounts/${addr}/code`, revision ? { revision } : {})
     }
-    public getStorage(addr: string, key: string, revision ?: string) {
+    public getStorage(addr: string, key: string, revision?: string) {
         return this.httpGet<Thor.Storage>(`accounts/${addr}/storage/${key}`, revision ? { revision } : {})
     }
 
@@ -159,7 +162,7 @@ export class Thor {
         })
     }
 
-    public httpPost<T>(path: string, body: object, query ?: Record<string, string>): Promise < T > {
+    public httpPost<T>(path: string, body: object, query?: Record<string, string>): Promise<T> {
         return this.net.http('POST', path, {
             query,
             body,
@@ -167,7 +170,7 @@ export class Thor {
         })
     }
 
-    protected httpGet<T>(path: string, query ?: Record<string, any>): Promise < T > {
+    protected httpGet<T>(path: string, query?: Record<string, any>): Promise<T> {
         return this.net.http('GET', path, {
             query,
             validateResponseHeader: this.headerValidator
