@@ -1,10 +1,10 @@
-import { SnapType, MoveType, CountType } from '../../explorer-db/types'
+import { SnapType, MoveType, CountType, Event } from '../../explorer-db/types'
 import { AssetMovement } from '../../explorer-db/entity/movement'
 import { displayID, blockIDtoNum } from '../../utils'
 import { REVERSIBLE_WINDOW } from '../../config'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
-import { TransferEvent, ZeroAddress, prototype } from '../../const'
+import { TransferEvent, ZeroAddress, prototype, DepositEvent, WithdrawalEvent } from '../../const'
 import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { EntityManager, getConnection } from 'typeorm'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
@@ -27,6 +27,8 @@ interface SnapAccount {
     out: number
     self: number
 }
+
+const WrappedTokens = [AssetType.VVET]
 
 class BlockProcessor {
     private acc = new Map<string, TokenBalance>()
@@ -191,6 +193,45 @@ export class VIP180Transfer extends Processor {
         return getExpandedBlockByNumber(blkNum)
     }
 
+    private findMovement(ev: Event): { from: string; to: string; value: string } | null {
+        if (ev.address === this.token.address) {
+            if (ev.topics[0] === TransferEvent.signature){
+                let decoded: abi.Decoded
+                try {
+                    decoded = TransferEvent.decode(ev.data, ev.topics)
+                    return {
+                        from: decoded._from,
+                        to: decoded._to,
+                        value: decoded._value
+                    }
+                } catch (e) {}
+            } else if (WrappedTokens.includes(this.asset)) {
+                if (ev.topics[0] === DepositEvent.signature) {
+                    let decoded: abi.Decoded
+                    try {
+                        decoded = DepositEvent.decode(ev.data, ev.topics)
+                        return {
+                            from: ZeroAddress,
+                            to: decoded.dst,
+                            value: decoded.wad
+                        }
+                    } catch (e) {}
+                } else if (ev.topics[0] === WithdrawalEvent.signature) {
+                    let decoded: abi.Decoded
+                    try {
+                        decoded = WithdrawalEvent.decode(ev.data, ev.topics)
+                        return {
+                            from: decoded.src,
+                            to: ZeroAddress,
+                            value: decoded.wad
+                        }
+                    } catch (e) {}
+                }
+            }           
+        }
+        return null   
+    }
+
     /**
      * @return inserted column number
      */
@@ -239,17 +280,13 @@ export class VIP180Transfer extends Processor {
         for (const meta of txs) {
             for (const [clauseIndex, o] of meta.transaction.outputs.entries()) {
                 for (const [_, e] of o.events.entries()) {
-                    if (e.address === this.token.address && e.topics[0] === TransferEvent.signature) {
-                        let decoded: abi.Decoded
-                        try {
-                            decoded = TransferEvent.decode(e.data, e.topics)
-                        } catch (e) {
-                            continue
-                        }
+
+                    const move = this.findMovement(e)
+                    if (move){
                         const movement = manager.create(AssetMovement, {
-                            sender: decoded._from,
-                            recipient: decoded._to,
-                            amount: BigInt(decoded._value),
+                            sender: move.from,
+                            recipient: move.to,
+                            amount: BigInt(move.value),
                             txID: meta.txID,
                             blockID: block.id,
                             asset: this.asset,
