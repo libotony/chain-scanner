@@ -24,7 +24,8 @@ export enum AssetType {
     UNION,
     VST,
     PPR,
-    DRAGON
+    DRAGON,
+    VVET
 }
 
 export interface Token {
