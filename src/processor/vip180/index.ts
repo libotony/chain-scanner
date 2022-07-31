@@ -173,14 +173,26 @@ export class VIP180Transfer extends Processor {
     }
 
     protected async nextBlock(from: number, to: number, manager: EntityManager) {
+        const filters = [{
+            address: this.token.address, 
+            topic0: TransferEvent.signature  
+        }]
+
+        if (WrappedTokens.includes(this.asset)) {
+            filters.push({
+                address: this.token.address,
+                topic0: DepositEvent.signature
+            }, {
+                address: this.token.address,
+                topic0: WithdrawalEvent.signature
+            })
+        }
+
         const events = await this.thor.filterEventLogs({
             range: { unit: 'block', from: from, to: to },
             options: { offset: 0, limit: 1 },
             order: 'asc',
-            criteriaSet: [{
-                address: this.token.address, 
-                topic0: TransferEvent.signature  
-            }]
+            criteriaSet: filters
         })
 
         let blkNum: number
