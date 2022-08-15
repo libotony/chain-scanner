@@ -25,7 +25,9 @@ export enum AssetType {
     VST,
     PPR,
     DRAGON,
-    VVET
+    VVET,
+    VSEA,
+    BANANA
 }
 
 export interface Token {
