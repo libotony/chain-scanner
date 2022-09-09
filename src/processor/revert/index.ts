@@ -13,12 +13,12 @@ import { clearSnapShot, insertSnapshot, listRecentSnapshot } from '../../service
 import { getExpandedBlockByID, getExpandedBlockByNumber, getNextBlockIDWithReverted } from '../../service/block'
 import { blockIDtoNum } from '../../utils'
 
-const revertReasonSelector = '0x' + cry.keccak256('Error(string)').toString('hex').slice(0, 8)
-const panicErrorSelector = '0x' + cry.keccak256('Panic(uint256)').toString('hex').slice(0, 8)
+const errorSelector = '0x' + cry.keccak256('Error(string)').toString('hex').slice(0, 8)
+const panicSelector = '0x' + cry.keccak256('Panic(uint256)').toString('hex').slice(0, 8)
 
 const decodeReason = (output: string): string | null => {
-    if (output.indexOf(revertReasonSelector) === 0 || output.indexOf(panicErrorSelector) === 0) {
-        const revert = output.indexOf(revertReasonSelector) === 0
+    if (output.indexOf(errorSelector) === 0 || output.indexOf(panicSelector) === 0) {
+        const revert = output.indexOf(errorSelector) === 0
 
         let type = 'string'
         if (!revert) {
