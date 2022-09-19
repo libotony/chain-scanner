@@ -153,12 +153,15 @@ export class Thor {
 
     public explain(arg: Connex.Driver.ExplainArg, revision: string) {
         return this.httpPost<Thor.VMOutput[]>('accounts/*', arg, { revision })
-    }
+    } 
 
-    public traceClause(blockID: string, txIndex: number, clauseIndex = 0) {
+    public traceClause(blockID: string, txIndex: number, clauseIndex = 0, onlyTopCall = true) {
         return this.httpPost<Thor.CallTracerOutput>('debug/tracers', {
             name: 'call',
-            target: `${blockID}/${txIndex}/${clauseIndex}`
+            target: `${blockID}/${txIndex}/${clauseIndex}`,
+            config: {
+                onlyTopCall
+            }
         })
     }
 
