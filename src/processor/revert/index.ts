@@ -104,6 +104,26 @@ export class RevertReason extends Processor {
                             clauseIndex,
                             reason: null
                         }
+                        // get inlined call frame error
+                        if (vmError.error === 'execution reverted') {
+                            const all = await this.thor.traceClause(block.id, txIndex, clauseIndex, false)
+                            
+                            let e = all.error
+                            let t = all
+                            for (; ;) {
+                                if (!t.calls || !t.calls.length) {
+                                    break
+                                }
+                                t = t.calls[t.calls.length - 1]
+                                if (t.error) {
+                                    e = t.error    
+                                }
+                            }
+                            if (e && e !== vmError.error) {
+                                vmError.error = e
+                            }
+                        }
+
                         if (vmError.error === 'execution reverted' && tracer.output) {
                             try {
                                 vmError.reason = decodeReason(tracer.output)
