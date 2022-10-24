@@ -106,32 +106,32 @@ export class RevertReason extends Processor {
                         }
                         // get inlined call frame error
                         if (vmError.error === 'execution reverted') {
-                            const all = await this.thor.traceClause(block.id, txIndex, clauseIndex, false)
-                            
-                            let e = all.error
-                            let t = all
-                            for (; ;) {
-                                if (!t.calls || !t.calls.length) {
-                                    break
+                            if (tracer.output) {
+                                try {
+                                    vmError.reason = decodeReason(tracer.output)
+                                    if (!vmError.reason) {
+                                        logger.error(`unknown revert data format for tx: ${tx.txID} at clause ${clauseIndex}`)
+                                    }
+                                } catch (e) {
+                                    logger.error(`decode reason failed for tx: ${tx.txID} at clause ${clauseIndex}`)
                                 }
-                                t = t.calls[t.calls.length - 1]
-                                if (t.error) {
-                                    e = t.error    
-                                }
-                            }
-                            if (e && e !== vmError.error) {
-                                vmError.error = e
-                            }
-                        }
+                            } else {
+                                const all = await this.thor.traceClause(block.id, txIndex, clauseIndex, false)
 
-                        if (vmError.error === 'execution reverted' && tracer.output) {
-                            try {
-                                vmError.reason = decodeReason(tracer.output)
-                                if (!vmError.reason) {
-                                    logger.error(`unknown revert data format for tx: ${tx.txID} at clause ${clauseIndex}`)
+                                let e = all.error
+                                let t = all
+                                for (; ;) {
+                                    if (!t.calls || !t.calls.length) {
+                                        break
+                                    }
+                                    t = t.calls[t.calls.length - 1]
+                                    if (t.error) {
+                                        e = t.error
+                                    }
                                 }
-                            } catch (e) {
-                                logger.error(`decode reason failed for tx: ${tx.txID} at clause ${clauseIndex}`)
+                                if (e && e !== vmError.error) {
+                                    vmError.error = e
+                                }
                             }
                         }
                         await this.persist.updateVmError(tx.txID, vmError, manager)
