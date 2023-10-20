@@ -1,13 +1,13 @@
-import { AssetMovement } from '../explorer-db/entity/movement'
-import { Config } from '../explorer-db/entity/config'
-import { Snapshot } from '../explorer-db/entity/snapshot'
-import { SnapType, CountType } from '../explorer-db/types'
-import { Network } from '../const'
-import { TokenBalance } from '../explorer-db/entity/token-balance'
+import { AssetMovement } from '../../explorer-db/entity/movement'
+import { Config } from '../../explorer-db/entity/config'
+import { Snapshot } from '../../explorer-db/entity/snapshot'
+import { SnapType, CountType } from '../../explorer-db/types'
+import { Network } from '../../const'
+import { TokenBalance } from '../../explorer-db/entity/token-balance'
 import { createConnection, getConnectionOptions } from 'typeorm'
-import { Counts } from '../explorer-db/entity/counts'
-import { getVIP180Token } from '../token-list'
-import { AssetType } from '../types'
+import { Counts } from '../../explorer-db/entity/counts'
+import { getVIP180Token } from '../../token-list'
+import { AssetType } from '../../types'
 
 const token = getVIP180Token(Network.MainNet, process.argv[2] || 'OCE')
 

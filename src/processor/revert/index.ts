@@ -131,6 +131,7 @@ export class RevertReason extends Processor {
                                 }
                                 if (e && e !== vmError.error) {
                                     vmError.error = e
+                                    console.log(`inner error of target: ${block.id}/${txIndex}/${clauseIndex}, error: ${e}`)
                                 }
                             }
                         }

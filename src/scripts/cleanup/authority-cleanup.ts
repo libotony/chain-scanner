@@ -1,9 +1,9 @@
-import { Config } from '../explorer-db/entity/config'
-import { Snapshot } from '../explorer-db/entity/snapshot'
-import { SnapType } from '../explorer-db/types'
+import { Config } from '../../explorer-db/entity/config'
+import { Snapshot } from '../../explorer-db/entity/snapshot'
+import { SnapType } from '../../explorer-db/types'
 import { createConnection, getConnectionOptions } from 'typeorm'
-import { Authority } from '../explorer-db/entity/authority'
-import { AuthorityEvent } from '../explorer-db/entity/authority-event'
+import { Authority } from '../../explorer-db/entity/authority'
+import { AuthorityEvent } from '../../explorer-db/entity/authority-event'
 
 Promise.resolve().then(async () => {
     const opt = await getConnectionOptions()
