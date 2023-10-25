@@ -1,6 +1,6 @@
 import { Network } from '../const'
 import { Net } from '../net'
-import { Token, AssetType } from '../types'
+import { Token, AssetType } from '../tokens'
 import { promises as fs } from 'fs'
 import * as path from 'path'
 

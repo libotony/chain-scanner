@@ -1,10 +1,10 @@
-import { Config } from '../explorer-db/entity/config'
+import { Config } from '../../explorer-db/entity/config'
 import { createConnection, getConnectionOptions, In } from 'typeorm'
-import { Persist } from '../processor/revert/persist'
-import { getPrevBlockIDWithReverted } from '../service/block'
-import { Transaction } from '../explorer-db/entity/transaction'
-import { blockIDtoNum } from '../utils'
-import { TransactionMeta } from '../explorer-db/entity/tx-meta'
+import { Persist } from '../../processor/revert/persist'
+import { getPrevBlockIDWithReverted } from '../../service/block'
+import { Transaction } from '../../explorer-db/entity/transaction'
+import { blockIDtoNum } from '../../utils'
+import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
 
 let shutdown = false
 const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM', 'SIGQUIT']

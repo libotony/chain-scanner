@@ -1,11 +1,11 @@
-import { Account } from '../explorer-db/entity/account'
-import { AssetMovement } from '../explorer-db/entity/movement'
-import { Config } from '../explorer-db/entity/config'
-import { Snapshot } from '../explorer-db/entity/snapshot'
-import { SnapType, CountType } from '../explorer-db/types'
+import { Account } from '../../explorer-db/entity/account'
+import { AssetMovement } from '../../explorer-db/entity/movement'
+import { Config } from '../../explorer-db/entity/config'
+import { Snapshot } from '../../explorer-db/entity/snapshot'
+import { SnapType, CountType } from '../../explorer-db/types'
 import { In, createConnection, getConnectionOptions } from 'typeorm'
-import { Counts } from '../explorer-db/entity/counts'
-import { AssetType } from '../types'
+import { Counts } from '../../explorer-db/entity/counts'
+import { AssetType } from '../../tokens'
 
 Promise.resolve().then(async () => {
     const opt = await getConnectionOptions()

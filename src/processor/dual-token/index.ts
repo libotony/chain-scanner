@@ -18,7 +18,7 @@ import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
 import { getBlockByNumber, getExpandedBlockByID, getExpandedBlockByNumber, getNextBlockIDWithTx } from '../../service/block'
 import { Counts } from '../../explorer-db/entity/counts'
 import { saveCounts } from '../../service/counts'
-import { AssetType } from '../../types'
+import { AssetType } from '../../tokens'
 
 export class DualToken extends Processor {
     private persist: Persist

@@ -1,9 +1,9 @@
-import { Config } from '../explorer-db/entity/config'
-import { Snapshot } from '../explorer-db/entity/snapshot'
-import { SnapType, CountType } from '../explorer-db/types'
+import { Config } from '../../explorer-db/entity/config'
+import { Snapshot } from '../../explorer-db/entity/snapshot'
+import { SnapType, CountType } from '../../explorer-db/types'
 import { createConnection, getConnectionOptions } from 'typeorm'
-import { Counts } from '../explorer-db/entity/counts'
-import { AggregatedTransaction } from '../explorer-db/entity/aggregated-tx'
+import { Counts } from '../../explorer-db/entity/counts'
+import { AggregatedTransaction } from '../../explorer-db/entity/aggregated-tx'
 
 Promise.resolve().then(async () => {
     const opt = await getConnectionOptions()

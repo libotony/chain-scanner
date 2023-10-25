@@ -5,7 +5,7 @@ import { getBlockByNumber } from '../../service/block'
 import { Block } from '../../explorer-db/entity/block'
 import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
 import { Counts } from '../../explorer-db/entity/counts'
-import { AssetType } from '../../types'
+import { AssetType } from '../../tokens'
 
 const net = getNetwork()
 const persist = new Persist()

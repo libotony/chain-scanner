@@ -5,7 +5,7 @@ import { AssetMovement } from '../../explorer-db/entity/movement'
 import { CountType } from '../../explorer-db/types'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
-import { AssetType, Token } from '../../types'
+import { AssetType, Token } from '../../tokens'
 import { Counts } from '../../explorer-db/entity/counts'
 
 export type RecentSnapshot = Snapshot & { isTrunk: boolean }

@@ -4,7 +4,7 @@ import { AssetMovement } from '../../explorer-db/entity/movement'
 import { Account } from '../../explorer-db/entity/account'
 import { CountType } from '../../explorer-db/types'
 import { Counts } from '../../explorer-db/entity/counts'
-import { AssetType } from '../../types'
+import { AssetType } from '../../tokens'
 
 const HEAD_KEY = 'dual-token-head'
 export const TypeVETCount = CountType.Transfer + AssetType.VET

@@ -12,7 +12,7 @@ import * as logger from '../logger'
 import { ExpandTX } from '../processor/expand-tx'
 import { Noop } from '../processor/noop'
 import { RevertReason } from '../processor/revert'
-import { getVIP180Token } from '../token-list'
+import { getToken } from '../tokens'
 
 const printUsage = (msg = '') => {
     logger.error(`${msg ? msg + '\n\n' : ''}Usage: node index.js [Network][Task][...Args]
@@ -57,7 +57,7 @@ switch (process.argv[3]) {
             printUsage('token symbol needed')
         }
         try {
-            const token = getVIP180Token(net!, process.argv[4])
+            const token = getToken(net!, process.argv[4])
             task =  new VIP180Transfer(thor, token)
         } catch (e) {
             printUsage((e as Error).message)

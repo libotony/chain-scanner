@@ -17,7 +17,7 @@ import { TransactionMeta } from '../../explorer-db/entity/tx-meta'
 import { Block } from '../../explorer-db/entity/block'
 import { Counts } from '../../explorer-db/entity/counts'
 import { saveCounts } from '../../service/counts'
-import { AssetType, Token } from '../../types'
+import { AssetType, Token } from '../../tokens'
 import { getExpandedBlockByNumber } from '../../service/block'
 
 interface SnapAccount {

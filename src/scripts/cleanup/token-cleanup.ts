@@ -6,10 +6,10 @@ import { Network } from '../../const'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
 import { createConnection, getConnectionOptions } from 'typeorm'
 import { Counts } from '../../explorer-db/entity/counts'
-import { getVIP180Token } from '../../token-list'
-import { AssetType } from '../../types'
+import { getToken } from '../../tokens'
+import { AssetType } from '../../tokens'
 
-const token = getVIP180Token(Network.MainNet, process.argv[2] || 'OCE')
+const token = getToken(Network.MainNet, process.argv[2] || 'OCE')
 
 Promise.resolve().then(async () => {
     const opt = await getConnectionOptions()

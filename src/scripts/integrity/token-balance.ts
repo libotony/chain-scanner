@@ -11,12 +11,12 @@ import { getBlockByNumber } from '../../service/block'
 import { Block } from '../../explorer-db/entity/block'
 import { Counts } from '../../explorer-db/entity/counts'
 import { AggregatedMovement } from '../../explorer-db/entity/aggregated-move'
-import { getVIP180Token } from '../../token-list'
-import { AssetType } from '../../types'
+import { getToken } from '../../tokens'
+import { AssetType } from '../../tokens'
 
 const net = getNetwork()
 const thor = new Thor(new Net(getThorREST()), net)
-const token = getVIP180Token(thor.genesisID, process.argv[3] || 'OCE')
+const token = getToken(thor.genesisID, process.argv[3] || 'OCE')
 const persist = new Persist(token)
 const assetType = AssetType[token.symbol as keyof typeof AssetType]
 const countsType = CountType.Transfer + assetType
