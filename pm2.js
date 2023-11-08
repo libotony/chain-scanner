@@ -4,19 +4,11 @@ const path = require('path')
 const fs = require('fs')
 const { promisify } = require('util')
 
-const printUsage = (msg = '') => {
-    console.error(`${msg ? msg + '\n\n' : ''}Usage: node pm2.js [Command][Network][Task]
---------
-Command:    [start|stop|reload|restart]
-Network:    [main|test]
-Task:       [foundation|expand-tx|dual-token|token|authority|revert]`)
-    process.exit(-1)
-}
-
-if (process.argv.length < 5) {
-    printUsage()
-    process.exit(-1)
-}
+const connect = promisify(pm2.connect.bind(pm2))
+const describe = promisify(pm2.describe.bind(pm2))
+const start = promisify(pm2.start.bind(pm2))
+const stop = promisify(pm2.stop.bind(pm2))
+const reload = promisify(pm2.reload.bind(pm2))
 
 const exists = async (path) => {
     try {
@@ -31,6 +23,20 @@ const command = process.argv[2]
 const network = process.argv[3]
 const taskName = process.argv[4]
 
+const printUsage = (msg = '') => {
+    console.error(`${msg ? msg + '\n\n' : ''}Usage: node pm2.js [Command][Network][Task]
+--------
+Command:    [start|stop|reload|restart]
+Network:    [main|test]
+Task:       [foundation|expand-tx|dual-token|token|authority|revert]`)
+    process.exit(-1)
+}
+
+if (process.argv.length < 5) {
+    printUsage()
+    process.exit(-1)
+}
+
 if (network !== 'main' && network !== 'test') { 
     printUsage(`Unknown network: ${network}`)
 }
@@ -38,12 +44,6 @@ if (network !== 'main' && network !== 'test') {
 if (['foundation', 'expand-tx', 'dual-token', 'token', 'authority', 'revert'].indexOf(taskName) < 0) { 
     printUsage(`Unknown task: ${taskName}`)
 }
-
-const connect = promisify(pm2.connect.bind(pm2))
-const describe = promisify(pm2.describe.bind(pm2))
-const start = promisify(pm2.start.bind(pm2))
-const stop = promisify(pm2.stop.bind(pm2))
-const reload = promisify(pm2.reload.bind(pm2))
 
 const startTask = async (config) => {
     const desc = await describe(config.name)
@@ -82,6 +82,7 @@ const getTokens = async (network) => {
 }
 
 void (async () => {
+    const entryFile = 'dist/main/index.js'
     const envPath = path.join(__dirname, '.env')
     let envObj = {}
     if (await exists(envPath)) {
@@ -97,7 +98,7 @@ void (async () => {
                     console.log(`start token-${t}`)
                     await startTask({
                         name: `token-${t}`,
-                        script: 'index.js',
+                        script: entryFile,
                         args: [network, 'token', t],
                         env: envObj
                     })
@@ -105,7 +106,7 @@ void (async () => {
             } else {
                 await startTask({
                     name: taskName,
-                    script: 'index.js',
+                    script: entryFile,
                     args: [network, taskName],
                     env: envObj
                 })
