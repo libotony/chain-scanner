@@ -9,7 +9,7 @@ import { createConnection } from 'typeorm'
 import { Net } from '../net'
 import { getThorREST } from '../utils'
 import * as logger from '../logger'
-import { ExpandTX } from '../processor/expand-tx'
+import { TxIndexer } from '../processor/tx-indexer'
 import { Noop } from '../processor/noop'
 import { RevertReason } from '../processor/revert'
 import { getToken } from '../tokens'
@@ -18,7 +18,7 @@ const printUsage = (msg = '') => {
     logger.error(`${msg ? msg + '\n\n' : ''}Usage: node index.js [Network][Task][...Args]
 --------
 Network:    [main|test]
-Task:       [foundation|expand-tx|dual-token|token|authority|revert]`)
+Task:       [foundation|tx-indexer|dual-token|token|authority|revert]`)
     process.exit(-1)
 }
 
@@ -46,8 +46,8 @@ switch (process.argv[3]) {
     case 'foundation':
         task = new Foundation(thor)
         break
-    case 'expand-tx':
-        task = new ExpandTX(thor)
+    case 'tx-indexer':
+        task = new TxIndexer(thor)
         break
     case 'dual-token':
         task = new DualToken(thor)

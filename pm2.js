@@ -41,7 +41,7 @@ if (network !== 'main' && network !== 'test') {
     printUsage(`Unknown network: ${network}`)
 }
 
-if (['foundation', 'expand-tx', 'dual-token', 'token', 'authority', 'revert'].indexOf(taskName) < 0) { 
+if (['foundation', 'tx-indexer', 'dual-token', 'token', 'authority', 'revert'].indexOf(taskName) < 0) { 
     printUsage(`Unknown task: ${taskName}`)
 }
 

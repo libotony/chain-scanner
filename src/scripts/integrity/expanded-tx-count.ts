@@ -4,7 +4,7 @@ import { getBlockByNumber } from '../../service/block'
 import { Block } from '../../explorer-db/entity/block'
 import { CountType, MoveType } from '../../explorer-db/types'
 import { Counts } from '../../explorer-db/entity/counts'
-import { Persist } from '../../processor/expand-tx/persist'
+import { Persist } from '../../processor/tx-indexer/persist'
 import { AggregatedTransaction } from '../../explorer-db/entity/aggregated-tx'
 
 const net = getNetwork()

@@ -82,7 +82,7 @@ class BlockProcessor {
     }
 }
 
-export class ExpandTX extends Processor {
+export class TxIndexer extends Processor {
     private persist: Persist
 
     constructor(
