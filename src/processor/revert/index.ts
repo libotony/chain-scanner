@@ -9,7 +9,7 @@ import { Thor } from '../../thor-rest'
 import * as logger from '../../logger'
 import { REVERSIBLE_WINDOW } from '../../config'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
-import { clearSnapShot, insertSnapshot, listRecentSnapshot } from '../../service/snapshot'
+import { clearSnapShot, saveSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { getExpandedBlockByID, getExpandedBlockByNumber, getNextBlockIDWithReverted } from '../../service/block'
 import { blockIDtoNum } from '../../utils'
 
@@ -91,7 +91,7 @@ export class RevertReason extends Processor {
     /**
      * @return inserted column number
      */
-    protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, saveSnapshot = false) {
+    protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, snapshot = false) {
         let cnt = 0
         for (const [txIndex, txMeta] of txs.entries()) {
             const tx = txMeta.transaction
@@ -143,12 +143,12 @@ export class RevertReason extends Processor {
             }
         }
 
-        if (saveSnapshot && cnt > 0) {
+        if (snapshot && cnt > 0) {
             const snapshot = new Snapshot()
             snapshot.blockID = block.id
             snapshot.type = this.snapType
             snapshot.data = null
-            await insertSnapshot(snapshot, manager)
+            await saveSnapshot(snapshot, manager)
         }
 
         return cnt ? cnt : 1

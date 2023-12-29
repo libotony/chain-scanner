@@ -1,7 +1,7 @@
 import { SnapType, MoveType, CountType } from '../../explorer-db/types'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
-import { insertSnapshot, listRecentSnapshot, clearSnapShot, removeSnapshot } from '../../service/snapshot'
+import { saveSnapshot, listRecentSnapshot, clearSnapShot, removeSnapshot } from '../../service/snapshot'
 import { EntityManager, getConnection } from 'typeorm'
 import { Processor } from '../processor'
 import * as logger from '../../logger'
@@ -121,7 +121,7 @@ export class TxIndexer extends Processor {
     /**
      * @return inserted column number
      */
-    protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, saveSnapshot = false) {
+    protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, snapshot = false) {
         const proc = new BlockProcessor(block, manager)
         const aggregated: AggregatedTransaction[] = []
         for (const [_, meta] of txs.entries()) {
@@ -156,8 +156,8 @@ export class TxIndexer extends Processor {
         }
         await this.persist.saveTXs(aggregated, manager)
         await saveCounts(proc.counts(), manager)
-        if (saveSnapshot) {
-            await insertSnapshot(proc.snapshot(), manager)
+        if (snapshot) {
+            await saveSnapshot(proc.snapshot(), manager)
         }
 
         return aggregated.length

@@ -11,7 +11,7 @@ import { BLOCK_INTERVAL, REVERSIBLE_WINDOW } from '../../config'
 import * as logger from '../../logger'
 import { Thor } from '../../thor-rest'
 import { blockIDtoNum, displayID } from '../../utils'
-import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
+import { saveSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { Processor } from '../processor'
 import { Persist } from './persist'
 import { ListAll, ListInactive, MasterNode } from './auth-utils'
@@ -60,7 +60,7 @@ export class MasterNodeWatcher extends Processor {
     /**
      * @return inserted column number
      */
-    protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, saveSnapshot = false) {
+    protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, snapshot = false) {
         const nodes = await this.persist.getAll(manager)
 
         let inActiveNodes: MasterNode[] = []
@@ -278,12 +278,12 @@ export class MasterNodeWatcher extends Processor {
             }
         }
 
-        if (saveSnapshot) {
+        if (snapshot) {
             const snapshot = new Snapshot()
             snapshot.blockID = block.id
             snapshot.type = this.snapType
             snapshot.data = snapData
-            await insertSnapshot(snapshot, manager)
+            await saveSnapshot(snapshot, manager)
         }
 
         return 1 + events.length * 2

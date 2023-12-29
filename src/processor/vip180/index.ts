@@ -5,7 +5,7 @@ import { REVERSIBLE_WINDOW } from '../../config'
 import { Thor } from '../../thor-rest'
 import { Persist } from './persist'
 import { TransferEvent, ZeroAddress, prototype, DepositEvent, WithdrawalEvent } from '../../const'
-import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
+import { saveSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { EntityManager, getConnection } from 'typeorm'
 import { TokenBalance } from '../../explorer-db/entity/token-balance'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
@@ -247,7 +247,7 @@ export class VIP180Transfer extends Processor {
     /**
      * @return inserted column number
      */
-    protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, saveSnapshot = false) {
+    protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, snapshot = false) {
         const proc = new BlockProcessor(this.asset, this.persist, block, manager)
         const movements: AssetMovement[] = []
 
@@ -352,8 +352,8 @@ export class VIP180Transfer extends Processor {
             await saveCounts(counts, manager)
         }
 
-        if (saveSnapshot) {
-            await insertSnapshot(proc.snapshot(), manager)
+        if (snapshot) {
+            await saveSnapshot(proc.snapshot(), manager)
         }
 
         return movements.length + accounts.length + counts.length

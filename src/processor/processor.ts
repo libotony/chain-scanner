@@ -40,7 +40,7 @@ export abstract class Processor {
         block: Block,
         txs: TransactionMeta[],
         manager: EntityManager,
-        saveSnapshot?: boolean
+        snapshot?: boolean
     ): Promise<number>
     protected abstract latestTrunkCheck(): Promise<void>
 

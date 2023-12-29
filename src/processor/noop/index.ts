@@ -45,7 +45,7 @@ export class Noop extends Processor {
     /**
      * @return inserted column number
      */
-    protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, saveSnapshot = false) {
+    protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, snapshot = false) {
         return 1 + txs.length
     }
 

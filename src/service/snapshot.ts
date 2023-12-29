@@ -3,7 +3,7 @@ import { REVERSIBLE_WINDOW } from '../config'
 import { Snapshot } from '../explorer-db/entity/snapshot'
 import { SnapType } from '../explorer-db/types'
 
-export const insertSnapshot = (snap: Snapshot, manager?: EntityManager) => {
+export const saveSnapshot = (snap: Snapshot, manager?: EntityManager) => {
     if (!manager) {
         manager = getConnection().manager
     }
