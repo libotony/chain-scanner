@@ -267,7 +267,7 @@ export class Foundation {
                                 transfers: []
                             }
                             if (o.events.length && o.transfers.length) {
-                                const tracer = await this.thor.traceClause(b.id, index, clauseIndex)
+                                const tracer = await this.thor.traceClause(b.id, index, clauseIndex, false)
                                 try {
                                     let logIndex = 0
                                     for (const item of newIterator(tracer, o.events, o.transfers)) {

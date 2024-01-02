@@ -28,7 +28,7 @@ createConnection().then(async (conn) => {
             }
 
             if (o.events.length && o.transfers.length) {
-                const tracer = await thor.traceClause(tx.blockID, tx.seq.txIndex, clauseIndex)
+                const tracer = await thor.traceClause(tx.blockID, tx.seq.txIndex, clauseIndex, false)
                 try {
                     let logIndex = 0
                     for (const item of newIterator(tracer, o.events, o.transfers)) {
