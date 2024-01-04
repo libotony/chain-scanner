@@ -1,17 +1,17 @@
 import { EntityManager } from 'typeorm'
-import { AssetList, updateTime } from '../tokens'
+import { AssetConfig, updateTime } from '../tokens'
 import { Config } from '../explorer-db/entity/config'
 
 interface TokenConfig { 
     updateTime: number,
-    tokens: object
+    config: object
 }
-const TOKEN_LIST_KEY = 'token-list'
+const TOKEN_CONFIG_KEY = 'token-config'
 
 export const updateTokenConfig = async (manager: EntityManager) => { 
     const conf = await manager
         .getRepository(Config)
-        .findOne({ key: TOKEN_LIST_KEY })
+        .findOne({ key: TOKEN_CONFIG_KEY })
 
     if (conf) {
         try {
@@ -24,10 +24,10 @@ export const updateTokenConfig = async (manager: EntityManager) => {
     }
 
     const config = new Config()
-    config.key = TOKEN_LIST_KEY
+    config.key = TOKEN_CONFIG_KEY
     config.value = JSON.stringify({
         updateTime,
-        tokens: AssetList
+        config: AssetConfig 
     } as TokenConfig)
     await manager.save(config)
 }

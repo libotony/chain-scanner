@@ -507,5 +507,206 @@ export const getToken = (net: Network, symbol: string) => {
 
     return list[net][symbol]
 }
-export const AssetList = {'VET':0,'VTHO':1,'PLA':2,'SHA':3,'EHrT':4,'DBET':5,'TIC':6,'OCE':7,'SNK':8,'JUR':9,'AQD':10,'YEET':11,'HAI':12,'MDN':13,'VEED':14,'VPU':15,'MVG':16,'WoV':17,'GEMS':18,'VEX':19,'VEUSD':20,'VVET':21,'DHN':22,'UNION':23,'VST':24,'PPR':25,'DRAGON':26,'VSEA':27,'BANANA':28,'GOLD':29,'LGCT':30,'VFA':31,'FCWS':32,'MVC':33,'MVA':34,'3DT':35,'LION':36,'SHT':37,'SQUAD':38,'BVC':39,'USDV':40,'VSC':41,'Rain':42,'MILK':43,'PLG':44,'EXO':45,'UNO':46,'GCRED':47,'VEME':48,'TVIRC':100}
-export const updateTime = 1704286940078
+export const AssetConfig: {[index:string]:{type:number, decimals: number}} = {
+    "VET": {
+        "type": 0,
+        "decimals": 18
+    },
+    "VTHO": {
+        "type": 1,
+        "decimals": 18
+    },
+    "PLA": {
+        "type": 2,
+        "decimals": 18
+    },
+    "SHA": {
+        "type": 3,
+        "decimals": 18
+    },
+    "EHrT": {
+        "type": 4,
+        "decimals": 18
+    },
+    "DBET": {
+        "type": 5,
+        "decimals": 18
+    },
+    "TIC": {
+        "type": 6,
+        "decimals": 18
+    },
+    "OCE": {
+        "type": 7,
+        "decimals": 18
+    },
+    "SNK": {
+        "type": 8,
+        "decimals": 18
+    },
+    "JUR": {
+        "type": 9,
+        "decimals": 18
+    },
+    "AQD": {
+        "type": 10,
+        "decimals": 18
+    },
+    "YEET": {
+        "type": 11,
+        "decimals": 18
+    },
+    "HAI": {
+        "type": 12,
+        "decimals": 8
+    },
+    "MDN": {
+        "type": 13,
+        "decimals": 18
+    },
+    "VEED": {
+        "type": 14,
+        "decimals": 18
+    },
+    "VPU": {
+        "type": 15,
+        "decimals": 18
+    },
+    "MVG": {
+        "type": 16,
+        "decimals": 18
+    },
+    "WoV": {
+        "type": 17,
+        "decimals": 18
+    },
+    "GEMS": {
+        "type": 18,
+        "decimals": 18
+    },
+    "VEX": {
+        "type": 19,
+        "decimals": 18
+    },
+    "VEUSD": {
+        "type": 20,
+        "decimals": 6
+    },
+    "VVET": {
+        "type": 21,
+        "decimals": 18
+    },
+    "DHN": {
+        "type": 22,
+        "decimals": 18
+    },
+    "UNION": {
+        "type": 23,
+        "decimals": 18
+    },
+    "VST": {
+        "type": 24,
+        "decimals": 18
+    },
+    "PPR": {
+        "type": 25,
+        "decimals": 18
+    },
+    "DRAGON": {
+        "type": 26,
+        "decimals": 18
+    },
+    "VSEA": {
+        "type": 27,
+        "decimals": 18
+    },
+    "BANANA": {
+        "type": 28,
+        "decimals": 18
+    },
+    "GOLD": {
+        "type": 29,
+        "decimals": 18
+    },
+    "LGCT": {
+        "type": 30,
+        "decimals": 18
+    },
+    "VFA": {
+        "type": 31,
+        "decimals": 18
+    },
+    "FCWS": {
+        "type": 32,
+        "decimals": 0
+    },
+    "MVC": {
+        "type": 33,
+        "decimals": 18
+    },
+    "MVA": {
+        "type": 34,
+        "decimals": 18
+    },
+    "3DT": {
+        "type": 35,
+        "decimals": 18
+    },
+    "LION": {
+        "type": 36,
+        "decimals": 18
+    },
+    "SHT": {
+        "type": 37,
+        "decimals": 18
+    },
+    "SQUAD": {
+        "type": 38,
+        "decimals": 18
+    },
+    "BVC": {
+        "type": 39,
+        "decimals": 18
+    },
+    "USDV": {
+        "type": 40,
+        "decimals": 6
+    },
+    "VSC": {
+        "type": 41,
+        "decimals": 18
+    },
+    "Rain": {
+        "type": 42,
+        "decimals": 18
+    },
+    "MILK": {
+        "type": 43,
+        "decimals": 18
+    },
+    "PLG": {
+        "type": 44,
+        "decimals": 18
+    },
+    "EXO": {
+        "type": 45,
+        "decimals": 18
+    },
+    "UNO": {
+        "type": 46,
+        "decimals": 18
+    },
+    "GCRED": {
+        "type": 47,
+        "decimals": 18
+    },
+    "VEME": {
+        "type": 48,
+        "decimals": 0
+    },
+    "TVIRC": {
+        "type": 100,
+        "decimals": 18
+    }
+}
+export const updateTime = 1704344740198
