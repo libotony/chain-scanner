@@ -13,6 +13,7 @@ import { TxIndexer } from '../processor/tx-indexer'
 import { Noop } from '../processor/noop'
 import { RevertReason } from '../processor/revert'
 import { getToken } from '../tokens'
+import { updateTokenConfig } from './token-config'
 
 const printUsage = (msg = '') => {
     logger.error(`${msg ? msg + '\n\n' : ''}Usage: node index.js [Network][Task][...Args]
@@ -77,7 +78,10 @@ switch (process.argv[3]) {
 }
 let shutdown =  false
 
-createConnection().then(async () => {
+createConnection().then(async (conn) => {
+    if (task instanceof VIP180Transfer) {
+        await updateTokenConfig(conn.manager)
+     }
     await task.start()
 }).catch((e: Error) => {
     logger.error(`Start task(${process.argv[3]}) at Net(${process.argv[2]}): ` + (e as Error).stack)
