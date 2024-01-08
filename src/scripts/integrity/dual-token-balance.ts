@@ -5,7 +5,7 @@ import { Account } from '../../explorer-db/entity/account'
 import { PrototypeAddress, ZeroAddress, prototype, ParamsAddress, AuthorityAddress, EnergyAddress, ExecutorAddress, ExtensionAddress} from '../../const'
 import { Net } from '../../net'
 import { getNetwork, checkNetworkWithDB } from '../network'
-import { getThorREST } from '../../utils'
+import { ENERGY_GROWTH_RATE, getThorREST } from '../../utils'
 import { getBlockByNumber } from '../../service/block'
 import { Block } from '../../explorer-db/entity/block'
 import { AssetMovement } from '../../explorer-db/entity/movement'
@@ -95,11 +95,11 @@ createConnection().then(async (conn) => {
         if (acc.blockTime < block.timestamp) {
             acc.energy =
                 acc.energy
-                + BigInt(5000000000) * acc.balance * BigInt(block.timestamp - acc.blockTime)
+                + ENERGY_GROWTH_RATE * acc.balance * BigInt(block.timestamp - acc.blockTime)
                 / BigInt(1e18)
         }
         if (acc.energy !== BigInt(chainAcc.energy)) {
-            throw new Error(`Fatal: energy mismatch of Account(${acc.address}) chain:${chainAcc.energy} db:${acc.energy}`)
+            throw new Error(`Fatal: energy mismatch of Account(${acc.address}) chain:${BigInt(chainAcc.energy)} db:${acc.energy} diff:${(BigInt(chainAcc.energy) - acc.energy)/BigInt(1e18)}`)
         }
 
         if (chainAcc.hasCode === false && acc.code !== null) {

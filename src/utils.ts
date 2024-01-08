@@ -46,6 +46,8 @@ export const getThorREST = () => {
     return process.env.THOR_REST || 'http://localhost:8669'
 }
 
+export const ENERGY_GROWTH_RATE = BigInt(5000000000)
+
 class Metric {
     private duration = BigInt(0)
     constructor(readonly name: string) { }

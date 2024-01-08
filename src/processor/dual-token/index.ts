@@ -4,11 +4,10 @@ import { blockIDtoNum, displayID } from '../../utils'
 import { REVERSIBLE_WINDOW, SUICIDED_CHECK_INTERVAL } from '../../config'
 import { EnergyAddress, TransferEvent, getPreAllocAccount, Network, prototype, getForkConfig, ForkConfig } from '../../const'
 import { getConnection, EntityManager } from 'typeorm'
-import { BlockProcessor, SnapAccount } from './block-processor'
 import { AssetMovement } from '../../explorer-db/entity/movement'
 import { Account } from '../../explorer-db/entity/account'
 import { Snapshot } from '../../explorer-db/entity/snapshot'
-import { insertSnapshot, clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
+import { clearSnapShot, removeSnapshot, listRecentSnapshot } from '../../service/snapshot'
 import { Processor } from '../processor'
 import { SnapType, MoveType } from '../../explorer-db/types'
 import * as logger from '../../logger'
@@ -19,6 +18,7 @@ import { getBlockByNumber, getExpandedBlockByID, getExpandedBlockByNumber, getNe
 import { Counts } from '../../explorer-db/entity/counts'
 import { saveCounts } from '../../service/counts'
 import { AssetType } from '../../tokens'
+import { BlockProcessorV2, SnapAccount } from './block-processor-v2'
 
 export class DualToken extends Processor {
     private persist: Persist
@@ -77,8 +77,8 @@ export class DualToken extends Processor {
     /**
      * @return inserted column number
      */
-    protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, saveSnapshot = false) {
-        const proc = new BlockProcessor(block, this.thor, manager)
+    protected async processBlock(block: Block, txs: TransactionMeta[], manager: EntityManager, keepSnapshot = false) {
+        const proc = new BlockProcessorV2(block, this.thor, manager)
         await proc.prepare()
 
         const attachAggregated = (transfer: AssetMovement) => {
@@ -119,6 +119,7 @@ export class DualToken extends Processor {
             }
         }
 
+        let reward = BigInt(0)
         for (const meta of txs) {
             for (const [clauseIndex, o] of meta.transaction.outputs.entries()) {
                 for (const [_, t] of o.transfers.entries()) {
@@ -136,8 +137,8 @@ export class DualToken extends Processor {
                     })
                     attachAggregated(transfer)
 
-                    await proc.transferVeChain(transfer)
-                    if (saveSnapshot) {
+                    await proc.transferVET(transfer)
+                    if (keepSnapshot) {
                         logger.log(`Account(${transfer.sender}) -> Account(${transfer.recipient}): ${transfer.amount} VET`)
                     }
                 }
@@ -152,13 +153,11 @@ export class DualToken extends Processor {
                                 await proc.sponsorSelected(e.address, decoded.sponsor)
                                 break
                             case prototype.unsponsored:
-                                await proc.sponsorUnSponsored(e.address, decoded.sponsor)
+                                await proc.unsponsored(e.address, decoded.sponsor)
                                 break
                             case prototype.sponsored:
-                                const sponsor = await proc.getCurrentSponsor(e.address)
-                                if (!!sponsor && decoded.sponsor === sponsor) {
-                                    await proc.sponsorSelected(e.address, decoded.sponsor)
-                                }
+                                await proc.sponsored(e.address, decoded.sponsor)
+                                break
                         }
                     } else if (e.address === EnergyAddress && e.topics[0] === TransferEvent.signature) {
                         const decoded = TransferEvent.decode(e.data, e.topics)
@@ -178,41 +177,23 @@ export class DualToken extends Processor {
                         attachAggregated(transfer)
 
                         await proc.transferEnergy(transfer)
-                        if (saveSnapshot) {
+                        if (keepSnapshot) {
                             logger.log(`Account(${transfer.sender}) -> Account(${transfer.recipient}): ${transfer.amount} VTHO`)
                         }
                     }
                 }
             }
-            await proc.touchEnergy(meta.transaction.gasPayer)
+            await proc.txFee(meta.transaction.gasPayer, meta.transaction.paid)
+            reward += BigInt(meta.transaction.reward)
         }
-        if (txs.length) {
-            await proc.touchEnergy(block.beneficiary)
-        }
-
-        if (saveSnapshot && (block.number % SUICIDED_CHECK_INTERVAL === 0)) {
-            await proc.checkSuicided()
+        if (reward > BigInt(0)) {
+            await proc.reward(block.beneficiary, reward)
         }
 
-        if (proc.Movement.length) {
-            await this.persist.saveMovements(proc.Movement, manager)
+        if (keepSnapshot && (block.number % SUICIDED_CHECK_INTERVAL === 0)) {
+            await proc.checkDestruct()
         }
-        if (saveSnapshot) {
-            const snap = proc.snapshot()
-            await insertSnapshot(snap, manager)
-        }
-
-        await proc.finalize()
-        const accs = proc.accounts()
-        if (accs.length) {
-            await this.persist.saveAccounts(accs, manager)
-        }
-        const cnts = proc.counts()
-        if (cnts.length) {
-            await saveCounts(cnts, manager)
-        }
-
-        return proc.Movement.length + accs.length + cnts.length
+        return await proc.finalize(this.persist, manager, keepSnapshot) 
     }
 
     protected async latestTrunkCheck() {
@@ -244,14 +225,13 @@ export class DualToken extends Processor {
         const block = (await getBlockByNumber(0))!
 
         await getConnection().transaction(async (manager) => {
-            const proc = new BlockProcessor(block, this.thor, manager)
+            const proc = new BlockProcessorV2(block, this.thor, manager)
+            await proc.prepare()
 
-            for (const addr of getPreAllocAccount(block.id as Network)) {
-                await proc.genesisAccount(addr)
-            }
+            const accounts = getPreAllocAccount(block.id as Network)
+            await proc.handlePreAlloc(accounts)
 
-            await proc.finalize()
-            await this.persist.saveAccounts(proc.accounts(), manager)
+            await proc.finalize(this.persist, manager, false)
             await this.saveHead(0, manager)
         })
         this.head = 0
@@ -278,6 +258,8 @@ export class DualToken extends Processor {
                                 address: snapAcc.address,
                                 balance: BigInt(snapAcc.balance),
                                 energy: BigInt(snapAcc.energy),
+                                generated: BigInt(snapAcc.generated),
+                                paid: BigInt(snapAcc.paid),
                                 blockTime: snapAcc.blockTime,
                                 firstSeen: snapAcc.firstSeen,
                                 code: snapAcc.code,
@@ -307,7 +289,7 @@ export class DualToken extends Processor {
             }
 
             for (const [_, acc] of accounts.entries()) {
-                logger.log(`Account(${acc.address}) reverted to VET(${acc.balance}) Energy(${acc.balance}) BlockTime(${acc.blockTime}) at Block(${displayID(headID)})`)
+                logger.log(`Account(${acc.address}) reverted to VET(${acc.balance}) Energy(${acc.balance}) Generated(${acc.generated}) Paid(${acc.paid}) BlockTime(${acc.blockTime}) at Block(${displayID(headID)})`)
             }
             for (const acc of accCreated) {
                 logger.log(`newAccount(${acc}) removed for revert at Block(${displayID(headID)})`)
