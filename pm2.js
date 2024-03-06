@@ -28,7 +28,7 @@ const printUsage = (msg = '') => {
 --------
 Command:    [start|stop|reload|restart]
 Network:    [main|test]
-Task:       [foundation|expand-tx|dual-token|token|authority|revert]`)
+Task:       [foundation|tx-indexer|dual-token|token|authority|revert]`)
     process.exit(-1)
 }
 
@@ -100,6 +100,7 @@ void (async () => {
                         name: `token-${t}`,
                         script: entryFile,
                         args: [network, 'token', t],
+                        log_date_format: "YYYY-MM-DD HH:mm:ss",
                         env: envObj
                     })
                 }
@@ -108,6 +109,7 @@ void (async () => {
                     name: taskName,
                     script: entryFile,
                     args: [network, taskName],
+                    log_date_format: "YYYY-MM-DD HH:mm:ss",
                     env: envObj
                 })
             }
