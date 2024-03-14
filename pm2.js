@@ -24,7 +24,7 @@ const network = process.argv[3]
 const taskName = process.argv[4]
 
 const printUsage = (msg = '') => {
-    console.error(`${msg ? msg + '\n\n' : ''}Usage: node pm2.js [Command][Network][Task]
+    console.error(`${msg ? msg + '\n\n' : ''}Usage: node pm2.js [Command][Network][Task][Args]
 --------
 Command:    [start|stop|reload|restart]
 Network:    [main|test]
@@ -94,15 +94,30 @@ void (async () => {
         case 'start':
             if (taskName === 'token') {
                 const tokens = await getTokens(network)
-                for (const t of tokens) {
-                    console.log(`start token-${t}`)
-                    await startTask({
-                        name: `token-${t}`,
-                        script: entryFile,
-                        args: [network, 'token', t],
-                        log_date_format: "YYYY-MM-DD HH:mm:ss",
-                        env: envObj
-                    })
+                if (process.argv[5]) {
+                    const token = process.argv[5]
+                    if (tokens.indexOf(token) < 0) {
+                        printUsage(`Unknown token: ${token}`)
+                    } else {
+                        await startTask({
+                            name: `token-${t}`,
+                            script: entryFile,
+                            args: [network, 'token', t],
+                            log_date_format: "YYYY-MM-DD HH:mm:ss",
+                            env: envObj
+                        })
+                    }
+                } else {
+                    for (const t of tokens) {
+                        console.log(`start token-${t}`)
+                        await startTask({
+                            name: `token-${t}`,
+                            script: entryFile,
+                            args: [network, 'token', t],
+                            log_date_format: "YYYY-MM-DD HH:mm:ss",
+                            env: envObj
+                        })
+                    }
                 }
             } else {
                 await startTask({
